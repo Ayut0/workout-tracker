@@ -13,7 +13,7 @@ This app lets users record their workouts and visualize their progress over time
 
 ---
 
-## 🧱 Tech Stack
+## 🧱 Tech Stack (WIP)
 | Layer | Technology |
 |-------|-------------|
 | Framework | [Next.js 15 (App Router)](https://nextjs.org/) |
@@ -67,11 +67,11 @@ model Workout {
   userId       String
   date         DateTime @default(now())
   notes        String?
-  exercises    WorkoutExercise[]
+  items        WorkoutItem[]
   user         User     @relation(fields: [userId], references: [id])
 }
 
-model WorkoutExercise {
+model WorkoutItem {
   id         String  @id @default(cuid())
   workoutId  String
   exerciseId String
@@ -79,16 +79,29 @@ model WorkoutExercise {
   sets       Set[]
   workout    Workout  @relation(fields: [workoutId], references: [id])
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  @@index([workoutId])
 }
 
 model Set {
-  id                 String  @id @default(cuid())
-  workoutExerciseId  String
-  setIndex           Int
-  reps               Int
-  weight             Decimal @db.Decimal(6,2)
-  workoutExercise    WorkoutExercise @relation(fields: [workoutExerciseId], references: [id])
+  id              String  @id @default(cuid())
+  workoutItemId   String
+  setIndex        Int
+  reps            Int
+  weight          Decimal @db.Decimal(6,2)
+  workoutItem     WorkoutItem @relation(fields: [workoutItemId], references: [id])
+  @@unique([workoutItemId, setIndex])
 }
+
+example relationship
+
+Workout (2025-10-07)
+  ├─ WorkoutItem: Bench Press
+  │   ├─ Set 1: 10 × 60kg
+  │   └─ Set 2: 8 × 65kg
+  └─ WorkoutItem: Incline DB Press
+      ├─ Set 1: 12 × 20kg
+      └─ Set 2: 10 × 22.5kg
+
 ```
 
 ---
@@ -99,53 +112,6 @@ model Set {
 ✅ Visualize progress with charts  
 ✅ Manage exercise list  
 ✅ Change measurement units (kg/lb)
-
----
-
-## 🧰 Development Setup
-### 1. Clone the repo
-```bash
-git clone https://github.com/yourusername/workout-journal.git
-cd workout-journal
-```
-
-### 2. Install dependencies
-```bash
-pnpm install
-```
-
-### 3. Set up environment variables
-Create `.env` file:
-```bash
-DATABASE_URL="file:./dev.db" # or your Postgres URL
-NEXTAUTH_SECRET="your-secret"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-### 4. Initialize the database
-```bash
-pnpm prisma migrate dev --name init
-pnpm prisma db seed
-```
-
-### 5. Run the app
-```bash
-pnpm dev
-```
-Then open [http://localhost:3000](http://localhost:3000).
-
----
-
-## 🧪 Testing
-Run unit tests:
-```bash
-pnpm test
-```
-
-Run end-to-end tests:
-```bash
-pnpm exec playwright test
-```
 
 ---
 
@@ -166,8 +132,7 @@ pnpm exec playwright test
 ---
 
 ## 🧑‍💻 Author
-Created by **Yuto** — Software Engineer.  
-Architecture & documentation by **Bryant (Vancouver, Canada)**.
+Created by **Yuto** — Software Engineer.
 
 ---
 
