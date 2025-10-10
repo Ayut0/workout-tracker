@@ -1,11 +1,12 @@
 # 🏋️ Workout Journal Web App (MVP)
 
-A clean-architecture workout tracking web app built with **TypeScript**, **Next.js**, **Prisma**, and **Tailwind CSS**.
+A clean-architecture workout tracking web app built with **TypeScript**, **Next.js**, **Prisma**, **Tailwind CSS**, and **Supabase**.
 
 ---
 
 ## 🚀 Overview
-This app lets users record their workouts and visualize their progress over time. The MVP focuses on the essential flow:
+This app lets users record their workouts and visualize their progress over time.
+The MVP focuses on the essential flow:
 
 - Log workouts with exercises, sets, reps, and weights
 - View past workouts
@@ -13,16 +14,17 @@ This app lets users record their workouts and visualize their progress over time
 
 ---
 
-## 🧱 Tech Stack (WIP)
+## 🧱 Tech Stack
 | Layer | Technology |
 |-------|-------------|
 | Framework | [Next.js 15 (App Router)](https://nextjs.org/) |
 | Language | [TypeScript](https://www.typescriptlang.org/) |
 | Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Database | [PostgreSQL (prod)](https://www.postgresql.org/) / [SQLite (dev)](https://www.sqlite.org/) |
+| Database | [PostgreSQL (Supabase)](https://supabase.com/) |
 | ORM | [Prisma](https://www.prisma.io/) |
-| Auth | [NextAuth.js](https://next-auth.js.org/) (email/password) |
+| Auth | [Supabase Auth](https://supabase.com/auth) (email & OAuth) |
 | Charts | [Recharts](https://recharts.org/en-US/) |
+| Component Development | [Storybook](https://storybook.js.org/) |
 | Testing | [Vitest](https://vitest.dev/), [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) |
 
 ---
@@ -40,56 +42,75 @@ UI (Next.js / React Components)
 └─ Infrastructure (Prisma, Auth, DB, API Routes)
 ```
 
-Data flows: **UI → Controller → Use Case → Repository → DB**.
+Data flows: **UI → Controller → Use Case → Repository → DB**
 
 ---
 
 ## 🗄️ Database Schema (Simplified)
+
+Uses **UUIDs** (compatible with Supabase `auth.users.id`) and **Row Level Security (RLS)**.  
+Each user only sees their own workouts and exercises.
+
 ```prisma
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+model UserProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
   name      String?
   createdAt DateTime @default(now())
+
   workouts  Workout[]
+  exercises Exercise[]
+
+  @@map("user_profiles")
 }
 
 model Exercise {
-  id          String   @id @default(cuid())
-  name        String
-  ownerId     String?
-  owner       User?    @relation(fields: [ownerId], references: [id])
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String?
+  owner     UserProfile? @relation(fields: [ownerId], references: [id])
+  isGlobal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([ownerId, name])
+  @@map("exercises")
 }
 
 model Workout {
-  id           String   @id @default(cuid())
-  userId       String
-  date         DateTime @default(now())
-  notes        String?
-  items        WorkoutItem[]
-  user         User     @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime @default(now())
+  notes     String?
+  items     WorkoutItem[]
+  user      UserProfile @relation(fields: [userId], references: [id])
+
+  @@index([userId, date])
+  @@map("workouts")
 }
 
 model WorkoutItem {
-  id         String  @id @default(cuid())
+  id         String  @id @default(uuid())
   workoutId  String
   exerciseId String
   order      Int
   sets       Set[]
   workout    Workout  @relation(fields: [workoutId], references: [id])
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
   @@index([workoutId])
+  @@map("workout_items")
 }
 
 model Set {
-  id              String  @id @default(cuid())
+  id              String  @id @default(uuid())
   workoutItemId   String
   setIndex        Int
   reps            Int
-  weight          Decimal @db.Decimal(6,2)
+  weight          Decimal @db.Decimal(7,3)
   workoutItem     WorkoutItem @relation(fields: [workoutItemId], references: [id])
+
   @@unique([workoutItemId, setIndex])
+  @@map("sets")
 }
 
 example relationship
@@ -114,6 +135,12 @@ Workout (2025-10-07)
 ✅ Change measurement units (kg/lb)
 
 ---
+
+-- Example: workouts policy
+create policy "Users can manage their own workouts"
+on workouts for all
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
 
 ## 📦 Deployment
 - **Vercel** for app hosting
