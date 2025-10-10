@@ -9,9 +9,9 @@
 ---
 
 ## ⚙️ Project Setup
-- [ ] Initialize repository and environment setup  
+- [x] Initialize repository and environment setup  
 - [ ] Add linting, formatting, and testing configs  
-- [ ] Configure environment variables and `.env.example`  
+- [x] Configure environment variables and `.env.example`  
 - [ ] Set up GitHub Actions or local CI pipeline  
 
 ---
