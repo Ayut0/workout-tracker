@@ -17,3 +17,6 @@ node_modules/
 
 # IDEA related files
 .idea/
+
+# Next.js related files
+.next/
