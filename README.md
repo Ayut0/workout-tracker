@@ -30,10 +30,14 @@ The MVP focuses on the essential flow:
 ---
 
 ## 🧩 Architecture
-Following **Clean Architecture** principles:
+Following **Clean Architecture** principles with **Presentation-Container pattern** for the frontend:
 
 ```
-UI (Next.js / React Components)
+Frontend (Next.js / React)
+│
+├─ Presentation Layer (UI Components)
+│   ├─ Presentational Components (Pure UI)
+│   └─ Container Components (Data & Logic)
 │
 ├─ Application (Use Cases, DTOs)
 │
@@ -42,7 +46,12 @@ UI (Next.js / React Components)
 └─ Infrastructure (Prisma, Auth, DB, API Routes)
 ```
 
-Data flows: **UI → Controller → Use Case → Repository → DB**
+**Frontend Pattern:**
+- **Presentational Components**: Pure UI components that receive data via props and emit events
+- **Container Components**: Handle data fetching, state management, and business logic
+- **Separation of Concerns**: UI logic separated from business logic
+
+Data flows: **Container → Use Case → Repository → DB → Presentational Component**
 
 ---
 
