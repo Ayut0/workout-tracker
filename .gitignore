@@ -1,1 +1,19 @@
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# Prisma related files
+/generated/prisma
+
+# VSCode related files
+.vscode/
+
+# Documents
+Documents/
+
+# Node.js related files
+node_modules/
+
+# IDEA related files
+.idea/
