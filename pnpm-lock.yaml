@@ -6,7 +6,7 @@ settings:
 
 dependencies:
   '@prisma/client':
-    specifier: ^6.17.1
+    specifier: 6.17.1
     version: 6.17.1(prisma@6.17.1)(typescript@5.9.3)
   next:
     specifier: ^15.5.4

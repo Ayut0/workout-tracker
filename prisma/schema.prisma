@@ -9,6 +9,7 @@ generator client {
   output   = "../generated/prisma"
 }
 
+// Ignore this warning because this schema is correct for Prisma 6
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

@@ -5,6 +5,7 @@
 		"prisma:generate": "prisma generate",
 		"prisma:migrate:dev": "prisma migrate dev",
 		"prisma:db:push": "prisma db push",
+		"test:db": "tsx tests/db/connection.test.ts",
 		"dev": "next dev --turbopack",
 		"build": "next build",
 		"start": "next start",
@@ -21,7 +22,7 @@
 		"typescript": "^5.9.3"
 	},
 	"dependencies": {
-		"@prisma/client": "^6.17.1",
+		"@prisma/client": "6.17.1",
 		"next": "^15.5.4",
 		"react": "^19.2.0",
 		"react-dom": "^19.2.0"
