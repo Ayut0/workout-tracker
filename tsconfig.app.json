@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"composite": true,
+		"tsBuildInfoFile": "./node_modules/.tmp/app.tsbuildinfo",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"jsx": "react-jsx",
+		"types": ["vite/client", "vite-plugin-pwa/client"]
+	},
+	"include": ["src"],
+	"exclude": ["src/sw.ts"]
+}
