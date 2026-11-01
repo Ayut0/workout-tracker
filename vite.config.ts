@@ -17,8 +17,8 @@ export default defineConfig({
 			manifest: {
 				name: "Workout Tracker",
 				short_name: "Workout",
-				description: "自分専用のワークアウト記録",
-				lang: "ja",
+				description: "A personal workout log",
+				lang: "en",
 				start_url: "/",
 				scope: "/",
 				display: "standalone",
