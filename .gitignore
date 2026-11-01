@@ -2,21 +2,24 @@
 .env
 .env.local
 .env.*.local
+.dev.vars
 
-# Prisma related files
-/generated/prisma
+# Build output
+dist/
+dev-dist/
+.wrangler/
+*.tsbuildinfo
 
-# VSCode related files
+# Personal workout data (never commit; this repo is public)
+fixtures/private/
+*.csv
+
+# Editors
 .vscode/
+.idea/
 
 # Documents
 Documents/
 
-# Node.js related files
+# Node.js
 node_modules/
-
-# IDEA related files
-.idea/
-
-# Next.js related files
-.next/

@@ -1,20 +1,20 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.2.6/schema.json",
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"vcs": {
-		"enabled": false,
+		"enabled": true,
 		"clientKind": "git",
 		"useIgnoreFile": true
 	},
 	"files": {
-		"ignore": [
-			".next/",
-			"node_modules/",
-			"dist/",
-			"package.json",
-			"pnpm-lock.yaml",
-			"tsconfig.json"
-		],
-		"ignoreUnknown": false
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/dev-dist",
+			"!**/.wrangler",
+			"!**/worker-configuration.d.ts",
+			"!.cursor",
+			"!.github"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -23,7 +23,7 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"preset": "recommended"
 		}
 	},
 	"javascript": {
