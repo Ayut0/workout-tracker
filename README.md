@@ -1,176 +1,99 @@
-# 🏋️ Workout Journal Web App (MVP)
+# Workout Tracker
 
-A clean-architecture workout tracking web app built with **TypeScript**, **Next.js**, **Prisma**, **Tailwind CSS**, and **Supabase**.
+A personal workout log that replaces the Strong app. It runs as a PWA from the iPhone Home Screen, keeps every record on the device, and imports the existing Strong history.
 
----
+- **Local-first**: records live in IndexedDB on the phone and work offline.
+- **No accounts, no data on servers**: the only server is a tiny notification worker. It learns a push endpoint and a time, never workout data.
+- **Free**: Cloudflare Pages for the app, a Cloudflare Worker for notifications, no Apple Developer Program.
 
-## 🚀 Overview
-This app lets users record their workouts and visualize their progress over time.
-The MVP focuses on the essential flow:
+Full plan (in Japanese): approach, data model, Strong import spec, milestones and risks are kept in the planning doc.
 
-- Log workouts with exercises, sets, reps, and weights
-- View past workouts
-- See progress via charts (estimated 1RM and volume)
+## Status: phase 1 — notification check
 
----
+The app is currently a single test screen for the riskiest part of the plan: does a rest-timer notification reach the lock screen on time? Start a 90-second timer, lock the phone, and the screen records how late the push arrived. If pushes are unreliable, the plan falls back to a native Expo app.
 
-## 🧱 Tech Stack
-| Layer | Technology |
-|-------|-------------|
-| Framework | [Next.js 15 (App Router)](https://nextjs.org/) |
-| Language | [TypeScript](https://www.typescriptlang.org/) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Database | [PostgreSQL (Supabase)](https://supabase.com/) |
-| ORM | [Prisma](https://www.prisma.io/) |
-| Auth | [Supabase Auth](https://supabase.com/auth) (email & OAuth) |
-| Charts | [Recharts](https://recharts.org/en-US/) |
-| Component Development | [Storybook](https://storybook.js.org/) |
-| Testing | [Vitest](https://vitest.dev/), [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) |
+## Stack
 
----
+| Part          | Choice                                                                   |
+| ------------- | ------------------------------------------------------------------------ |
+| App           | Vite, React, TypeScript                                                  |
+| PWA           | vite-plugin-pwa (`injectManifest`, custom service worker in `src/sw.ts`) |
+| Storage       | IndexedDB via Dexie (`src/db`)                                           |
+| Notifications | Cloudflare Worker + Durable Object alarm + Web Push (`worker/`)          |
+| Tests         | Vitest                                                                   |
+| Lint/format   | Biome                                                                    |
 
-## 🧩 Architecture
-Following **Clean Architecture** principles with **Presentation-Container pattern** for the frontend:
+## How the rest-timer notification works
 
-```
-Frontend (Next.js / React)
-│
-├─ Presentation Layer (UI Components)
-│   ├─ Presentational Components (Pure UI)
-│   └─ Container Components (Data & Logic)
-│
-├─ Application (Use Cases, DTOs)
-│
-├─ Domain (Entities, Core Logic)
-│
-└─ Infrastructure (Prisma, Auth, DB, API Routes)
-```
+1. When a set is done, the app sends `{ endpoint, fireAt }` to the worker.
+2. A Durable Object (one per device) stores it and sets an alarm for `fireAt`.
+3. The alarm sends an empty Web Push signed with VAPID. No payload means no workout data leaves the phone and no payload encryption is needed.
+4. The service worker shows "休憩終了" and records when the push arrived.
 
-**Frontend Pattern:**
-- **Presentational Components**: Pure UI components that receive data via props and emit events
-- **Container Components**: Handle data fetching, state management, and business logic
-- **Separation of Concerns**: UI logic separated from business logic
+The worker only sends to known push services (Apple, Google, Mozilla, Microsoft) and only accepts requests from the app's origin. Timers must be 5 seconds to 1 hour away. A failed push is not retried, because a late notification is worse than none.
 
-Data flows: **Container → Use Case → Repository → DB → Presentational Component**
-
----
-
-## 🗄️ Database Schema (Simplified)
-
-Uses **UUIDs** (compatible with Supabase `auth.users.id`) and **Row Level Security (RLS)**.  
-Each user only sees their own workouts and exercises.
-
-```prisma
-model UserProfile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-
-  workouts  Workout[]
-  exercises Exercise[]
-
-  @@map("user_profiles")
-}
-
-model Exercise {
-  id        String   @id @default(uuid())
-  name      String
-  ownerId   String?
-  owner     UserProfile? @relation(fields: [ownerId], references: [id])
-  isGlobal  Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@unique([ownerId, name])
-  @@map("exercises")
-}
-
-model Workout {
-  id        String   @id @default(uuid())
-  userId    String
-  date      DateTime @default(now())
-  notes     String?
-  items     WorkoutItem[]
-  user      UserProfile @relation(fields: [userId], references: [id])
-
-  @@index([userId, date])
-  @@map("workouts")
-}
-
-model WorkoutItem {
-  id         String  @id @default(uuid())
-  workoutId  String
-  exerciseId String
-  order      Int
-  sets       Set[]
-  workout    Workout  @relation(fields: [workoutId], references: [id])
-  exercise   Exercise @relation(fields: [exerciseId], references: [id])
-
-  @@index([workoutId])
-  @@map("workout_items")
-}
-
-model Set {
-  id              String  @id @default(uuid())
-  workoutItemId   String
-  setIndex        Int
-  reps            Int
-  weight          Decimal @db.Decimal(7,3)
-  workoutItem     WorkoutItem @relation(fields: [workoutItemId], references: [id])
-
-  @@unique([workoutItemId, setIndex])
-  @@map("sets")
-}
-
-example relationship
-
-Workout (2025-10-07)
-  ├─ WorkoutItem: Bench Press
-  │   ├─ Set 1: 10 × 60kg
-  │   └─ Set 2: 8 × 65kg
-  └─ WorkoutItem: Incline DB Press
-      ├─ Set 1: 12 × 20kg
-      └─ Set 2: 10 × 22.5kg
+## Layout
 
 ```
+src/
+  App.tsx          phase-1 timer test screen
+  sw.ts            service worker: offline cache, push, notification click
+  db/              Dexie schema and types for the whole data model
+  lib/push.ts      permission, subscription, worker calls
+  lib/restTimer.ts timer status and countdown helpers
+worker/
+  src/index.ts     HTTP routes and the RestTimer Durable Object
+  src/vapid.ts     VAPID JWT and push sending (WebCrypto only)
+  src/validate.ts  request validation and push-host allowlist
+```
 
----
+## Development
 
-## 🧠 Core Features (MVP)
-✅ Record workouts  
-✅ View workout history  
-✅ Visualize progress with charts  
-✅ Manage exercise list  
-✅ Change measurement units (kg/lb)
+```sh
+pnpm install
+pnpm dev          # app on http://localhost:5173
+pnpm test         # app tests
+pnpm --filter worker test
+pnpm lint
+pnpm typecheck
+```
 
----
+Personal data never goes in this repo (it is public). `*.csv` and `fixtures/private/` are git-ignored; keep the Strong export there for local import tests.
 
--- Example: workouts policy
-create policy "Users can manage their own workouts"
-on workouts for all
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+## Deploy and test on the iPhone
 
-## 📦 Deployment
-- **Vercel** for app hosting
-- **Neon** or **Supabase** for managed PostgreSQL
-- Migrations: `pnpm prisma migrate deploy`
+1. Generate VAPID keys:
 
----
+   ```sh
+   pnpm --filter worker vapid
+   ```
+2. In `worker/wrangler.jsonc`, set `VAPID_PUBLIC_KEY` to the public key and `VAPID_SUBJECT` to a real `mailto:` address (Apple rejects placeholders). Set `ALLOWED_ORIGIN` to the Pages URL (step 5).
+3. Log in and store the private key as a secret:
 
-## 🗓️ Roadmap
-| Phase | Deliverable |
-|--------|--------------|
-| MVP | Workout CRUD, History, Progress Charts |
-| v1.1 | Auth with OAuth, CSV Export |
-| v1.2 | Templates, PR detection, Volume goals |
+   ```sh
+   cd worker
+   npx wrangler login
+   npx wrangler secret put VAPID_PRIVATE_JWK   # paste the JSON from step 1
+   ```
+4. Deploy the worker and note its URL:
 
----
+   ```sh
+   pnpm deploy:push
+   ```
+5. Create `.env.local` in the repo root and deploy the app:
 
-## 🧑‍💻 Author
-Created by **Yuto** — Software Engineer.
+   ```sh
+   VITE_VAPID_PUBLIC_KEY=<public key>
+   VITE_PUSH_API_URL=https://workout-push.<account>.workers.dev
+   ```
 
----
+   ```sh
+   pnpm deploy:app
+   ```
 
-## 📄 License
+   If the Pages URL differs from `ALLOWED_ORIGIN`, update it and run `pnpm deploy:push` again.
+6. On the iPhone (iOS 16.4 or later): open the Pages URL in Safari, Share → Add to Home Screen, open the Home Screen icon, tap 通知を許可する, start a 90-second timer and lock the phone.
+
+## License
+
 MIT © 2025 Yuto
