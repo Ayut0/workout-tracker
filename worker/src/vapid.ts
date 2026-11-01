@@ -84,8 +84,6 @@ export async function vapidAuthorization(
 
 export interface PushResult {
 	status: number;
-	/** The subscription is gone (unsubscribed or expired) and should be forgotten. */
-	expired: boolean;
 }
 
 export async function sendEmptyPush(
@@ -102,8 +100,5 @@ export async function sendEmptyPush(
 			Urgency: "high",
 		},
 	});
-	return {
-		status: response.status,
-		expired: response.status === 404 || response.status === 410,
-	};
+	return { status: response.status };
 }
