@@ -1,4 +1,4 @@
-"""Generate the app icons (a simple barbell) into public/icons.
+"""Generate the app icons (a simple kettlebell) into public/icons.
 
 Run: python3 scripts/make-icons.py
 """
@@ -8,34 +8,48 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 OUT = Path(__file__).resolve().parent.parent / "public" / "icons"
-BG = (22, 32, 42)
-FG = (127, 162, 245)
+BG = (18, 60, 50)
+FG = (120, 235, 190)
+SUPERSAMPLE = 4
 
 
-def barbell(size: int, pad_ratio: float) -> Image.Image:
-    img = Image.new("RGB", (size, size), BG)
+def kettlebell(size: int, pad_ratio: float) -> Image.Image:
+    s = size * SUPERSAMPLE
+    img = Image.new("RGB", (s, s), BG)
     d = ImageDraw.Draw(img)
-    s = size
-    pad = s * pad_ratio
-    inner = s - 2 * pad
-    cy = s / 2
-    bar_h = inner * 0.06
-    d.rounded_rectangle((pad, cy - bar_h / 2, s - pad, cy + bar_h / 2), radius=bar_h / 2, fill=FG)
-    plates = [(0.10, 0.50), (0.22, 0.36)]
-    for x_ratio, h_ratio in plates:
-        w = inner * 0.09
-        h = inner * h_ratio
-        for left in (pad + inner * x_ratio, s - pad - inner * x_ratio - w):
-            d.rounded_rectangle((left, cy - h / 2, left + w, cy + h / 2), radius=w * 0.3, fill=FG)
-    return img
+    # Draw in a 180-unit box scaled by the padding so every size shares one design.
+    scale = s * (1 - 2 * pad_ratio) / 180 * (180 / 130)
+    cx, cy = s / 2, s / 2
+
+    def u(x: float, y: float) -> tuple[float, float]:
+        return cx + x * scale, cy + y * scale
+
+    body_r = 52
+    body_cy = 24
+    handle_r = 34
+    handle_cy = -22
+    stroke_units = 13
+    stroke = round(stroke_units * scale)
+
+    d.ellipse((*u(-body_r, body_cy - body_r), *u(body_r, body_cy + body_r)), fill=FG)
+    d.arc((*u(-handle_r, handle_cy - handle_r), *u(handle_r, handle_cy + handle_r)), 180, 360, fill=FG, width=stroke)
+    for side in (-1, 1):
+        # The arc's stroke grows inward from its bounding box, so the legs sit inside handle_r.
+        outer = side * handle_r
+        inner = side * (handle_r - stroke_units)
+        d.rectangle(
+            (*u(min(inner, outer), handle_cy), *u(max(inner, outer), body_cy - body_r * 0.5)),
+            fill=FG,
+        )
+    return img.resize((size, size), Image.LANCZOS)
 
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    barbell(192, 0.12).save(OUT / "icon-192.png")
-    barbell(512, 0.12).save(OUT / "icon-512.png")
-    barbell(512, 0.22).save(OUT / "maskable-512.png")
-    barbell(180, 0.14).save(OUT / "apple-touch-icon.png")
+    kettlebell(192, 0.12).save(OUT / "icon-192.png")
+    kettlebell(512, 0.12).save(OUT / "icon-512.png")
+    kettlebell(512, 0.22).save(OUT / "maskable-512.png")
+    kettlebell(180, 0.14).save(OUT / "apple-touch-icon.png")
 
 
 if __name__ == "__main__":
