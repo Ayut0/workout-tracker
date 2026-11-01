@@ -1,0 +1,20 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "workout-push",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-01",
+	"observability": { "enabled": true },
+	"durable_objects": {
+		"bindings": [{ "name": "REST_TIMER", "class_name": "RestTimer" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["RestTimer"] }],
+	"vars": {
+		// Replace with your Pages URL after the first deploy.
+		"ALLOWED_ORIGIN": "https://workout-tracker.pages.dev",
+		// Fill in from `pnpm vapid`.
+		"VAPID_PUBLIC_KEY": "",
+		// Apple rejects placeholder contacts; use a real address or https URL.
+		"VAPID_SUBJECT": "mailto:you@example.com"
+	}
+	// Secret (not in this file): `wrangler secret put VAPID_PRIVATE_JWK`
+}
