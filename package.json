@@ -8,12 +8,15 @@
 		"build": "tsc -b && vite build",
 		"preview": "vite preview",
 		"typecheck": "tsc -b",
-		"test": "vitest run --passWithNoTests",
+		"test": "vitest run",
 		"lint": "biome check .",
 		"format": "biome check --write .",
-		"deploy:push": "pnpm --filter worker deploy"
+		"deploy:push": "pnpm --filter worker deploy",
+		"deploy:app": "pnpm build && pnpm --filter worker exec wrangler pages deploy ../dist --project-name workout-tracker"
 	},
 	"dependencies": {
+		"dexie": "^4.4.7",
+		"dexie-react-hooks": "^4.4.0",
 		"react": "^19.3.1",
 		"react-dom": "^19.3.1",
 		"workbox-precaching": "^7.4.1"
@@ -24,6 +27,7 @@
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
 		"@vitejs/plugin-react": "^6.1.2",
+		"fake-indexeddb": "^6.2.7",
 		"typescript": "^7.0.2",
 		"vite": "^8.3.5",
 		"vite-plugin-pwa": "^2.0.0",
