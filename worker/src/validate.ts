@@ -34,11 +34,14 @@ export interface ScheduleRequest {
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
-function readEndpoint(body: unknown): Parsed<string> {
-	if (typeof body !== "object" || body === null) {
-		return { ok: false, error: "Body must be a JSON object" };
-	}
-	const endpoint = (body as { endpoint?: unknown }).endpoint;
+const NOT_AN_OBJECT = "Body must be a JSON object";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function readEndpoint(body: Record<string, unknown>): Parsed<string> {
+	const endpoint = body.endpoint;
 	if (typeof endpoint !== "string" || !isAllowedPushEndpoint(endpoint)) {
 		return {
 			ok: false,
@@ -52,9 +55,10 @@ export function parseScheduleRequest(
 	body: unknown,
 	now: number,
 ): Parsed<ScheduleRequest> {
+	if (!isRecord(body)) return { ok: false, error: NOT_AN_OBJECT };
 	const endpoint = readEndpoint(body);
 	if (!endpoint.ok) return endpoint;
-	const fireAt = (body as { fireAt?: unknown }).fireAt;
+	const fireAt = body.fireAt;
 	if (typeof fireAt !== "number" || !Number.isFinite(fireAt)) {
 		return { ok: false, error: "fireAt must be epoch milliseconds" };
 	}
@@ -71,6 +75,7 @@ export function parseScheduleRequest(
 export function parseCancelRequest(
 	body: unknown,
 ): Parsed<{ endpoint: string }> {
+	if (!isRecord(body)) return { ok: false, error: NOT_AN_OBJECT };
 	const endpoint = readEndpoint(body);
 	return endpoint.ok
 		? { ok: true, value: { endpoint: endpoint.value } }

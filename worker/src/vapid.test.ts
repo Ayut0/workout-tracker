@@ -7,19 +7,16 @@ import {
 } from "./vapid";
 
 async function makeKeys(): Promise<{ keys: VapidKeys; publicKey: CryptoKey }> {
-	const pair = (await crypto.subtle.generateKey(
+	const pair = await crypto.subtle.generateKey(
 		{ name: "ECDSA", namedCurve: "P-256" },
 		true,
 		["sign", "verify"],
-	)) as CryptoKeyPair;
-	const raw = (await crypto.subtle.exportKey(
-		"raw",
-		pair.publicKey,
-	)) as ArrayBuffer;
-	const privateJwk = (await crypto.subtle.exportKey(
-		"jwk",
-		pair.privateKey,
-	)) as JsonWebKey;
+	);
+	if (!("publicKey" in pair)) throw new Error("Expected a key pair");
+	const raw = await crypto.subtle.exportKey("raw", pair.publicKey);
+	if (!(raw instanceof ArrayBuffer)) throw new Error("Expected raw key bytes");
+	const privateJwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
+	if (privateJwk instanceof ArrayBuffer) throw new Error("Expected a JWK");
 	return {
 		keys: {
 			publicKey: base64UrlEncode(raw),

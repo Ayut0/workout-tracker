@@ -12,6 +12,14 @@ export interface Env {
 	VAPID_PRIVATE_JWK: string;
 }
 
+const ROUTES = { timers: "/timers", health: "/health" } as const;
+const METHODS = {
+	get: "GET",
+	post: "POST",
+	delete: "DELETE",
+	options: "OPTIONS",
+} as const;
+
 function vapidKeys(env: Env): VapidKeys {
 	return {
 		publicKey: env.VAPID_PUBLIC_KEY,
@@ -58,7 +66,11 @@ export class RestTimer extends DurableObject<Env> {
 function corsHeaders(env: Env): HeadersInit {
 	return {
 		"Access-Control-Allow-Origin": env.ALLOWED_ORIGIN,
-		"Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
+		"Access-Control-Allow-Methods": [
+			METHODS.post,
+			METHODS.delete,
+			METHODS.options,
+		].join(", "),
 		"Access-Control-Allow-Headers": "Content-Type",
 		"Access-Control-Max-Age": "86400",
 		Vary: "Origin",
@@ -88,20 +100,20 @@ export default {
 	async fetch(request, env): Promise<Response> {
 		const { pathname } = new URL(request.url);
 
-		if (request.method === "OPTIONS") {
+		if (request.method === METHODS.options) {
 			return new Response(null, { status: 204, headers: corsHeaders(env) });
 		}
-		if (pathname === "/health" && request.method === "GET") {
+		if (pathname === ROUTES.health && request.method === METHODS.get) {
 			return json(env, 200, { ok: true });
 		}
-		if (pathname !== "/timers") {
+		if (pathname !== ROUTES.timers) {
 			return json(env, 404, { error: "Not found" });
 		}
 		if (request.headers.get("Origin") !== env.ALLOWED_ORIGIN) {
 			return json(env, 403, { error: "Origin not allowed" });
 		}
 
-		if (request.method === "POST") {
+		if (request.method === METHODS.post) {
 			const parsed = parseScheduleRequest(await readJson(request), Date.now());
 			if (!parsed.ok) return json(env, 400, { error: parsed.error });
 			await timerFor(env, parsed.value.endpoint).schedule(
@@ -111,7 +123,7 @@ export default {
 			return json(env, 202, { fireAt: parsed.value.fireAt });
 		}
 
-		if (request.method === "DELETE") {
+		if (request.method === METHODS.delete) {
 			const parsed = parseCancelRequest(await readJson(request));
 			if (!parsed.ok) return json(env, 400, { error: parsed.error });
 			await timerFor(env, parsed.value.endpoint).cancel();
