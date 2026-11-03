@@ -20,7 +20,7 @@ export class WorkoutDB extends Dexie {
 export const db = new WorkoutDB();
 
 /** Returns the most recent pending timer, the one a push just arrived for. */
-export async function latestPendingTimer(
+export async function findLatestPendingTimer(
 	database: WorkoutDB = db,
 ): Promise<RestTimer | undefined> {
 	return database.restTimers
@@ -36,7 +36,7 @@ export async function markTimerReceived(
 	receivedAt: number,
 	database: WorkoutDB = db,
 ): Promise<RestTimer | undefined> {
-	const timer = await latestPendingTimer(database);
+	const timer = await findLatestPendingTimer(database);
 	if (!timer) return undefined;
 	await database.restTimers.update(timer.id, {
 		status: "received",

@@ -14,10 +14,9 @@ export function isConfigured(): boolean {
 
 /** True when opened from the Home Screen icon (required for push on iOS). */
 export function isStandalone(): boolean {
-	const nav = navigator as Navigator & { standalone?: boolean };
 	return (
 		window.matchMedia("(display-mode: standalone)").matches ||
-		nav.standalone === true
+		("standalone" in navigator && navigator.standalone === true)
 	);
 }
 

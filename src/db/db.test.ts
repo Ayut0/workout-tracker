@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { latestPendingTimer, markTimerReceived, WorkoutDB } from "./index";
+import { findLatestPendingTimer, markTimerReceived, WorkoutDB } from "./index";
 
 let database: WorkoutDB;
 
@@ -21,7 +21,7 @@ describe("rest timers", () => {
 			{ id: "done", scheduledAt: 3_000, createdAt: 0, status: "cancelled" },
 		]);
 
-		expect((await latestPendingTimer(database))?.id).toBe("new");
+		expect((await findLatestPendingTimer(database))?.id).toBe("new");
 
 		const received = await markTimerReceived(2_400, database);
 		expect(received?.id).toBe("new");

@@ -3,6 +3,12 @@ import type { RestTimer } from "../db/types";
 /** A push not seen this long after its time is counted as lost. */
 export const LOST_AFTER_MS = 60_000;
 
+/**
+ * How long the countdown stays on screen after its time, so the timer does not
+ * flip back to "Start" while the push is still in flight.
+ */
+export const ACTIVE_GRACE_MS = 1_000;
+
 export type TimerOutcome =
 	| { kind: "waiting" }
 	| { kind: "received"; delaySec: number }
@@ -52,4 +58,14 @@ export function formatCountdown(ms: number): string {
 	const minutes = Math.floor(total / 60);
 	const seconds = total % 60;
 	return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+/** The pending timer the screen is counting down, if any. */
+export function findActiveTimer(
+	timers: readonly RestTimer[],
+	now: number,
+): RestTimer | undefined {
+	return timers.find(
+		(t) => t.status === "pending" && t.scheduledAt > now - ACTIVE_GRACE_MS,
+	);
 }

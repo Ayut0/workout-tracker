@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { RestTimer } from "../db/types";
-import { formatCountdown, outcomeLabel, timerOutcome } from "./restTimer";
+import {
+	ACTIVE_GRACE_MS,
+	findActiveTimer,
+	formatCountdown,
+	outcomeLabel,
+	timerOutcome,
+} from "./restTimer";
 
 const base: RestTimer = {
 	id: "t",
@@ -54,5 +60,19 @@ describe("formatCountdown", () => {
 		[-3_000, "0:00"],
 	])("formats %i ms as %s", (ms, text) => {
 		expect(formatCountdown(ms)).toBe(text);
+	});
+});
+
+describe("findActiveTimer", () => {
+	it("keeps a pending timer active until the grace window after its time", () => {
+		expect(findActiveTimer([base], 100_000 + ACTIVE_GRACE_MS - 1)).toBe(base);
+		expect(findActiveTimer([base], 100_000 + ACTIVE_GRACE_MS + 1)).toBe(
+			undefined,
+		);
+	});
+
+	it("ignores timers that are not pending", () => {
+		const received = { ...base, status: "received" as const };
+		expect(findActiveTimer([received], 0)).toBeUndefined();
 	});
 });

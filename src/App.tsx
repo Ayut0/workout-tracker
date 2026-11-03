@@ -1,29 +1,9 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { useCallback, useEffect, useState } from "react";
-import { db } from "./db";
-import type { RestTimer } from "./db/types";
-import {
-	cancelRestPush,
-	currentSubscription,
-	enableNotifications,
-	isConfigured,
-	isStandalone,
-	type PermissionState,
-	permissionState,
-	scheduleRestPush,
-} from "./lib/push";
+import { useNotificationSetup } from "./hooks/useNotificationSetup";
+import { useRestTimer } from "./hooks/useRestTimer";
+import { isConfigured } from "./lib/push";
 import { formatCountdown, outcomeLabel, timerOutcome } from "./lib/restTimer";
 
 const PRESETS = [60, 90, 120];
-
-function useNow(intervalMs: number): number {
-	const [now, setNow] = useState(() => Date.now());
-	useEffect(() => {
-		const id = window.setInterval(() => setNow(Date.now()), intervalMs);
-		return () => window.clearInterval(id);
-	}, [intervalMs]);
-	return now;
-}
 
 function formatClock(ms: number): string {
 	return new Date(ms).toLocaleTimeString("en-GB", {
@@ -34,92 +14,11 @@ function formatClock(ms: number): string {
 }
 
 export function App() {
-	const now = useNow(250);
-	const [standalone] = useState(isStandalone);
-	const [permission, setPermission] =
-		useState<PermissionState>(permissionState);
-	const [subscription, setSubscription] = useState<PushSubscription | null>(
-		null,
-	);
-	const [persisted, setPersisted] = useState<boolean | null>(null);
-	const [seconds, setSeconds] = useState(90);
-	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-
-	const history = useLiveQuery(
-		() => db.restTimers.orderBy("scheduledAt").reverse().limit(20).toArray(),
-		[],
-		[] as RestTimer[],
-	);
-	const active = history.find(
-		(t) => t.status === "pending" && t.scheduledAt > now - 1000,
-	);
-
-	useEffect(() => {
-		currentSubscription()
-			.then(setSubscription)
-			.catch(() => setSubscription(null));
-		navigator.storage
-			?.persisted?.()
-			.then(setPersisted)
-			.catch(() => setPersisted(null));
-	}, []);
-
-	const onEnable = useCallback(async () => {
-		setError(null);
-		setBusy(true);
-		try {
-			const sub = await enableNotifications();
-			setSubscription(sub);
-			// Ask the browser to keep our data; Home Screen apps are favoured.
-			setPersisted((await navigator.storage?.persist?.()) ?? null);
-		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
-		} finally {
-			setPermission(permissionState());
-			setBusy(false);
-		}
-	}, []);
-
-	const onStart = useCallback(async () => {
-		if (!subscription) return;
-		setError(null);
-		setBusy(true);
-		const fireAt = Date.now() + seconds * 1000;
-		const id = crypto.randomUUID();
-		try {
-			// The worker keeps one timer per device, so older pending ones are replaced.
-			await db.restTimers
-				.where("status")
-				.equals("pending")
-				.modify({ status: "cancelled" });
-			await db.restTimers.add({
-				id,
-				scheduledAt: fireAt,
-				createdAt: Date.now(),
-				status: "pending",
-			});
-			await scheduleRestPush(subscription, fireAt);
-		} catch (e) {
-			const message = e instanceof Error ? e.message : String(e);
-			await db.restTimers.update(id, { status: "failed", error: message });
-			setError(message);
-		} finally {
-			setBusy(false);
-		}
-	}, [subscription, seconds]);
-
-	const onCancel = useCallback(async () => {
-		if (!subscription || !active) return;
-		setError(null);
-		try {
-			await cancelRestPush(subscription);
-			await db.restTimers.update(active.id, { status: "cancelled" });
-		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
-		}
-	}, [subscription, active]);
-
+	const setup = useNotificationSetup();
+	const { standalone, permission, subscription, persisted } = setup;
+	const timer = useRestTimer(subscription);
+	const { now, seconds, setSeconds, active, history } = timer;
+	const error = setup.error ?? timer.error;
 	const ready = isConfigured() && subscription !== null;
 
 	return (
@@ -170,8 +69,10 @@ export function App() {
 				<button
 					type="button"
 					className="primary"
-					onClick={onEnable}
-					disabled={busy || !isConfigured() || permission === "unsupported"}
+					onClick={setup.enable}
+					disabled={
+						setup.busy || !isConfigured() || permission === "unsupported"
+					}
 				>
 					Allow notifications
 				</button>
@@ -183,7 +84,7 @@ export function App() {
 							: formatCountdown(seconds * 1000)}
 					</output>
 					{active ? (
-						<button type="button" className="secondary" onClick={onCancel}>
+						<button type="button" className="secondary" onClick={timer.cancel}>
 							Cancel
 						</button>
 					) : (
@@ -204,8 +105,8 @@ export function App() {
 							<button
 								type="button"
 								className="primary"
-								onClick={onStart}
-								disabled={busy || !ready}
+								onClick={timer.start}
+								disabled={timer.busy || !ready}
 							>
 								Start
 							</button>
