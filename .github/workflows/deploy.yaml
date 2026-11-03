@@ -27,19 +27,8 @@ jobs:
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      # workflow_run checks out the default branch tip by default; deploy the
-      # exact commit CI verified instead.
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      # Version comes from the `packageManager` field in package.json.
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # Without these the build succeeds but push silently does nothing.
+      # Without these the build succeeds but push silently does nothing, so
+      # fail before spending time on install.
       - name: Check build variables
         env:
           VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
@@ -53,6 +42,18 @@ jobs:
             fi
           done
           exit "$missing"
+      # workflow_run checks out the default branch tip by default; deploy the
+      # exact commit CI verified instead.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      # Version comes from the `packageManager` field in package.json.
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
         env:
           VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
