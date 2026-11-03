@@ -119,6 +119,11 @@ posted-review policy in [REVIEW.md](REVIEW.md), which wins on conflict.
   maintainer before rewriting history on a pushed branch (rebase,
   `--force-with-lease`, `commit --amend`, `reset --hard`).
 - **Commits/PRs:** open a PR per issue; link it to the issue it addresses.
+- **PR scope:** a PR SHOULD need one kind of review. Keep changes that hit an
+  [Escalation](#escalation) trigger (schema, data model, import) in their own
+  PR, apart from UI work, so the riskier review is not buried. A PR over about
+  600 net lines (lockfile excluded) SHOULD be split, or say in the description
+  why it cannot be.
 
 ## Escalation
 
