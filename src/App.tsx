@@ -1,3 +1,4 @@
+import { Suspense, use } from "react";
 import { useNotificationSetup } from "./hooks/useNotificationSetup";
 import { useRestTimer } from "./hooks/useRestTimer";
 import { isConfigured, PERMISSION } from "./lib/push";
@@ -17,13 +18,11 @@ function formatClock(ms: number): string {
 	});
 }
 
+type Setup = ReturnType<typeof useNotificationSetup>;
+
 export function App() {
 	const setup = useNotificationSetup();
-	const { standalone, permission, subscription, persisted } = setup;
-	const timer = useRestTimer(subscription);
-	const { now, seconds, setSeconds, active, history } = timer;
-	const error = setup.error ?? timer.error;
-	const ready = isConfigured() && subscription !== null;
+	const { standalone, permission } = setup;
 
 	return (
 		<main className="app">
@@ -51,13 +50,15 @@ export function App() {
 							: "Use the button below"
 					}
 				/>
-				<Check
-					ok={subscription !== null}
+				<AsyncCheck
+					value={setup.subscription}
+					ok={(subscription) => subscription !== null}
 					label="Subscribed for push"
 					hint="Happens when you allow notifications"
 				/>
-				<Check
-					ok={persisted === true}
+				<AsyncCheck
+					value={setup.persisted}
+					ok={(persisted) => persisted === true}
 					label="Storage kept on device"
 					hint="Requested after you allow notifications"
 				/>
@@ -69,6 +70,24 @@ export function App() {
 				)}
 			</section>
 
+			<Suspense fallback={null}>
+				<Session setup={setup} />
+			</Suspense>
+		</main>
+	);
+}
+
+/** The enable button or the timer, and the log. Suspends until the subscription is read. */
+function Session({ setup }: { setup: Setup }) {
+	const { permission } = setup;
+	const subscription = use(setup.subscription);
+	const timer = useRestTimer(subscription);
+	const { now, seconds, setSeconds, active, history } = timer;
+	const error = setup.error ?? timer.error;
+	const ready = isConfigured() && subscription !== null;
+
+	return (
+		<>
 			{subscription === null ? (
 				<button
 					type="button"
@@ -148,23 +167,46 @@ export function App() {
 					</ul>
 				)}
 			</section>
-		</main>
+		</>
 	);
 }
 
+type AsyncCheckProps<T> = {
+	value: Promise<T>;
+	ok: (value: T) => boolean;
+	label: string;
+	hint: string;
+};
+
+/** A check whose state is read from a promise; shows "Checking…" until it settles. */
+function AsyncCheck<T>(props: AsyncCheckProps<T>) {
+	return (
+		<Suspense
+			fallback={<Check ok={null} label={props.label} hint="Checking…" />}
+		>
+			<ResolvedCheck {...props} />
+		</Suspense>
+	);
+}
+
+function ResolvedCheck<T>({ value, ok, label, hint }: AsyncCheckProps<T>) {
+	return <Check ok={ok(use(value))} label={label} hint={hint} />;
+}
+
+/** `ok` is null while the state is still being read. */
 function Check({
 	ok,
 	label,
 	hint,
 }: {
-	ok: boolean;
+	ok: boolean | null;
 	label: string;
 	hint: string;
 }) {
 	return (
 		<div className={ok ? "check ok" : "check"}>
 			<span className="mark" aria-hidden="true">
-				{ok ? "✓" : "–"}
+				{ok ? "✓" : ok === null ? "…" : "–"}
 			</span>
 			<span className="label">{label}</span>
 			{!ok && <span className="hint">{hint}</span>}
