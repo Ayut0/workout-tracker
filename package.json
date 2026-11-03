@@ -12,7 +12,7 @@
 		"test": "vitest run",
 		"lint": "biome check .",
 		"format": "biome check --write .",
-		"deploy:push": "pnpm --filter worker deploy",
+		"deploy:push": "pnpm --filter worker run deploy",
 		"deploy:app": "pnpm build && pnpm --filter worker exec wrangler pages deploy ../dist --project-name workout-tracker"
 	},
 	"dependencies": {
