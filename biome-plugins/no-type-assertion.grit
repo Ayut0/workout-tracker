@@ -1,0 +1,5 @@
+// `as const` is allowed; every other `as` assertion is reported.
+TsAsExpression() as $assertion where {
+	not $assertion <: `$_ as const`,
+	register_diagnostic(span=$assertion, message="Avoid type assertions: narrow with a type guard or a runtime check instead.")
+}
