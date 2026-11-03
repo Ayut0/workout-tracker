@@ -16,7 +16,7 @@ export type TimerOutcome =
 	| { kind: "cancelled" }
 	| { kind: "failed"; error: string };
 
-export function timerOutcome(timer: RestTimer, now: number): TimerOutcome {
+export function getTimerOutcome(timer: RestTimer, now: number): TimerOutcome {
 	switch (timer.status) {
 		case "received":
 			return {
@@ -35,7 +35,7 @@ export function timerOutcome(timer: RestTimer, now: number): TimerOutcome {
 	}
 }
 
-export function outcomeLabel(outcome: TimerOutcome): string {
+export function formatOutcome(outcome: TimerOutcome): string {
 	switch (outcome.kind) {
 		case "waiting":
 			return "Waiting";

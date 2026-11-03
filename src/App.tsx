@@ -1,7 +1,11 @@
 import { useNotificationSetup } from "./hooks/useNotificationSetup";
 import { useRestTimer } from "./hooks/useRestTimer";
 import { isConfigured } from "./lib/push";
-import { formatCountdown, outcomeLabel, timerOutcome } from "./lib/restTimer";
+import {
+	formatCountdown,
+	formatOutcome,
+	getTimerOutcome,
+} from "./lib/restTimer";
 
 const PRESETS = [60, 90, 120];
 
@@ -131,11 +135,11 @@ export function App() {
 				) : (
 					<ul>
 						{history.map((t) => {
-							const outcome = timerOutcome(t, now);
+							const outcome = getTimerOutcome(t, now);
 							return (
 								<li key={t.id} className={`row ${outcome.kind}`}>
 									<span className="time">{formatClock(t.scheduledAt)}</span>
-									<span className="result">{outcomeLabel(outcome)}</span>
+									<span className="result">{formatOutcome(outcome)}</span>
 								</li>
 							);
 						})}

@@ -4,8 +4,8 @@ import {
 	ACTIVE_GRACE_MS,
 	findActiveTimer,
 	formatCountdown,
-	outcomeLabel,
-	timerOutcome,
+	formatOutcome,
+	getTimerOutcome,
 } from "./restTimer";
 
 const base: RestTimer = {
@@ -15,35 +15,35 @@ const base: RestTimer = {
 	status: "pending",
 };
 
-describe("timerOutcome", () => {
+describe("getTimerOutcome", () => {
 	it("reports the delay of a received push", () => {
-		const outcome = timerOutcome(
+		const outcome = getTimerOutcome(
 			{ ...base, status: "received", receivedAt: 102_400 },
 			200_000,
 		);
 		expect(outcome).toEqual({ kind: "received", delaySec: 2.4 });
-		expect(outcomeLabel(outcome)).toBe("Arrived +2.4s");
+		expect(formatOutcome(outcome)).toBe("Arrived +2.4s");
 	});
 
 	it("shows an early push with a minus sign", () => {
-		const outcome = timerOutcome(
+		const outcome = getTimerOutcome(
 			{ ...base, status: "received", receivedAt: 99_500 },
 			200_000,
 		);
-		expect(outcomeLabel(outcome)).toBe("Arrived −0.5s");
+		expect(formatOutcome(outcome)).toBe("Arrived −0.5s");
 	});
 
 	it("keeps a pending timer waiting for a minute after its time, then calls it lost", () => {
-		expect(timerOutcome(base, 160_000)).toEqual({ kind: "waiting" });
-		expect(timerOutcome(base, 160_001)).toEqual({ kind: "lost" });
+		expect(getTimerOutcome(base, 160_000)).toEqual({ kind: "waiting" });
+		expect(getTimerOutcome(base, 160_001)).toEqual({ kind: "lost" });
 	});
 
 	it("passes through cancelled and failed timers", () => {
-		expect(timerOutcome({ ...base, status: "cancelled" }, 0)).toEqual({
+		expect(getTimerOutcome({ ...base, status: "cancelled" }, 0)).toEqual({
 			kind: "cancelled",
 		});
 		expect(
-			timerOutcome({ ...base, status: "failed", error: "500" }, 0),
+			getTimerOutcome({ ...base, status: "failed", error: "500" }, 0),
 		).toEqual({
 			kind: "failed",
 			error: "500",
