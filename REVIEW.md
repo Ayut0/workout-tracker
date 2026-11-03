@@ -28,7 +28,7 @@ disagree about a posted review, **this file wins**.
 
 ## Do not report
 
-- Anything the tooling already enforces: type errors (`tsc --noEmit`), and formatting / import order (Biome style: tabs, double quotes) — once Biome's config is fixed.
+- Anything the tooling already enforces: type errors (`tsc --noEmit`), and formatting / import order (Biome style: tabs, double quotes), type assertions (the Biome `no-type-assertion` plugin) and stray `console` calls.
 - Generated files and lockfiles — flag the *source* change instead.
 - Pre-existing problems the diff does not touch.
 

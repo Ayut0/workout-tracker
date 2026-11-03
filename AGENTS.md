@@ -1,6 +1,6 @@
 # workout-tracker — Working Agreement
 
-workout journal web app (MVP): log workouts, exercises, sets, reps and weights, and chart progress (estimated 1RM, volume). Next.js 15 + TypeScript + Prisma + Supabase.
+workout journal PWA (MVP): log workouts, exercises, sets, reps and weights, and chart progress (estimated 1RM, volume). Local-first: Vite + React + TypeScript, records in IndexedDB (Dexie) on the phone, plus a small Cloudflare Worker that only sends rest-timer pushes.
 
 This file is the working agreement for any agent or contributor. It is
 intentionally thin: the shared cycle and review method live in the
@@ -77,15 +77,17 @@ convention specific to this repo.
 
 ## Project map
 
-Vite + React PWA in `src/`, Prisma schema and migrations in `prisma/`,
-Supabase (Postgres + Auth + RLS) for persistence. Package manager: pnpm, pinned
-by the `packageManager` field in `package.json` (Corepack picks it up).
+Vite + React PWA in `src/` (components, `src/sw.ts` service worker,
+`src/lib` push and timer logic, `src/db` Dexie/IndexedDB). The notification
+worker (Cloudflare Worker + Durable Object) lives in `worker/`. There are no
+accounts and no workout data on servers: the worker only ever learns a push
+endpoint and a time. Package manager: pnpm, pinned by the `packageManager`
+field in `package.json` (Corepack picks it up).
 
-Intended architecture (README § Architecture): Presentation (presentational +
-container components) → Application (use cases, DTOs) → Domain (entities, core
-logic) → Infrastructure (Prisma, Auth, DB, API routes). Data flows
-Container → Use Case → Repository → DB → Presentational Component. `src/`
-currently holds only `src/app`, so most layers are not on disk yet.
+Intended direction: components render and emit events; logic lives in
+`src/lib` and persistence in `src/db`. `src/lib` and `src/db` MUST NOT import
+components, and the service worker and `worker/` MUST NOT import React. The
+current `App.tsx` mixes these and is a phase-1 shortcut, not the target.
 
 ## Verify
 
@@ -120,5 +122,5 @@ posted-review policy in [REVIEW.md](REVIEW.md), which wins on conflict.
 
 ## Escalation
 
-Changes touching **migrations (`prisma/migrations`), data loss, or auth (Supabase Auth, Row Level Security)** warrant extra review and a short
+Changes touching **IndexedDB schema versions (`src/db`), data loss (the Strong import, destructive writes), or the notification worker's trust boundary (`worker/`: allowed origin, push-host allowlist, VAPID keys)** warrant extra review and a short
 ADR in `docs/adr/` recording the decision.
