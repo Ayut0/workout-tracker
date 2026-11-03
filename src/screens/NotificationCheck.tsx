@@ -8,6 +8,7 @@ import {
 	formatOutcome,
 	getTimerOutcome,
 } from "../lib/restTimer";
+import { SETTINGS_PATH } from "../lib/routes";
 
 const PRESETS = [60, 90, 120];
 
@@ -29,7 +30,7 @@ export function NotificationCheck() {
 	return (
 		<>
 			<header className="head">
-				<Link to="/settings" className="back">
+				<Link to={SETTINGS_PATH} className="back">
 					‹ Settings
 				</Link>
 				<p className="eyebrow">Diagnostics</p>
