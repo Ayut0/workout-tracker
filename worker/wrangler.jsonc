@@ -11,10 +11,12 @@
 	"vars": {
 		// Replace with your Pages URL after the first deploy.
 		"ALLOWED_ORIGIN": "https://workout-tracker-2nf.pages.dev",
-		// Fill in from `pnpm vapid`.
-		"VAPID_PUBLIC_KEY": "",
+		// Public key from `pnpm vapid`; must equal VITE_VAPID_PUBLIC_KEY.
+		// Committed on purpose: `wrangler deploy` overwrites dashboard values.
+		"VAPID_PUBLIC_KEY": "BLDedJ8gtjQnHROcXzHHjcynV0BKObD2wijLSrpz6ncKgKxo9E9Agrz4ooLviZdMcDpy_v487Vv-1YC6J4gWS4Q",
 		// Apple rejects placeholder contacts; use a real address or https URL.
-		"VAPID_SUBJECT": "mailto:you@example.com"
+		// An https URL keeps a personal email out of this public repo.
+		"VAPID_SUBJECT": "https://github.com/Ayut0/workout-tracker"
 	}
 	// Secret (not in this file): `wrangler secret put VAPID_PRIVATE_JWK`
 }
