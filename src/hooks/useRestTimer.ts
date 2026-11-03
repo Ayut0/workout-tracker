@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { db } from "../db";
 import type { RestTimer } from "../db/types";
 import { cancelRestPush, scheduleRestPush } from "../lib/push";
@@ -41,16 +41,12 @@ export function useRestTimer(subscription: PushSubscription | null) {
 	);
 	const active = findActiveTimer(history, now);
 
-	const api = useMemo<TimerApi | null>(
-		() =>
-			subscription && {
-				schedule: (fireAt) => scheduleRestPush(subscription, fireAt),
-				cancel: () => cancelRestPush(subscription),
-			},
-		[subscription],
-	);
+	const api: TimerApi | null = subscription && {
+		schedule: (fireAt) => scheduleRestPush(subscription, fireAt),
+		cancel: () => cancelRestPush(subscription),
+	};
 
-	const start = useCallback(async () => {
+	async function start() {
 		if (!api) return;
 		setError(null);
 		setBusy(true);
@@ -61,9 +57,9 @@ export function useRestTimer(subscription: PushSubscription | null) {
 		} finally {
 			setBusy(false);
 		}
-	}, [api, seconds]);
+	}
 
-	const cancel = useCallback(async () => {
+	async function cancel() {
 		if (!api || !active) return;
 		setError(null);
 		try {
@@ -71,7 +67,7 @@ export function useRestTimer(subscription: PushSubscription | null) {
 		} catch (e) {
 			setError(e instanceof Error ? e.message : String(e));
 		}
-	}, [api, active]);
+	}
 
 	return {
 		now,

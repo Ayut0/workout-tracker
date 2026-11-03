@@ -13,13 +13,20 @@ export const ACTIVE_GRACE_MS = 1_000;
  * What the log shows for a timer. Mostly the stored status, except that a
  * pending timer is "waiting" until LOST_AFTER_MS has passed, then "lost".
  */
+export type OutcomeKind =
+	| "waiting"
+	| "received"
+	| "lost"
+	| "cancelled"
+	| "failed";
+
 export const OUTCOME_KIND = {
 	waiting: "waiting",
 	received: "received",
 	lost: "lost",
 	cancelled: "cancelled",
 	failed: "failed",
-} as const satisfies Record<string, string>;
+} as const satisfies { [K in OutcomeKind]: K };
 
 export type TimerOutcome =
 	| { kind: typeof OUTCOME_KIND.waiting }

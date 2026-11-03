@@ -20,14 +20,14 @@ export function isStandalone(): boolean {
 	);
 }
 
+export type PermissionState = NotificationPermission | "unsupported";
+
 export const PERMISSION = {
 	granted: "granted",
 	denied: "denied",
 	default: "default",
 	unsupported: "unsupported",
-} as const satisfies Record<NotificationPermission | "unsupported", string>;
-
-export type PermissionState = (typeof PERMISSION)[keyof typeof PERMISSION];
+} as const satisfies { [P in PermissionState]: P };
 
 export function pushSupported(): boolean {
 	return (

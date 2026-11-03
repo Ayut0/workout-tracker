@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	currentSubscription,
 	enableNotifications,
@@ -29,7 +29,7 @@ export function useNotificationSetup() {
 			.catch(() => setPersisted(null));
 	}, []);
 
-	const enable = useCallback(async () => {
+	async function enable() {
 		setError(null);
 		setBusy(true);
 		try {
@@ -43,7 +43,7 @@ export function useNotificationSetup() {
 			setPermission(permissionState());
 			setBusy(false);
 		}
-	}, []);
+	}
 
 	return {
 		standalone,

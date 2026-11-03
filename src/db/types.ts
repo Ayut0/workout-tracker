@@ -5,19 +5,20 @@
  * sets arrive with the Strong import in phase 2.
  */
 
-/**
- * One rest-timer notification, kept so we can measure how late the
- * lock-screen notification arrives. The service worker fills in receivedAt.
- */
+export type TimerStatus = "pending" | "received" | "cancelled" | "failed";
+
+/** Names for the statuses; the type above is the source of truth. */
 export const TIMER_STATUS = {
 	pending: "pending",
 	received: "received",
 	cancelled: "cancelled",
 	failed: "failed",
-} as const satisfies Record<string, string>;
+} as const satisfies { [S in TimerStatus]: S };
 
-export type TimerStatus = (typeof TIMER_STATUS)[keyof typeof TIMER_STATUS];
-
+/**
+ * One rest-timer notification, kept so we can measure how late the
+ * lock-screen notification arrives. The service worker fills in receivedAt.
+ */
 export interface RestTimer {
 	id: string;
 	/** When the notification should fire (epoch ms). */
