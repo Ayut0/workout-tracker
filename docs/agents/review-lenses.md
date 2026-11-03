@@ -2,14 +2,14 @@
 
 Repo-specific lenses for `workflow:code-review-guideline`. Apply the ones that
 materially overlap the diff. The shared skill owns the method; this file owns
-only what is true of _this_ codebase.
+only what is true of *this* codebase.
 
 ## What counts as Critical / Major here
 
-| Tier         | In this repo                                                                                                                                                                                                                                                                                                                                                          |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tier | In this repo |
+| --- | --- |
 | **Critical** | A query or mutation not scoped to the owning user (breaks the per-user isolation RLS is meant to guarantee). Auth bypass. A migration that drops or rewrites data. Set `weight` or estimated-1RM/volume maths done in floating point instead of the `Decimal(7,3)` the schema uses. Editing an already-applied migration or hand-editing the generated Prisma client. |
-| **Major**    | A dependency pointing the wrong way across the layers (e.g. Domain importing Prisma or Next.js). Prisma access outside Infrastructure. Business logic inside a presentational component. A `schema.prisma` change with no migration. New runtime behavior with no test.                                                                                               |
+| **Major** | A dependency pointing the wrong way across the layers (e.g. Domain importing Prisma or Next.js). Prisma access outside Infrastructure. Business logic inside a presentational component. A `schema.prisma` change with no migration. New runtime behavior with no test. |
 
 ## Architecture boundaries
 
@@ -23,7 +23,7 @@ Presentation → Application → Domain ← Infrastructure.
 - Flag a container that talks to Prisma directly instead of going through a
   use case and repository.
 - `src/` holds only `src/app` today, so do not report "missing layer" as a
-  finding; report code that _breaks_ the intended direction.
+  finding; report code that *breaks* the intended direction.
 
 ## Generated code
 
