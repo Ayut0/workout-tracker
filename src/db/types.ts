@@ -1,8 +1,12 @@
 /**
  * Records stored on the device in IndexedDB.
  *
- * Phase 1 only needs the rest-timer log. Exercises, templates, workouts and
- * sets arrive with the Strong import in phase 2.
+ * Conventions (ADR-0002):
+ * - ids are random strings (`crypto.randomUUID()`), never auto-increment.
+ * - times are epoch milliseconds.
+ * - weight is stored in kilograms, unrounded; kg/lb conversion and rounding
+ *   happen at display and input. Distance is stored in metres.
+ * - order within a parent is an integer `order` field, read back sorted.
  */
 
 export type TimerStatus = "pending" | "received" | "cancelled" | "failed";
@@ -27,4 +31,82 @@ export interface RestTimer {
 	status: TimerStatus;
 	receivedAt?: number;
 	error?: string;
+}
+
+/** A movement in the library, such as "Bench Press (Barbell)". */
+export interface Exercise {
+	id: string;
+	name: string;
+	/**
+	 * `name` normalised for matching (see normalizeExerciseName); unique, so
+	 * two exercises cannot differ only by case or spacing.
+	 */
+	nameKey: string;
+	/** Set when hidden from the library because history refers to it. */
+	archivedAt?: number;
+}
+
+/** One training session. It is active (in progress) until endedAt is set. */
+export interface Workout {
+	id: string;
+	name: string;
+	startedAt: number;
+	endedAt?: number;
+	notes?: string;
+}
+
+/** An exercise as performed in one workout, in the workout's order. */
+export interface WorkoutExercise {
+	id: string;
+	workoutId: string;
+	exerciseId: string;
+	/** Position within the workout, starting at 0. */
+	order: number;
+}
+
+/** One set of a workout exercise. Every measurement is optional. */
+export interface WorkoutSet {
+	id: string;
+	workoutExerciseId: string;
+	/** Position within the workout exercise, starting at 0. */
+	order: number;
+	weightKg?: number;
+	reps?: number;
+	distanceM?: number;
+	seconds?: number;
+	rpe?: number;
+	notes?: string;
+	/** Set when the set is marked done; incomplete sets have none. */
+	completedAt?: number;
+}
+
+/** A planned set in a template. */
+export interface TemplateSet {
+	weightKg?: number;
+	reps?: number;
+}
+
+/** An exercise in a template; array position is its order. */
+export interface TemplateExercise {
+	exerciseId: string;
+	sets: TemplateSet[];
+}
+
+/**
+ * A reusable workout plan. Edited and read as a whole, so its exercises and
+ * sets are kept inside the record rather than in stores of their own.
+ */
+export interface Template {
+	id: string;
+	name: string;
+	exercises: TemplateExercise[];
+}
+
+export type WeightUnit = "kg" | "lb";
+
+/** User preferences, stored as a single record. */
+export interface Settings {
+	/** Unit for display and input; storage is always kg. */
+	weightUnit: WeightUnit;
+	restSeconds: number;
 }
