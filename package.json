@@ -10,7 +10,8 @@
 		"typecheck": "tsc -b",
 		"test": "vitest run --passWithNoTests",
 		"lint": "biome check .",
-		"format": "biome check --write ."
+		"format": "biome check --write .",
+		"deploy:push": "pnpm --filter worker deploy"
 	},
 	"dependencies": {
 		"react": "^19.3.1",
