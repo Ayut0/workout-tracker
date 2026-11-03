@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-	base64UrlDecode,
-	base64UrlEncode,
+	decodeBase64Url,
+	encodeBase64Url,
 	createVapidJwt,
 	type VapidKeys,
 } from "./vapid";
@@ -19,7 +19,7 @@ async function makeKeys(): Promise<{ keys: VapidKeys; publicKey: CryptoKey }> {
 	if (privateJwk instanceof ArrayBuffer) throw new Error("Expected a JWK");
 	return {
 		keys: {
-			publicKey: base64UrlEncode(raw),
+			publicKey: encodeBase64Url(raw),
 			privateJwk,
 			subject: "mailto:test@example.com",
 		},
@@ -30,9 +30,9 @@ async function makeKeys(): Promise<{ keys: VapidKeys; publicKey: CryptoKey }> {
 describe("base64url", () => {
 	it("round-trips bytes without padding", () => {
 		const bytes = new Uint8Array([0, 251, 255, 1, 2]);
-		const encoded = base64UrlEncode(bytes);
+		const encoded = encodeBase64Url(bytes);
 		expect(encoded).not.toMatch(/[+/=]/);
-		expect(Array.from(base64UrlDecode(encoded))).toEqual(Array.from(bytes));
+		expect(Array.from(decodeBase64Url(encoded))).toEqual(Array.from(bytes));
 	});
 });
 
@@ -47,20 +47,20 @@ describe("createVapidJwt", () => {
 		const [header, claims, signature] = jwt.split(".");
 
 		expect(
-			JSON.parse(new TextDecoder().decode(base64UrlDecode(header ?? ""))),
+			JSON.parse(new TextDecoder().decode(decodeBase64Url(header ?? ""))),
 		).toEqual({
 			typ: "JWT",
 			alg: "ES256",
 		});
 		expect(
-			JSON.parse(new TextDecoder().decode(base64UrlDecode(claims ?? ""))),
+			JSON.parse(new TextDecoder().decode(decodeBase64Url(claims ?? ""))),
 		).toEqual({
 			aud: "https://web.push.apple.com",
 			exp: 1_000 + 12 * 60 * 60,
 			sub: "mailto:test@example.com",
 		});
 
-		const sig = base64UrlDecode(signature ?? "");
+		const sig = decodeBase64Url(signature ?? "");
 		expect(sig.length).toBe(64);
 		const valid = await crypto.subtle.verify(
 			{ name: "ECDSA", hash: "SHA-256" },
@@ -73,7 +73,7 @@ describe("createVapidJwt", () => {
 
 	it("exports a 65-byte uncompressed public key", async () => {
 		const { keys } = await makeKeys();
-		const raw = base64UrlDecode(keys.publicKey);
+		const raw = decodeBase64Url(keys.publicKey);
 		expect(raw.length).toBe(65);
 		expect(raw[0]).toBe(0x04);
 	});

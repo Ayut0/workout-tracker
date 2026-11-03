@@ -17,7 +17,7 @@ export interface VapidKeys {
 
 const JWT_LIFETIME_SEC = 12 * 60 * 60;
 
-export function base64UrlEncode(
+export function encodeBase64Url(
 	input: ArrayBuffer | Uint8Array | string,
 ): string {
 	const bytes =
@@ -34,7 +34,7 @@ export function base64UrlEncode(
 		.replace(/=+$/, "");
 }
 
-export function base64UrlDecode(input: string): Uint8Array {
+export function decodeBase64Url(input: string): Uint8Array {
 	const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
 	const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
 	const binary = atob(padded);
@@ -49,8 +49,8 @@ export async function createVapidJwt(
 	keys: VapidKeys,
 	nowSec: number = Math.floor(Date.now() / 1000),
 ): Promise<string> {
-	const header = base64UrlEncode(JSON.stringify({ typ: "JWT", alg: "ES256" }));
-	const claims = base64UrlEncode(
+	const header = encodeBase64Url(JSON.stringify({ typ: "JWT", alg: "ES256" }));
+	const claims = encodeBase64Url(
 		JSON.stringify({
 			aud: new URL(endpoint).origin,
 			exp: nowSec + JWT_LIFETIME_SEC,
@@ -71,7 +71,7 @@ export async function createVapidJwt(
 		key,
 		new TextEncoder().encode(signingInput),
 	);
-	return `${signingInput}.${base64UrlEncode(signature)}`;
+	return `${signingInput}.${encodeBase64Url(signature)}`;
 }
 
 export async function vapidAuthorization(
@@ -84,6 +84,8 @@ export async function vapidAuthorization(
 
 export interface PushResult {
 	status: number;
+	/** Push services answer 201 Created on success, so any 2xx counts. */
+	ok: boolean;
 }
 
 export async function sendEmptyPush(
@@ -100,5 +102,5 @@ export async function sendEmptyPush(
 			Urgency: "high",
 		},
 	});
-	return { status: response.status };
+	return { status: response.status, ok: response.ok };
 }

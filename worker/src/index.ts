@@ -20,7 +20,7 @@ const METHODS = {
 	options: "OPTIONS",
 } as const;
 
-function vapidKeys(env: Env): VapidKeys {
+function loadVapidKeys(env: Env): VapidKeys {
 	return {
 		publicKey: env.VAPID_PUBLIC_KEY,
 		privateJwk: JSON.parse(env.VAPID_PRIVATE_JWK) as JsonWebKey,
@@ -51,8 +51,8 @@ export class RestTimer extends DurableObject<Env> {
 		// Never throw from here: a thrown alarm is retried later, and a late
 		// "rest is over" is worse than none.
 		try {
-			const result = await sendEmptyPush(endpoint, vapidKeys(this.env));
-			if (result.status >= 300) {
+			const result = await sendEmptyPush(endpoint, loadVapidKeys(this.env));
+			if (!result.ok) {
 				console.error(`Push failed with HTTP ${result.status}`);
 			}
 		} catch (error) {
@@ -63,7 +63,7 @@ export class RestTimer extends DurableObject<Env> {
 	}
 }
 
-function corsHeaders(env: Env): HeadersInit {
+function buildCorsHeaders(env: Env): HeadersInit {
 	return {
 		"Access-Control-Allow-Origin": env.ALLOWED_ORIGIN,
 		"Access-Control-Allow-Methods": [
@@ -77,10 +77,10 @@ function corsHeaders(env: Env): HeadersInit {
 	};
 }
 
-function json(env: Env, status: number, body: unknown): Response {
+function createJsonResponse(env: Env, status: number, body: unknown): Response {
 	return new Response(JSON.stringify(body), {
 		status,
-		headers: { "Content-Type": "application/json", ...corsHeaders(env) },
+		headers: { "Content-Type": "application/json", ...buildCorsHeaders(env) },
 	});
 }
 
@@ -92,44 +92,45 @@ async function readJson(request: Request): Promise<unknown> {
 	}
 }
 
-function timerFor(env: Env, endpoint: string): DurableObjectStub<RestTimer> {
+function getTimerStub(env: Env, endpoint: string): DurableObjectStub<RestTimer> {
 	return env.REST_TIMER.get(env.REST_TIMER.idFromName(endpoint));
 }
 
-export default {
-	async fetch(request, env): Promise<Response> {
-		const { pathname } = new URL(request.url);
+async function handleRequest(request: Request, env: Env): Promise<Response> {
+	const { pathname } = new URL(request.url);
 
-		if (request.method === METHODS.options) {
-			return new Response(null, { status: 204, headers: corsHeaders(env) });
-		}
-		if (pathname === ROUTES.health && request.method === METHODS.get) {
-			return json(env, 200, { ok: true });
-		}
-		if (pathname !== ROUTES.timers) {
-			return json(env, 404, { error: "Not found" });
-		}
-		if (request.headers.get("Origin") !== env.ALLOWED_ORIGIN) {
-			return json(env, 403, { error: "Origin not allowed" });
-		}
+	if (request.method === METHODS.options) {
+		return new Response(null, { status: 204, headers: buildCorsHeaders(env) });
+	}
+	if (pathname === ROUTES.health && request.method === METHODS.get) {
+		return createJsonResponse(env, 200, { ok: true });
+	}
+	if (pathname !== ROUTES.timers) {
+		return createJsonResponse(env, 404, { error: "Not found" });
+	}
+	if (request.headers.get("Origin") !== env.ALLOWED_ORIGIN) {
+		return createJsonResponse(env, 403, { error: "Origin not allowed" });
+	}
 
-		if (request.method === METHODS.post) {
-			const parsed = parseScheduleRequest(await readJson(request), Date.now());
-			if (!parsed.ok) return json(env, 400, { error: parsed.error });
-			await timerFor(env, parsed.value.endpoint).schedule(
-				parsed.value.endpoint,
-				parsed.value.fireAt,
-			);
-			return json(env, 202, { fireAt: parsed.value.fireAt });
-		}
+	if (request.method === METHODS.post) {
+		const parsed = parseScheduleRequest(await readJson(request), Date.now());
+		if (!parsed.ok) return createJsonResponse(env, 400, { error: parsed.error });
+		await getTimerStub(env, parsed.value.endpoint).schedule(
+			parsed.value.endpoint,
+			parsed.value.fireAt,
+		);
+		return createJsonResponse(env, 202, { fireAt: parsed.value.fireAt });
+	}
 
-		if (request.method === METHODS.delete) {
-			const parsed = parseCancelRequest(await readJson(request));
-			if (!parsed.ok) return json(env, 400, { error: parsed.error });
-			await timerFor(env, parsed.value.endpoint).cancel();
-			return json(env, 200, { cancelled: true });
-		}
+	if (request.method === METHODS.delete) {
+		const parsed = parseCancelRequest(await readJson(request));
+		if (!parsed.ok) return createJsonResponse(env, 400, { error: parsed.error });
+		await getTimerStub(env, parsed.value.endpoint).cancel();
+		return createJsonResponse(env, 200, { cancelled: true });
+	}
 
-		return json(env, 405, { error: "Method not allowed" });
-	},
-} satisfies ExportedHandler<Env>;
+	return createJsonResponse(env, 405, { error: "Method not allowed" });
+}
+
+// Workers entry point: the runtime calls the default export's `fetch`.
+export default { fetch: handleRequest } satisfies ExportedHandler<Env>;
