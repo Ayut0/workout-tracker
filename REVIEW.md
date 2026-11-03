@@ -2,7 +2,7 @@
 
 Highest-priority instructions for a **posted** review — the independent CI
 reviewer (`.github/workflows/claude-review.yaml`, triggered by `@claude review`).
-This file governs the posted artifact only. *How* to review lives in the
+This file governs the posted artifact only. _How_ to review lives in the
 `workflow:code-review-guideline` skill plus
 [docs/agents/review-lenses.md](docs/agents/review-lenses.md); where they
 disagree about a posted review, **this file wins**.
@@ -15,10 +15,10 @@ disagree about a posted review, **this file wins**.
 
 ## Labels
 
-| Label | Meaning |
-| --- | --- |
-| **Important** | Act on this before merge. |
-| **Nit** | Optional — the author MAY ignore it. |
+| Label         | Meaning                              |
+| ------------- | ------------------------------------ |
+| **Important** | Act on this before merge.            |
+| **Nit**       | Optional — the author MAY ignore it. |
 
 - The summary MUST open with a one-line tally: `2 Important, 3 Nits`.
 - Critical and Major collapse to **Important**; Minor and Nit to **Nit**. The
@@ -29,7 +29,7 @@ disagree about a posted review, **this file wins**.
 ## Do not report
 
 - Anything the tooling already enforces: type errors (`tsc --noEmit`), and formatting / import order (Biome style: tabs, double quotes) — once Biome's config is fixed.
-- Generated files and lockfiles — flag the *source* change instead.
+- Generated files and lockfiles — flag the _source_ change instead.
 - Pre-existing problems the diff does not touch.
 
 ## Out of scope

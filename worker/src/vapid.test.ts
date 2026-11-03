@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+	createVapidJwt,
 	decodeBase64Url,
 	encodeBase64Url,
-	createVapidJwt,
 	type VapidKeys,
 } from "./vapid";
 

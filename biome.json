@@ -23,9 +23,26 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"preset": "recommended"
+			"preset": "recommended",
+			"suspicious": {
+				"noConsole": {
+					"level": "error",
+					"options": { "allow": ["error", "warn"] }
+				}
+			}
 		}
 	},
+	"plugins": ["./biome-plugins/no-type-assertion.grit"],
+	"overrides": [
+		{
+			"includes": ["worker/scripts/**"],
+			"linter": {
+				"rules": {
+					"suspicious": { "noConsole": "off" }
+				}
+			}
+		}
+	],
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double"

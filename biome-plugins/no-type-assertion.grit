@@ -1,0 +1,8 @@
+language js
+
+// Bans `x as T`. `as const` stays allowed. Narrow with a type guard or
+// validate at the boundary instead of asserting.
+TsAsExpression(ty=$type) where {
+	$type <: not r"const",
+	register_diagnostic(span=$type, message="Type assertions (`as`) bypass the type checker. Use a type guard, validation, or a typed declaration instead. `as const` is allowed.", severity="error")
+}

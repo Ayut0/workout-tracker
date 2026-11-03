@@ -28,14 +28,14 @@ The `wayfinder` skill charts a large effort as a **map** of **decision
 tickets**. Both are GitHub issues here; this is how each of its concepts maps
 onto this tracker.
 
-| Wayfinder concept | Expressed as |
-| --- | --- |
-| Map | An issue labelled `wayfinder:map` |
-| Ticket | A **sub-issue** of the map, labelled `wayfinder:<type>` |
-| Ticket type | `wayfinder:research` / `:prototype` / `:grilling` / `:task` |
-| Claim | Assign the ticket to the dev driving the map |
-| Blocking | GitHub's native issue dependencies (`blocked_by`) |
-| Frontier | Open + unassigned children with no open blockers |
+| Wayfinder concept | Expressed as                                                |
+| ----------------- | ----------------------------------------------------------- |
+| Map               | An issue labelled `wayfinder:map`                           |
+| Ticket            | A **sub-issue** of the map, labelled `wayfinder:<type>`     |
+| Ticket type       | `wayfinder:research` / `:prototype` / `:grilling` / `:task` |
+| Claim             | Assign the ticket to the dev driving the map                |
+| Blocking          | GitHub's native issue dependencies (`blocked_by`)           |
+| Frontier          | Open + unassigned children with no open blockers            |
 
 Native sub-issues and dependencies are used deliberately over a body
 convention: GitHub renders both in its own UI, so the frontier is visible

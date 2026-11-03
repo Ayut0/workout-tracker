@@ -11,13 +11,13 @@ spells out the facts specific to this repo.
 
 ## Requirement Level Keywords
 
-| Keyword | Synonym | Meaning |
-| ------- | ------- | ------- |
-| "MUST" | "REQUIRED" | Non-negotiable requirement; no exceptions. |
-| "MUST NOT" |  | Non-negotiable prohibition; no exceptions. |
-| "SHOULD" | "RECOMMENDED" | Strongly preferred; deviation is allowed only after weighing the implications. |
-| "SHOULD NOT" | "NOT RECOMMENDED" | Strongly discouraged; allowed only after weighing the implications. |
-| "MAY" | "OPTIONAL" | Genuinely optional; no preference implied. |
+| Keyword      | Synonym           | Meaning                                                                        |
+| ------------ | ----------------- | ------------------------------------------------------------------------------ |
+| "MUST"       | "REQUIRED"        | Non-negotiable requirement; no exceptions.                                     |
+| "MUST NOT"   |                   | Non-negotiable prohibition; no exceptions.                                     |
+| "SHOULD"     | "RECOMMENDED"     | Strongly preferred; deviation is allowed only after weighing the implications. |
+| "SHOULD NOT" | "NOT RECOMMENDED" | Strongly discouraged; allowed only after weighing the implications.            |
+| "MAY"        | "OPTIONAL"        | Genuinely optional; no preference implied.                                     |
 
 ## The cycle
 
@@ -52,17 +52,17 @@ CI reviewer (`@claude review`) before the work is reported done.
 
 ## Skill routing
 
-| When you're… | Use |
-| --- | --- |
-| Delivering a unit of work end-to-end | `/workflow:address` |
-| Turning an idea into scoped work | `to-prd` → `to-issues` |
-| Pressure-testing a plan against the domain | `grill-with-docs` |
-| Triaging an incoming issue | `triage` |
-| Writing code or a bugfix | `tdd` |
-| Chasing a bug, test failure, or surprise | `diagnose` |
-| Refactoring or improving structure | `improve-codebase-architecture` |
-| Suspending work across sessions | `handoff` |
-| Self-reviewing, or reviewing a PR | `workflow:code-review-guideline` |
+| When you're…                               | Use                              |
+| ------------------------------------------ | -------------------------------- |
+| Delivering a unit of work end-to-end       | `/workflow:address`              |
+| Turning an idea into scoped work           | `to-prd` → `to-issues`           |
+| Pressure-testing a plan against the domain | `grill-with-docs`                |
+| Triaging an incoming issue                 | `triage`                         |
+| Writing code or a bugfix                   | `tdd`                            |
+| Chasing a bug, test failure, or surprise   | `diagnose`                       |
+| Refactoring or improving structure         | `improve-codebase-architecture`  |
+| Suspending work across sessions            | `handoff`                        |
+| Self-reviewing, or reviewing a PR          | `workflow:code-review-guideline` |
 
 Routing changes that apply to every repo belong upstream in
 `Ayut0/marketplace-for-ai-agent`, not here. Propose a repo-local change only for a
