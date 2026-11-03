@@ -1,6 +1,6 @@
 import { useNotificationSetup } from "./hooks/useNotificationSetup";
 import { useRestTimer } from "./hooks/useRestTimer";
-import { isConfigured } from "./lib/push";
+import { isConfigured, PERMISSION } from "./lib/push";
 import {
 	formatCountdown,
 	formatOutcome,
@@ -43,10 +43,10 @@ export function App() {
 					hint="In Safari: Share → Add to Home Screen"
 				/>
 				<Check
-					ok={permission === "granted"}
+					ok={permission === PERMISSION.granted}
 					label="Notifications allowed"
 					hint={
-						permission === "denied"
+						permission === PERMISSION.denied
 							? "Turn them on in the Settings app"
 							: "Use the button below"
 					}
@@ -75,7 +75,9 @@ export function App() {
 					className="primary"
 					onClick={setup.enable}
 					disabled={
-						setup.busy || !isConfigured() || permission === "unsupported"
+						setup.busy ||
+						!isConfigured() ||
+						permission === PERMISSION.unsupported
 					}
 				>
 					Allow notifications

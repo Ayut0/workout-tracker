@@ -20,7 +20,14 @@ export function isStandalone(): boolean {
 	);
 }
 
-export type PermissionState = NotificationPermission | "unsupported";
+export const PERMISSION = {
+	granted: "granted",
+	denied: "denied",
+	default: "default",
+	unsupported: "unsupported",
+} as const satisfies Record<NotificationPermission | "unsupported", string>;
+
+export type PermissionState = (typeof PERMISSION)[keyof typeof PERMISSION];
 
 export function pushSupported(): boolean {
 	return (
@@ -31,7 +38,7 @@ export function pushSupported(): boolean {
 }
 
 export function permissionState(): PermissionState {
-	return pushSupported() ? Notification.permission : "unsupported";
+	return pushSupported() ? Notification.permission : PERMISSION.unsupported;
 }
 
 function base64UrlToBytes(input: string): Uint8Array<ArrayBuffer> {
@@ -56,7 +63,7 @@ export async function enableNotifications(): Promise<PushSubscription> {
 	if (!pushSupported())
 		throw new Error("This device does not support notifications");
 	const permission = await Notification.requestPermission();
-	if (permission !== "granted")
+	if (permission !== PERMISSION.granted)
 		throw new Error("Notifications were not allowed");
 	const registration = await navigator.serviceWorker.ready;
 	const existing = await registration.pushManager.getSubscription();

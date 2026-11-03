@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { RestTimer } from "./types";
+import { type RestTimer, TIMER_STATUS } from "./types";
 
 export const DB_NAME = "workout-tracker";
 
@@ -25,7 +25,7 @@ export async function findLatestPendingTimer(
 ): Promise<RestTimer | undefined> {
 	return database.restTimers
 		.where("status")
-		.equals("pending")
+		.equals(TIMER_STATUS.pending)
 		.reverse()
 		.sortBy("scheduledAt")
 		.then((timers) => timers[0]);
@@ -39,8 +39,8 @@ export async function markTimerReceived(
 	const timer = await findLatestPendingTimer(database);
 	if (!timer) return undefined;
 	await database.restTimers.update(timer.id, {
-		status: "received",
+		status: TIMER_STATUS.received,
 		receivedAt,
 	});
-	return { ...timer, status: "received", receivedAt };
+	return { ...timer, status: TIMER_STATUS.received, receivedAt };
 }

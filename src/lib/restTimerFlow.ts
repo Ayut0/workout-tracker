@@ -1,5 +1,5 @@
 import { db, type WorkoutDB } from "../db";
-import type { RestTimer } from "../db/types";
+import { type RestTimer, TIMER_STATUS } from "../db/types";
 
 /** The notification worker, bound to this device's push subscription. */
 export interface TimerApi {
@@ -24,19 +24,19 @@ export async function startRestTimer(
 		id: crypto.randomUUID(),
 		scheduledAt: createdAt + seconds * 1000,
 		createdAt,
-		status: "pending",
+		status: TIMER_STATUS.pending,
 	};
 	await database.restTimers
 		.where("status")
-		.equals("pending")
-		.modify({ status: "cancelled" });
+		.equals(TIMER_STATUS.pending)
+		.modify({ status: TIMER_STATUS.cancelled });
 	await database.restTimers.add(timer);
 	try {
 		await api.schedule(timer.scheduledAt);
 	} catch (e) {
 		const message = e instanceof Error ? e.message : String(e);
 		await database.restTimers.update(timer.id, {
-			status: "failed",
+			status: TIMER_STATUS.failed,
 			error: message,
 		});
 		throw e;
@@ -51,5 +51,7 @@ export async function cancelRestTimer(
 	database: WorkoutDB = db,
 ): Promise<void> {
 	await api.cancel();
-	await database.restTimers.update(timer.id, { status: "cancelled" });
+	await database.restTimers.update(timer.id, {
+		status: TIMER_STATUS.cancelled,
+	});
 }

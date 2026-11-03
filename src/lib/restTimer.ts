@@ -1,4 +1,4 @@
-import type { RestTimer } from "../db/types";
+import { type RestTimer, TIMER_STATUS } from "../db/types";
 
 /** A push not seen this long after its time is counted as lost. */
 export const LOST_AFTER_MS = 60_000;
@@ -9,45 +9,57 @@ export const LOST_AFTER_MS = 60_000;
  */
 export const ACTIVE_GRACE_MS = 1_000;
 
+/**
+ * What the log shows for a timer. Mostly the stored status, except that a
+ * pending timer is "waiting" until LOST_AFTER_MS has passed, then "lost".
+ */
+export const OUTCOME_KIND = {
+	waiting: "waiting",
+	received: "received",
+	lost: "lost",
+	cancelled: "cancelled",
+	failed: "failed",
+} as const satisfies Record<string, string>;
+
 export type TimerOutcome =
-	| { kind: "waiting" }
-	| { kind: "received"; delaySec: number }
-	| { kind: "lost" }
-	| { kind: "cancelled" }
-	| { kind: "failed"; error: string };
+	| { kind: typeof OUTCOME_KIND.waiting }
+	| { kind: typeof OUTCOME_KIND.received; delaySec: number }
+	| { kind: typeof OUTCOME_KIND.lost }
+	| { kind: typeof OUTCOME_KIND.cancelled }
+	| { kind: typeof OUTCOME_KIND.failed; error: string };
 
 export function getTimerOutcome(timer: RestTimer, now: number): TimerOutcome {
 	switch (timer.status) {
-		case "received":
+		case TIMER_STATUS.received:
 			return {
-				kind: "received",
+				kind: OUTCOME_KIND.received,
 				delaySec:
 					((timer.receivedAt ?? timer.scheduledAt) - timer.scheduledAt) / 1000,
 			};
-		case "cancelled":
-			return { kind: "cancelled" };
-		case "failed":
-			return { kind: "failed", error: timer.error ?? "" };
-		case "pending":
+		case TIMER_STATUS.cancelled:
+			return { kind: OUTCOME_KIND.cancelled };
+		case TIMER_STATUS.failed:
+			return { kind: OUTCOME_KIND.failed, error: timer.error ?? "" };
+		case TIMER_STATUS.pending:
 			return now - timer.scheduledAt > LOST_AFTER_MS
-				? { kind: "lost" }
-				: { kind: "waiting" };
+				? { kind: OUTCOME_KIND.lost }
+				: { kind: OUTCOME_KIND.waiting };
 	}
 }
 
 export function formatOutcome(outcome: TimerOutcome): string {
 	switch (outcome.kind) {
-		case "waiting":
+		case OUTCOME_KIND.waiting:
 			return "Waiting";
-		case "received": {
+		case OUTCOME_KIND.received: {
 			const sign = outcome.delaySec >= 0 ? "+" : "−";
 			return `Arrived ${sign}${Math.abs(outcome.delaySec).toFixed(1)}s`;
 		}
-		case "lost":
+		case OUTCOME_KIND.lost:
 			return "Lost";
-		case "cancelled":
+		case OUTCOME_KIND.cancelled:
 			return "Cancelled";
-		case "failed":
+		case OUTCOME_KIND.failed:
 			return "Failed to send";
 	}
 }
@@ -66,6 +78,8 @@ export function findActiveTimer(
 	now: number,
 ): RestTimer | undefined {
 	return timers.find(
-		(t) => t.status === "pending" && t.scheduledAt > now - ACTIVE_GRACE_MS,
+		(t) =>
+			t.status === TIMER_STATUS.pending &&
+			t.scheduledAt > now - ACTIVE_GRACE_MS,
 	);
 }

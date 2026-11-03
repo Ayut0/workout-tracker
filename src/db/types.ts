@@ -9,12 +9,21 @@
  * One rest-timer notification, kept so we can measure how late the
  * lock-screen notification arrives. The service worker fills in receivedAt.
  */
+export const TIMER_STATUS = {
+	pending: "pending",
+	received: "received",
+	cancelled: "cancelled",
+	failed: "failed",
+} as const satisfies Record<string, string>;
+
+export type TimerStatus = (typeof TIMER_STATUS)[keyof typeof TIMER_STATUS];
+
 export interface RestTimer {
 	id: string;
 	/** When the notification should fire (epoch ms). */
 	scheduledAt: number;
 	createdAt: number;
-	status: "pending" | "received" | "cancelled" | "failed";
+	status: TimerStatus;
 	receivedAt?: number;
 	error?: string;
 }
