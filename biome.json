@@ -13,7 +13,8 @@
 			"!**/.wrangler",
 			"!**/worker-configuration.d.ts",
 			"!.cursor",
-			"!.github"
+			"!.github",
+			"!**/*.md"
 		]
 	},
 	"formatter": {

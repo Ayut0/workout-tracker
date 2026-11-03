@@ -92,7 +92,10 @@ async function readJson(request: Request): Promise<unknown> {
 	}
 }
 
-function getTimerStub(env: Env, endpoint: string): DurableObjectStub<RestTimer> {
+function getTimerStub(
+	env: Env,
+	endpoint: string,
+): DurableObjectStub<RestTimer> {
 	return env.REST_TIMER.get(env.REST_TIMER.idFromName(endpoint));
 }
 
@@ -114,7 +117,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
 	if (request.method === METHODS.post) {
 		const parsed = parseScheduleRequest(await readJson(request), Date.now());
-		if (!parsed.ok) return createJsonResponse(env, 400, { error: parsed.error });
+		if (!parsed.ok)
+			return createJsonResponse(env, 400, { error: parsed.error });
 		await getTimerStub(env, parsed.value.endpoint).schedule(
 			parsed.value.endpoint,
 			parsed.value.fireAt,
@@ -124,7 +128,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
 	if (request.method === METHODS.delete) {
 		const parsed = parseCancelRequest(await readJson(request));
-		if (!parsed.ok) return createJsonResponse(env, 400, { error: parsed.error });
+		if (!parsed.ok)
+			return createJsonResponse(env, 400, { error: parsed.error });
 		await getTimerStub(env, parsed.value.endpoint).cancel();
 		return createJsonResponse(env, 200, { cancelled: true });
 	}
