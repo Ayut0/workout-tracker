@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkoutDB } from "../db";
+import { TIMER_STATUS } from "../db/types";
 import {
 	cancelRestTimer,
 	startRestTimer,
@@ -24,7 +25,10 @@ describe("startRestTimer", () => {
 	it("stores a pending timer and schedules the push at its time", async () => {
 		const timer = await startRestTimer(90, api, database, () => 10_000);
 
-		expect(timer).toMatchObject({ scheduledAt: 100_000, status: "pending" });
+		expect(timer).toMatchObject({
+			scheduledAt: 100_000,
+			status: TIMER_STATUS.pending,
+		});
 		expect(api.schedule).toHaveBeenCalledWith(100_000);
 		expect(await database.restTimers.get(timer.id)).toEqual(timer);
 	});
@@ -34,12 +38,14 @@ describe("startRestTimer", () => {
 			id: "old",
 			scheduledAt: 1,
 			createdAt: 0,
-			status: "pending",
+			status: TIMER_STATUS.pending,
 		});
 
 		await startRestTimer(60, api, database);
 
-		expect((await database.restTimers.get("old"))?.status).toBe("cancelled");
+		expect((await database.restTimers.get("old"))?.status).toBe(
+			TIMER_STATUS.cancelled,
+		);
 	});
 
 	it("marks the timer failed and rethrows when the worker call fails", async () => {
@@ -48,7 +54,7 @@ describe("startRestTimer", () => {
 		await expect(startRestTimer(60, api, database)).rejects.toThrow("500");
 
 		const [timer] = await database.restTimers.toArray();
-		expect(timer).toMatchObject({ status: "failed", error: "500" });
+		expect(timer).toMatchObject({ status: TIMER_STATUS.failed, error: "500" });
 	});
 });
 
@@ -59,7 +65,9 @@ describe("cancelRestTimer", () => {
 		await cancelRestTimer(timer, api, database);
 
 		expect(api.cancel).toHaveBeenCalled();
-		expect((await database.restTimers.get(timer.id))?.status).toBe("cancelled");
+		expect((await database.restTimers.get(timer.id))?.status).toBe(
+			TIMER_STATUS.cancelled,
+		);
 	});
 
 	it("keeps the timer pending when the worker call fails", async () => {
@@ -68,6 +76,8 @@ describe("cancelRestTimer", () => {
 
 		await expect(cancelRestTimer(timer, api, database)).rejects.toThrow();
 
-		expect((await database.restTimers.get(timer.id))?.status).toBe("pending");
+		expect((await database.restTimers.get(timer.id))?.status).toBe(
+			TIMER_STATUS.pending,
+		);
 	});
 });

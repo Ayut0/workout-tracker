@@ -1,51 +1,59 @@
 import { describe, expect, it } from "vitest";
-import type { RestTimer } from "../db/types";
+import { type RestTimer, TIMER_STATUS } from "../db/types";
 import {
 	ACTIVE_GRACE_MS,
 	findActiveTimer,
 	formatCountdown,
 	formatOutcome,
 	getTimerOutcome,
+	OUTCOME_KIND,
 } from "./restTimer";
 
 const base: RestTimer = {
 	id: "t",
 	scheduledAt: 100_000,
 	createdAt: 10_000,
-	status: "pending",
+	status: TIMER_STATUS.pending,
 };
 
 describe("getTimerOutcome", () => {
 	it("reports the delay of a received push", () => {
 		const outcome = getTimerOutcome(
-			{ ...base, status: "received", receivedAt: 102_400 },
+			{ ...base, status: TIMER_STATUS.received, receivedAt: 102_400 },
 			200_000,
 		);
-		expect(outcome).toEqual({ kind: "received", delaySec: 2.4 });
+		expect(outcome).toEqual({ kind: OUTCOME_KIND.received, delaySec: 2.4 });
 		expect(formatOutcome(outcome)).toBe("Arrived +2.4s");
 	});
 
 	it("shows an early push with a minus sign", () => {
 		const outcome = getTimerOutcome(
-			{ ...base, status: "received", receivedAt: 99_500 },
+			{ ...base, status: TIMER_STATUS.received, receivedAt: 99_500 },
 			200_000,
 		);
 		expect(formatOutcome(outcome)).toBe("Arrived −0.5s");
 	});
 
 	it("keeps a pending timer waiting for a minute after its time, then calls it lost", () => {
-		expect(getTimerOutcome(base, 160_000)).toEqual({ kind: "waiting" });
-		expect(getTimerOutcome(base, 160_001)).toEqual({ kind: "lost" });
+		expect(getTimerOutcome(base, 160_000)).toEqual({
+			kind: OUTCOME_KIND.waiting,
+		});
+		expect(getTimerOutcome(base, 160_001)).toEqual({ kind: OUTCOME_KIND.lost });
 	});
 
 	it("passes through cancelled and failed timers", () => {
-		expect(getTimerOutcome({ ...base, status: "cancelled" }, 0)).toEqual({
-			kind: "cancelled",
+		expect(
+			getTimerOutcome({ ...base, status: TIMER_STATUS.cancelled }, 0),
+		).toEqual({
+			kind: OUTCOME_KIND.cancelled,
 		});
 		expect(
-			getTimerOutcome({ ...base, status: "failed", error: "500" }, 0),
+			getTimerOutcome(
+				{ ...base, status: TIMER_STATUS.failed, error: "500" },
+				0,
+			),
 		).toEqual({
-			kind: "failed",
+			kind: OUTCOME_KIND.failed,
 			error: "500",
 		});
 	});
@@ -72,7 +80,7 @@ describe("findActiveTimer", () => {
 	});
 
 	it("ignores timers that are not pending", () => {
-		const received = { ...base, status: "received" as const };
+		const received = { ...base, status: TIMER_STATUS.received };
 		expect(findActiveTimer([received], 0)).toBeUndefined();
 	});
 });
