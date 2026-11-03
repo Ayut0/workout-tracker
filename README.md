@@ -14,12 +14,31 @@ Phase 1 checks the riskiest part of the plan first: does a rest-timer notificati
 
 ## Stack
 
-| Part        | Choice                                                                   |
-| ----------- | ------------------------------------------------------------------------ |
-| App         | Vite, React, TypeScript                                                  |
-| PWA         | vite-plugin-pwa (`injectManifest`, custom service worker in `src/sw.ts`) |
-| Tests       | Vitest                                                                   |
-| Lint/format | Biome                                                                    |
+| Part          | Choice                                                                   |
+| ------------- | ------------------------------------------------------------------------ |
+| App           | Vite, React, TypeScript                                                  |
+| PWA           | vite-plugin-pwa (`injectManifest`, custom service worker in `src/sw.ts`) |
+| Notifications | Cloudflare Worker + Durable Object alarm + Web Push (`worker/`)          |
+| Tests         | Vitest                                                                   |
+| Lint/format   | Biome                                                                    |
+
+## How the rest-timer notification works
+
+1. When a set is done, the app sends `{ endpoint, fireAt }` to the worker.
+2. A Durable Object (one per device) stores it and sets an alarm for `fireAt`.
+3. The alarm sends an empty Web Push signed with VAPID. No payload means no workout data leaves the phone and no payload encryption is needed.
+4. The service worker shows "休憩終了".
+
+The worker only sends to known push services (Apple, Google, Mozilla, Microsoft) and only accepts requests from the app's origin. Timers must be 5 seconds to 1 hour away. A failed push is not retried, because a late notification is worse than none.
+
+```
+worker/
+  src/index.ts     HTTP routes and the RestTimer Durable Object
+  src/vapid.ts     VAPID JWT and push sending (WebCrypto only)
+  src/validate.ts  request validation and push-host allowlist
+```
+
+API: `POST /timers` with `{ endpoint, fireAt }` schedules (replacing any pending timer for that device), `DELETE /timers` with `{ endpoint }` cancels, `GET /health` returns `{ ok: true }`.
 
 ## Development
 
@@ -29,6 +48,18 @@ pnpm dev          # app on http://localhost:5173
 pnpm test
 pnpm lint
 pnpm typecheck
+
+pnpm --filter worker test
+pnpm --filter worker typecheck
+pnpm --filter worker vapid   # generate a VAPID key pair
+```
+
+To run the worker locally, put the keys in `worker/.dev.vars` (git-ignored) and run `pnpm --filter worker dev`:
+
+```sh
+VAPID_PRIVATE_JWK='<private JWK JSON>'
+VAPID_PUBLIC_KEY=<public key>
+ALLOWED_ORIGIN=http://localhost:5173
 ```
 
 Personal data never goes in this repo (it is public). `*.csv` and `fixtures/private/` are git-ignored; keep the Strong export there for local import tests.
