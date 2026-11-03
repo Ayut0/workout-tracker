@@ -23,7 +23,7 @@ const METHODS = {
 function loadVapidKeys(env: Env): VapidKeys {
 	return {
 		publicKey: env.VAPID_PUBLIC_KEY,
-		privateJwk: JSON.parse(env.VAPID_PRIVATE_JWK) as JsonWebKey,
+		privateJwk: JSON.parse(env.VAPID_PRIVATE_JWK),
 		subject: env.VAPID_SUBJECT,
 	};
 }
