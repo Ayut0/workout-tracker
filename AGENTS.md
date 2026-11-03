@@ -77,10 +77,9 @@ convention specific to this repo.
 
 ## Project map
 
-Next.js 15 (App Router) app in `src/app`, Prisma schema and migrations in
-`prisma/`, Supabase (Postgres + Auth + RLS) for persistence. Package manager:
-pnpm (the lockfile is v6, so pnpm 8 — a newer pnpm refuses it with
-`ERR_PNPM_LOCKFILE_BREAKING_CHANGE`).
+Vite + React PWA in `src/`, Prisma schema and migrations in `prisma/`,
+Supabase (Postgres + Auth + RLS) for persistence. Package manager: pnpm, pinned
+by the `packageManager` field in `package.json` (Corepack picks it up).
 
 Intended architecture (README § Architecture): Presentation (presentational +
 container components) → Application (use cases, DTOs) → Domain (entities, core
@@ -94,18 +93,13 @@ Run these and report their actual output before you call a change done:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm exec tsc --noEmit
+pnpm lint
+pnpm typecheck
 pnpm build
+pnpm test
 ```
 
-Use pnpm 8 (`npx pnpm@8 …` if yours is newer) — the lockfile is v6.
-
-Known gaps, not part of verify until fixed: `pnpm lint` runs ESLint, which is
-not installed or configured; `biome check .` fails on `biome.json` itself
-(`files.ignore` is Biome 1.x syntax, 2.2.6 expects `files.includes`); there is
-no unit-test runner yet (`test:db` needs a live `DATABASE_URL`). A change that
-touches the DB layer SHOULD also run `pnpm test:db` when a database is
-available.
+CI (`.github/workflows/ci.yaml`) runs the same commands on every PR.
 
 An independent, advisory CI reviewer runs on demand: comment `@claude review`
 on a PR (owner/member/collaborator only). It follows
