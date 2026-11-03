@@ -4,7 +4,7 @@ import { sendEmptyPush, type VapidKeys } from "./vapid";
 
 export interface Env {
 	REST_TIMER: DurableObjectNamespace<RestTimer>;
-	/** Origin of the PWA, e.g. https://workout-tracker.pages.dev */
+	/** Origin of the PWA, e.g. https://workout-tracker-2nf.pages.dev */
 	ALLOWED_ORIGIN: string;
 	VAPID_PUBLIC_KEY: string;
 	VAPID_SUBJECT: string;

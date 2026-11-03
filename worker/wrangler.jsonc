@@ -10,7 +10,7 @@
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["RestTimer"] }],
 	"vars": {
 		// Replace with your Pages URL after the first deploy.
-		"ALLOWED_ORIGIN": "https://workout-tracker.pages.dev",
+		"ALLOWED_ORIGIN": "https://workout-tracker-2nf.pages.dev",
 		// Fill in from `pnpm vapid`.
 		"VAPID_PUBLIC_KEY": "",
 		// Apple rejects placeholder contacts; use a real address or https URL.
