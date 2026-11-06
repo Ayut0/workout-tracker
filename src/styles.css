@@ -983,3 +983,39 @@ fieldset {
 .history-more {
 	display: grid;
 }
+
+/* ---- Backup (#37) ---- */
+
+.backup-status {
+	margin: 0;
+	list-style: none;
+	font-size: 14px;
+}
+
+.backup-status .warn {
+	font-size: 14px;
+}
+
+.restore-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+}
+
+.restore-table th,
+.restore-table td {
+	padding: 6px 4px;
+	border-bottom: 1px solid var(--line);
+	text-align: right;
+}
+
+.restore-table th:first-child {
+	text-align: left;
+	font-weight: 500;
+}
+
+.restore-confirm {
+	justify-self: stretch;
+	min-height: 56px;
+}

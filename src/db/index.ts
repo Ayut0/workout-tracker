@@ -13,9 +13,10 @@ import {
 export const DB_NAME = "workout-tracker";
 
 /** Key of the one settings record. */
-const SETTINGS_ID = "app";
+export const SETTINGS_ID = "app";
 
-type SettingsRecord = Settings & { id: typeof SETTINGS_ID };
+/** The settings as stored: one record, keyed SETTINGS_ID. */
+export type SettingsRecord = Settings & { id: typeof SETTINGS_ID };
 
 export const DEFAULT_SETTINGS: Settings = { weightUnit: "kg", restSeconds: 90 };
 
