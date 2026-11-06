@@ -6,7 +6,8 @@ The domain language of this repo. Use these terms in code, issues and docs.
 
 **Exercise** — A movement in the library, such as "Bench Press (Barbell)".
 Names are unique ignoring case and spacing. An exercise that history refers to
-is archived (hidden from the library) instead of deleted.
+is archived (hidden from the library) instead of deleted. An archived exercise
+keeps its name and can be restored.
 
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active
