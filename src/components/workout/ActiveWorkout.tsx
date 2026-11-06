@@ -13,8 +13,15 @@ type ActiveWorkoutProps = {
 	detail: WorkoutDetail;
 	exercises: ReadonlyMap<string, Exercise>;
 	weightUnit: WeightUnit;
-	/** The Previous column for an exercise's set (#28); omit to hide it. */
-	renderPrevious?: (exerciseId: string, setIndex: number) => ReactNode;
+	/**
+	 * The Previous column for an exercise's set (#28), given today's set to
+	 * fill; omit to hide it.
+	 */
+	renderPrevious?: (
+		exerciseId: string,
+		setIndex: number,
+		set: WorkoutSet,
+	) => ReactNode;
 	onRename: (name: string) => void;
 	onNotesChange: (notes: string) => void;
 	onAddExercise: () => void;
@@ -105,7 +112,7 @@ export function ActiveWorkout({
 						weightUnit={weightUnit}
 						renderPrevious={
 							renderPrevious &&
-							((setIndex) => renderPrevious(exerciseId, setIndex))
+							((setIndex, set) => renderPrevious(exerciseId, setIndex, set))
 						}
 						onMove={(toIndex) => onMoveExercise(workoutExerciseId, toIndex)}
 						onRemove={() => onRemoveExercise(workoutExerciseId, exerciseName)}
