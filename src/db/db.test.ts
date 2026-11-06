@@ -10,6 +10,7 @@ import {
 	findWorkoutDetail,
 	listArchivedExercises,
 	listExerciseHistory,
+	listExercisesWithHistory,
 	listLibraryExercises,
 	markTimerReceived,
 	normalizeExerciseName,
@@ -100,18 +101,16 @@ describe("schema upgrade", () => {
 	});
 });
 
-describe("exercises", () => {
-	const exercise = (
-		id: string,
-		name: string,
-		archivedAt?: number,
-	): Exercise => ({
+function exercise(id: string, name: string, archivedAt?: number): Exercise {
+	return {
 		id,
 		name,
 		nameKey: normalizeExerciseName(name),
 		...(archivedAt === undefined ? {} : { archivedAt }),
-	});
+	};
+}
 
+describe("exercises", () => {
 	it("normalises names for matching: case, outer and repeated spaces", () => {
 		expect(normalizeExerciseName("  Bench   Press (Barbell) ")).toBe(
 			"bench press (barbell)",
@@ -364,6 +363,20 @@ describe("workouts", () => {
 				["w2", ["s4"]],
 			],
 		);
+	});
+
+	it("lists the exercises with history by name, archived ones included", async () => {
+		await database.exercises.bulkAdd([
+			exercise("squat", "Squat"),
+			exercise("bench", "Bench Press"),
+			exercise("ohp", "Overhead Press"),
+			exercise("curl", "Curl"),
+		]);
+		await database.exercises.update("squat", { archivedAt: 9 });
+
+		const exercises = await listExercisesWithHistory(database);
+
+		expect(exercises.map((e) => e.id)).toEqual(["bench", "ohp", "squat"]);
 	});
 
 	it("finds the active workout only while the latest one has no end", async () => {
