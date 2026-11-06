@@ -20,11 +20,13 @@ complete sets count towards Volume and Estimated 1RM.
 planned sets (weight and reps).
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
-computed from its weight and reps. The formula is chosen in #35 and recorded
-here.
+computed from its weight and reps by Epley: weight × (1 + reps / 30). A single
+rep is the weight itself. Reps above 12 count as 12, because Epley overstates
+the 1RM of high-rep sets; the cap keeps it conservative. A set with 0 reps, or
+with no weight or 0 kg (bodyweight), has no Estimated 1RM.
 
 **Volume** — The work done for an exercise in a workout: the sum of weight × reps
-over its complete sets.
+over its complete sets (all reps, no cap). Bodyweight sets add nothing.
 
 ## Units
 
