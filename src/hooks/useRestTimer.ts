@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { db } from "../db";
 import type { RestTimer } from "../db/types";
 import { cancelRestPush, scheduleRestPush } from "../lib/push";
@@ -9,18 +9,10 @@ import {
 	startRestTimer,
 	type TimerApi,
 } from "../lib/restTimerFlow";
+import { useNow } from "./useNow";
 
 const HISTORY_LIMIT = 20;
 const NO_TIMERS: RestTimer[] = [];
-
-function useNow(intervalMs: number): number {
-	const [now, setNow] = useState(() => Date.now());
-	useEffect(() => {
-		const id = window.setInterval(() => setNow(Date.now()), intervalMs);
-		return () => window.clearInterval(id);
-	}, [intervalMs]);
-	return now;
-}
 
 /** The timer log and the start / cancel actions, for one push subscription. */
 export function useRestTimer(subscription: PushSubscription | null) {

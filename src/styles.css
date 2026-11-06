@@ -697,3 +697,208 @@ fieldset {
 	max-height: 40vh;
 	overflow-y: auto;
 }
+
+/* ---- Workout tab: logging the active workout (#27) ---- */
+
+.workout-head {
+	display: grid;
+	gap: 2px;
+}
+
+.workout-name {
+	width: 100%;
+	min-height: 48px;
+	padding: 0 4px;
+	margin: 0 -4px;
+	border: 1px solid transparent;
+	border-radius: 10px;
+	background: transparent;
+	color: var(--fg);
+	font: inherit;
+	font-size: 26px;
+	font-weight: 700;
+}
+
+.workout-name:focus-visible {
+	border-color: var(--line);
+	background: var(--surface);
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+.elapsed {
+	font-family: var(--mono);
+	font-variant-numeric: tabular-nums;
+	color: var(--fg);
+}
+
+.notes-input {
+	min-height: 64px;
+	padding: 10px 14px;
+	resize: vertical;
+}
+
+.exercise-card {
+	display: grid;
+	gap: 8px;
+	padding: 12px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+}
+
+.exercise-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.exercise-card-head h2 {
+	margin: 0;
+	font-size: 17px;
+	color: var(--accent);
+	overflow-wrap: anywhere;
+}
+
+.exercise-card-tools {
+	display: flex;
+	flex-shrink: 0;
+}
+
+.icon-button {
+	min-width: 44px;
+	min-height: 44px;
+	border-radius: 10px;
+	background: transparent;
+	color: var(--fg);
+	font-size: 20px;
+}
+
+.danger-text {
+	color: var(--bad);
+}
+
+/* Columns: set number, [previous], weight, reps, done, remove. */
+.set-grid {
+	--set-columns: 28px 1fr 1fr 48px 44px;
+	display: grid;
+	gap: 4px;
+}
+
+.set-grid.with-previous {
+	--set-columns: 28px 1fr 1fr 1fr 48px 44px;
+}
+
+.set-head,
+.set-row {
+	display: grid;
+	grid-template-columns: var(--set-columns);
+	gap: 6px;
+	align-items: center;
+}
+
+.set-head {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--muted);
+	text-align: center;
+}
+
+.set-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 4px;
+}
+
+.set-row {
+	border-radius: 10px;
+}
+
+.set-row.done {
+	background: color-mix(in srgb, var(--good) 14%, transparent);
+}
+
+.set-number,
+.set-previous {
+	text-align: center;
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: var(--muted);
+}
+
+.set-input {
+	width: 100%;
+	min-width: 0;
+	min-height: 44px;
+	padding: 0 6px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--bg);
+	color: var(--fg);
+	/* 16px or more stops iOS Safari zooming in on focus. */
+	font: inherit;
+	font-size: 17px;
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
+.set-input:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+.set-done {
+	min-height: 44px;
+	border-radius: 10px;
+	background: var(--bg);
+	color: var(--muted);
+	border: 1px solid var(--line);
+	font-size: 20px;
+	font-weight: 700;
+}
+
+.set-done[aria-pressed="true"] {
+	background: var(--good);
+	border-color: var(--good);
+	color: var(--on-accent);
+}
+
+.set-remove {
+	min-height: 44px;
+	border-radius: 10px;
+	background: transparent;
+	color: var(--muted);
+	font-size: 20px;
+}
+
+.add-set {
+	min-height: 44px;
+	font-size: 15px;
+}
+
+.workout-actions {
+	display: grid;
+	gap: 12px;
+	justify-items: stretch;
+}
+
+.workout-actions .danger {
+	justify-self: stretch;
+	min-height: 48px;
+}
+
+.picker {
+	display: grid;
+	gap: 12px;
+}
+
+.picker-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
