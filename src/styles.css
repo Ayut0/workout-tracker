@@ -929,3 +929,57 @@ fieldset {
 .previous-none {
 	color: var(--muted);
 }
+
+/* ---- History (#30) ---- */
+
+.history-list {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.history-row {
+	display: grid;
+	gap: 4px;
+	min-height: 64px;
+	padding: 12px 14px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	color: var(--fg);
+	text-decoration: none;
+}
+
+.history-row-head {
+	display: grid;
+	gap: 0;
+}
+
+.history-name {
+	font-size: 17px;
+	color: var(--accent);
+}
+
+.history-date,
+.history-stats {
+	font-size: 14px;
+	color: var(--muted);
+}
+
+.history-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+	font-variant-numeric: tabular-nums;
+}
+
+.history-exercises {
+	display: grid;
+	font-size: 14px;
+}
+
+.history-more {
+	display: grid;
+}

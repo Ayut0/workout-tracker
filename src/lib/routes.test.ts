@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPlainClick, parseRoute, TABS } from "./routes";
+import { historyDetailPath, isPlainClick, parseRoute, TABS } from "./routes";
 
 describe("parseRoute", () => {
 	it("opens the Workout tab at the root", () => {
@@ -32,9 +32,30 @@ describe("parseRoute", () => {
 		);
 	});
 
+	it("opens a past workout under the History tab", () => {
+		expect(parseRoute("/history/abc-123")).toEqual({
+			name: "history-detail",
+			tab: "history",
+			workoutId: "abc-123",
+		});
+		expect(parseRoute("/history/abc-123/")?.name).toBe("history-detail");
+	});
+
+	it("round-trips a workout id through its History path", () => {
+		const id = "6f1c a/b?";
+		const path = historyDetailPath(id);
+		expect(path).toBe("/history/6f1c%20a%2Fb%3F");
+		expect(parseRoute(path)).toEqual({
+			name: "history-detail",
+			tab: "history",
+			workoutId: id,
+		});
+	});
+
 	it("returns null for an unknown path", () => {
 		expect(parseRoute("/nope")).toBeNull();
-		expect(parseRoute("/history/nope")).toBeNull();
+		expect(parseRoute("/history/a/b")).toBeNull();
+		expect(parseRoute("/history/%E0%A4%A")).toBeNull();
 		expect(parseRoute("/workout")).toBeNull();
 	});
 
