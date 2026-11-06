@@ -115,4 +115,9 @@ export interface Settings {
 	weightUnit: WeightUnit;
 	/** Default rest after a set, in seconds; an exercise may override it. */
 	restSeconds: number;
+	/**
+	 * When a backup file was last saved (epoch ms); unset until the first.
+	 * Not indexed, so adding it needs no schema version.
+	 */
+	lastBackupAt?: number;
 }
