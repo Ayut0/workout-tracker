@@ -79,6 +79,7 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 	const [query, setQuery] = useState("");
 	const library = useLibraryExercises(query);
 	const [error, setError] = useState<string | null>(null);
+	const [saving, setSaving] = useState(false);
 
 	/** Runs a write, showing its error instead of losing it. */
 	function run(write: () => Promise<unknown>) {
@@ -106,15 +107,23 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 	}
 
 	function save() {
+		// A double tap must not create the template twice.
+		if (saving) return;
+		setSaving(true);
 		run(async () => {
-			const input = { name, exercises };
-			const result =
-				templateId === undefined
-					? await templateActions.create(input)
-					: await templateActions.update(templateId, input);
-			if (result.ok) navigate(WORKOUT_PATH);
-			else if (result.reason === "empty") setError("Give the template a name.");
-			else setError("This template no longer exists.");
+			try {
+				const input = { name, exercises };
+				const result =
+					templateId === undefined
+						? await templateActions.create(input)
+						: await templateActions.update(templateId, input);
+				if (result.ok) navigate(WORKOUT_PATH);
+				else if (result.reason === "empty") {
+					setError("Give the template a name.");
+				} else setError("This template no longer exists.");
+			} finally {
+				setSaving(false);
+			}
 		});
 	}
 
@@ -125,6 +134,9 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 			navigate(WORKOUT_PATH);
 		});
 	}
+
+	// Wait for exercise names rather than flash "Unknown exercise".
+	if (exercisesById === undefined) return null;
 
 	if (picking) {
 		return (
@@ -170,7 +182,7 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 					key={index}
 					exercise={exercise}
 					name={
-						exercisesById?.get(exercise.exerciseId)?.name ?? "Unknown exercise"
+						exercisesById.get(exercise.exerciseId)?.name ?? "Unknown exercise"
 					}
 					index={index}
 					count={exercises.length}
@@ -214,7 +226,12 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 			)}
 
 			<div className="workout-actions">
-				<button type="button" className="primary" onClick={save}>
+				<button
+					type="button"
+					className="primary"
+					disabled={saving}
+					onClick={save}
+				>
 					Save template
 				</button>
 				<Link to={WORKOUT_PATH} className="secondary link-button">
