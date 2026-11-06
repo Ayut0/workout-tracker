@@ -13,6 +13,8 @@ dev-dist/
 # Personal workout data (never commit; this repo is public)
 fixtures/private/
 *.csv
+# Synthetic test fixture (no personal data); see fixtures/README.md
+!fixtures/strong-sample.csv
 
 # Editors
 .vscode/

@@ -1,0 +1,18 @@
+Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE
+2026-01-05 07:30:00,Push Day,1h 5m,Bench Press (Barbell),W,40,10,0,0,,"Felt strong, slept well",
+2026-01-05 07:30:00,Push Day,1h 5m,Bench Press (Barbell),1,80,5,0,0,"Paused reps,
+two second pause",,8
+2026-01-05 07:30:00,Push Day,1h 5m,Bench Press (Barbell),2,80,5,0,0,,,8.5
+2026-01-05 07:30:00,Push Day,1h 5m,Bench Press (Barbell),D,60,8,0,0,,,
+2026-01-05 07:30:00,Push Day,1h 5m,Overhead Press (Barbell),1,42.5,6,0,0,"Said ""easy""",,
+2026-01-05 07:30:00,Push Day,1h 5m,Overhead Press (Barbell),Rest Timer,0,0,0,90,,,
+2026-01-05 07:30:00,Push Day,1h 5m,Overhead Press (Barbell),2,42.5,6,0,0,,,
+2026-01-07 18:00:00,Evening Run,45m,Running,1,0,0,5.2,1800,,,
+2026-01-07 18:00:00,Evening Run,45m,Plank,1,,,,60,,,
+2026-01-09 06:15:00,Legs,1h,Squat (Barbell),1,100,5,0,0,,,
+2026-01-09 06:15:00,Legs,1h,Squat (Barbell),2,100,5,,,,,
+2026-01-09 06:15:00,Legs,1h,Leg Press,1,180,12,0,0,,,
+2026-01-09 06:15:00,Legs,1h,Squat (Barbell),1,60,10,0,0,Back-off,,
+not-a-date,Legs,1h,Squat (Barbell),1,60,10,0,0,,,
+2026-01-09 06:15:00,Legs,1h,,1,60,10,0,0,,,
+2026-01-09 06:15:00,Legs,1h,Squat (Barbell)
