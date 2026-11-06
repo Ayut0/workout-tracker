@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { historyDetailPath, isPlainClick, parseRoute, TABS } from "./routes";
+import {
+	historyDetailPath,
+	isPlainClick,
+	parseRoute,
+	TABS,
+	templatePath,
+} from "./routes";
 
 describe("parseRoute", () => {
 	it("opens the Workout tab at the root", () => {
@@ -50,6 +56,34 @@ describe("parseRoute", () => {
 			tab: "history",
 			workoutId: id,
 		});
+	});
+
+	it("puts the template editor under the Workout tab", () => {
+		expect(parseRoute("/templates/new")).toEqual({
+			name: "template-new",
+			tab: "workout",
+		});
+		expect(parseRoute("/templates/abc-123")).toEqual({
+			name: "template-edit",
+			tab: "workout",
+			templateId: "abc-123",
+		});
+		expect(parseRoute("/templates/abc-123/")?.name).toBe("template-edit");
+	});
+
+	it("round-trips a template id through its path", () => {
+		const id = "a b/c%";
+		expect(parseRoute(templatePath(id))).toEqual({
+			name: "template-edit",
+			tab: "workout",
+			templateId: id,
+		});
+	});
+
+	it("has no template list or nested template page", () => {
+		expect(parseRoute("/templates")).toBeNull();
+		expect(parseRoute("/templates/abc/edit")).toBeNull();
+		expect(parseRoute("/templates/%E0%A4%A")).toBeNull();
 	});
 
 	it("returns null for an unknown path", () => {

@@ -1,6 +1,8 @@
 export const SETTINGS_PATH = "/settings";
 export const NOTIFICATION_CHECK_PATH = `${SETTINGS_PATH}/notifications`;
 export const HISTORY_PATH = "/history";
+export const TEMPLATES_PATH = "/templates";
+export const NEW_TEMPLATE_PATH = `${TEMPLATES_PATH}/new`;
 
 /** The bottom tab bar, in display order. Workout lives at the root so the app opens on it. */
 export const TABS = [
@@ -17,16 +19,26 @@ export type TabId = (typeof TABS)[number]["id"];
 export type Route =
 	| { name: TabId; tab: TabId }
 	| { name: "notification-check"; tab: "settings" }
-	| { name: "history-detail"; tab: "history"; workoutId: string };
+	| { name: "history-detail"; tab: "history"; workoutId: string }
+	| { name: "template-new"; tab: "workout" }
+	| { name: "template-edit"; tab: "workout"; templateId: string };
 
 /** The path of one past workout in History. */
 export function historyDetailPath(workoutId: string): string {
 	return `${HISTORY_PATH}/${encodeURIComponent(workoutId)}`;
 }
 
-/** The workout id in a History detail path, e.g. "/history/<id>"; undefined otherwise. */
-function readHistoryDetailId(path: string): string | undefined {
-	const prefix = `${HISTORY_PATH}/`;
+/** The path of a template's editor. */
+export function templatePath(templateId: string): string {
+	return `${TEMPLATES_PATH}/${encodeURIComponent(templateId)}`;
+}
+
+/**
+ * The id in a path one segment below `base`, e.g. "/history/<id>";
+ * undefined for any other path.
+ */
+function readIdBelow(base: string, path: string): string | undefined {
+	const prefix = `${base}/`;
 	if (!path.startsWith(prefix)) return undefined;
 	const segment = path.slice(prefix.length);
 	if (segment === "" || segment.includes("/")) return undefined;
@@ -46,9 +58,16 @@ export function parseRoute(pathname: string): Route | null {
 	if (path === NOTIFICATION_CHECK_PATH) {
 		return { name: "notification-check", tab: "settings" };
 	}
-	const workoutId = readHistoryDetailId(path);
+	const workoutId = readIdBelow(HISTORY_PATH, path);
 	if (workoutId !== undefined) {
 		return { name: "history-detail", tab: "history", workoutId };
+	}
+	if (path === NEW_TEMPLATE_PATH) {
+		return { name: "template-new", tab: "workout" };
+	}
+	const templateId = readIdBelow(TEMPLATES_PATH, path);
+	if (templateId !== undefined) {
+		return { name: "template-edit", tab: "workout", templateId };
 	}
 	const tab = TABS.find((t) => t.path === path);
 	return tab ? { name: tab.id, tab: tab.id } : null;
