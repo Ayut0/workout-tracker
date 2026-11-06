@@ -44,6 +44,11 @@ export interface Exercise {
 	nameKey: string;
 	/** Set when hidden from the library because history refers to it. */
 	archivedAt?: number;
+	/**
+	 * Rest after a set of this exercise, in seconds, overriding the default
+	 * rest in Settings. Not indexed, so adding it needs no schema version.
+	 */
+	restSeconds?: number;
 }
 
 /** One training session. It is active (in progress) until endedAt is set. */
@@ -108,5 +113,6 @@ export type WeightUnit = "kg" | "lb";
 export interface Settings {
 	/** Unit for display and input; storage is always kg. */
 	weightUnit: WeightUnit;
+	/** Default rest after a set, in seconds; an exercise may override it. */
 	restSeconds: number;
 }
