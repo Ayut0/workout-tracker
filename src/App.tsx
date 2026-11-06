@@ -1,6 +1,7 @@
 import { TabBar } from "./components/TabBar";
 import { useRoute } from "./hooks/useRoute";
 import type { Route } from "./lib/routes";
+import { Exercises } from "./screens/Exercises";
 import { NotificationCheck } from "./screens/NotificationCheck";
 import { Placeholder } from "./screens/Placeholder";
 import { Settings } from "./screens/Settings";
@@ -36,12 +37,7 @@ function Screen({ route }: { route: Route | null }) {
 				/>
 			);
 		case "exercises":
-			return (
-				<Placeholder
-					title="Exercises"
-					text="Your exercise list will show here."
-				/>
-			);
+			return <Exercises />;
 		case "progress":
 			return (
 				<Placeholder

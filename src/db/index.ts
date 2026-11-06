@@ -95,6 +95,90 @@ export async function listLibraryExercises(
 		.toArray();
 }
 
+/** Archived exercises, sorted by name ignoring case. */
+export async function listArchivedExercises(
+	database: WorkoutDB = db,
+): Promise<Exercise[]> {
+	return database.exercises
+		.orderBy("nameKey")
+		.filter((exercise) => exercise.archivedAt !== undefined)
+		.toArray();
+}
+
+/**
+ * The outcome of creating or renaming an exercise. A duplicate carries the
+ * exercise (possibly archived) that already holds the name.
+ */
+export type ExerciseNameResult =
+	| { ok: true; exercise: Exercise }
+	| { ok: false; reason: "empty" }
+	| { ok: false; reason: "duplicate"; existing: Exercise }
+	| { ok: false; reason: "not-found" };
+
+/** A name as stored: trimmed, with runs of whitespace collapsed; case kept. */
+function tidyExerciseName(name: string): string {
+	return name.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Adds an exercise to the library. Rejects a blank name, and a name that
+ * matches another exercise's (archived ones included) ignoring case and spacing.
+ */
+export async function createExercise(
+	name: string,
+	database: WorkoutDB = db,
+): Promise<ExerciseNameResult> {
+	const tidy = tidyExerciseName(name);
+	if (tidy === "") return { ok: false, reason: "empty" };
+	const nameKey = normalizeExerciseName(tidy);
+	return database.transaction("rw", database.exercises, async () => {
+		const existing = await database.exercises.get({ nameKey });
+		if (existing) return { ok: false, reason: "duplicate", existing };
+		const exercise: Exercise = { id: crypto.randomUUID(), name: tidy, nameKey };
+		await database.exercises.add(exercise);
+		return { ok: true, exercise };
+	});
+}
+
+/**
+ * Renames an exercise. History refers to it by id, so past workouts show the
+ * new name. The same duplicate rules as createExercise apply.
+ */
+export async function renameExercise(
+	id: string,
+	name: string,
+	database: WorkoutDB = db,
+): Promise<ExerciseNameResult> {
+	const tidy = tidyExerciseName(name);
+	if (tidy === "") return { ok: false, reason: "empty" };
+	const nameKey = normalizeExerciseName(tidy);
+	return database.transaction("rw", database.exercises, async () => {
+		const current = await database.exercises.get(id);
+		if (!current) return { ok: false, reason: "not-found" };
+		const existing = await database.exercises.get({ nameKey });
+		if (existing && existing.id !== id) {
+			return { ok: false, reason: "duplicate", existing };
+		}
+		const exercise: Exercise = { ...current, name: tidy, nameKey };
+		await database.exercises.put(exercise);
+		return { ok: true, exercise };
+	});
+}
+
+/** Brings an archived exercise back into the library; false if it is gone. */
+export async function restoreExercise(
+	id: string,
+	database: WorkoutDB = db,
+): Promise<boolean> {
+	return database.transaction("rw", database.exercises, async () => {
+		const current = await database.exercises.get(id);
+		if (!current) return false;
+		const { archivedAt: _archivedAt, ...restored } = current;
+		await database.exercises.put(restored);
+		return true;
+	});
+}
+
 /**
  * Removes an exercise from the library. One that a workout or template refers
  * to is archived (kept, hidden) so history still resolves; any other is deleted.

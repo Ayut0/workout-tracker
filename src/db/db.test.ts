@@ -2,16 +2,20 @@ import "fake-indexeddb/auto";
 import Dexie from "dexie";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+	createExercise,
 	DEFAULT_SETTINGS,
 	findActiveWorkout,
 	findLatestPendingTimer,
 	findSettings,
 	findWorkoutDetail,
+	listArchivedExercises,
 	listExerciseHistory,
 	listLibraryExercises,
 	markTimerReceived,
 	normalizeExerciseName,
 	removeExercise,
+	renameExercise,
+	restoreExercise,
 	saveSettings,
 	setExerciseRestSeconds,
 	WorkoutDB,
@@ -161,6 +165,122 @@ describe("exercises", () => {
 		});
 
 		expect(await removeExercise("e", 7, database)).toBe("archived");
+	});
+
+	describe("createExercise", () => {
+		it("stores a new exercise with a tidied name and its name key", async () => {
+			const result = await createExercise("  Bench   Press ", database);
+
+			expect(result.ok).toBe(true);
+			if (!result.ok) return;
+			expect(result.exercise).toMatchObject({
+				name: "Bench Press",
+				nameKey: "bench press",
+			});
+			expect(await database.exercises.get(result.exercise.id)).toEqual(
+				result.exercise,
+			);
+		});
+
+		it("rejects an empty or blank name", async () => {
+			expect(await createExercise("   ", database)).toEqual({
+				ok: false,
+				reason: "empty",
+			});
+			expect(await database.exercises.count()).toBe(0);
+		});
+
+		it("rejects a name that differs from an existing one only by case or spacing", async () => {
+			await database.exercises.add(exercise("s", "Squat"));
+
+			expect(await createExercise(" SQUAT ", database)).toEqual({
+				ok: false,
+				reason: "duplicate",
+				existing: exercise("s", "Squat"),
+			});
+			expect(await database.exercises.count()).toBe(1);
+		});
+
+		it("reports the archived exercise that already holds the name", async () => {
+			await database.exercises.add(exercise("o", "Old Row", 5));
+
+			const result = await createExercise("old row", database);
+			expect(result).toMatchObject({
+				ok: false,
+				reason: "duplicate",
+				existing: { id: "o", archivedAt: 5 },
+			});
+		});
+	});
+
+	describe("renameExercise", () => {
+		it("renames and updates the name key", async () => {
+			await database.exercises.add(exercise("s", "Squat"));
+
+			const result = await renameExercise("s", " Back  Squat", database);
+			expect(result).toEqual({
+				ok: true,
+				exercise: exercise("s", "Back Squat"),
+			});
+			expect(await database.exercises.get("s")).toEqual(
+				exercise("s", "Back Squat"),
+			);
+		});
+
+		it("allows changing only the case of its own name", async () => {
+			await database.exercises.add(exercise("s", "squat"));
+
+			expect(await renameExercise("s", "Squat", database)).toMatchObject({
+				ok: true,
+				exercise: { name: "Squat" },
+			});
+		});
+
+		it("rejects a name another exercise holds, leaving both unchanged", async () => {
+			await database.exercises.bulkAdd([
+				exercise("s", "Squat"),
+				exercise("b", "Bench Press"),
+			]);
+
+			expect(await renameExercise("s", "bench  press", database)).toEqual({
+				ok: false,
+				reason: "duplicate",
+				existing: exercise("b", "Bench Press"),
+			});
+			expect(await database.exercises.get("s")).toEqual(exercise("s", "Squat"));
+		});
+
+		it("rejects a blank name and an unknown id", async () => {
+			await database.exercises.add(exercise("s", "Squat"));
+
+			expect(await renameExercise("s", " ", database)).toEqual({
+				ok: false,
+				reason: "empty",
+			});
+			expect(await renameExercise("nope", "Deadlift", database)).toEqual({
+				ok: false,
+				reason: "not-found",
+			});
+		});
+	});
+
+	it("lists archived exercises by name and restores one to the library", async () => {
+		await database.exercises.bulkAdd([
+			exercise("s", "Squat"),
+			exercise("r", "Row", 6),
+			exercise("c", "curl", 5),
+		]);
+
+		const archived = await listArchivedExercises(database);
+		expect(archived.map((e) => e.id)).toEqual(["c", "r"]);
+
+		expect(await restoreExercise("r", database)).toBe(true);
+		expect(await database.exercises.get("r")).toEqual(exercise("r", "Row"));
+		expect((await listLibraryExercises(database)).map((e) => e.id)).toEqual([
+			"r",
+			"s",
+		]);
+		expect(await restoreExercise("nope", database)).toBe(false);
 	});
 });
 
