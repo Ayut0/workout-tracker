@@ -3,6 +3,7 @@ import {
 	formatRestDuration,
 	MAX_REST_SECONDS,
 	MIN_REST_SECONDS,
+	parseRestOverride,
 	parseRestSeconds,
 	resolveRestSeconds,
 } from "./restDuration";
@@ -52,5 +53,21 @@ describe("formatRestDuration", () => {
 		expect(formatRestDuration(90)).toBe("1:30");
 		expect(formatRestDuration(45)).toBe("0:45");
 		expect(formatRestDuration(600)).toBe("10:00");
+	});
+});
+
+describe("parseRestOverride", () => {
+	it("clears the exercise's rest when blank", () => {
+		expect(parseRestOverride("  ")).toEqual({ seconds: undefined });
+	});
+
+	it("reads seconds or m:ss", () => {
+		expect(parseRestOverride("120")).toEqual({ seconds: 120 });
+		expect(parseRestOverride("2:30")).toEqual({ seconds: 150 });
+	});
+
+	it("rejects malformed or out-of-range text", () => {
+		expect(parseRestOverride("abc")).toBeNull();
+		expect(parseRestOverride("1")).toBeNull();
 	});
 });

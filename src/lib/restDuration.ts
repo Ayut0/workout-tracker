@@ -48,3 +48,16 @@ export function formatRestDuration(seconds: number): string {
 	const rest = seconds % SECONDS_PER_MINUTE;
 	return `${minutes}:${rest.toString().padStart(2, "0")}`;
 }
+
+/**
+ * Reads an exercise's own rest as typed: blank clears it so the default rest
+ * applies (`{ seconds: undefined }`); otherwise as parseRestSeconds. Null when
+ * the text is not a valid rest.
+ */
+export function parseRestOverride(
+	text: string,
+): { seconds: number | undefined } | null {
+	if (text.trim() === "") return { seconds: undefined };
+	const seconds = parseRestSeconds(text);
+	return seconds === undefined ? null : { seconds };
+}

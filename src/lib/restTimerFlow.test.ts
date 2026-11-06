@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkoutDB } from "../db";
 import { TIMER_STATUS } from "../db/types";
 import {
+	cancelPendingRestTimers,
 	cancelRestTimer,
 	startRestTimer,
+	startRestTimerAt,
 	type TimerApi,
 } from "./restTimerFlow";
 
@@ -76,6 +78,39 @@ describe("cancelRestTimer", () => {
 
 		await expect(cancelRestTimer(timer, api, database)).rejects.toThrow();
 
+		expect((await database.restTimers.get(timer.id))?.status).toBe(
+			TIMER_STATUS.pending,
+		);
+	});
+});
+
+describe("startRestTimerAt", () => {
+	it("schedules the push for the given time", async () => {
+		const timer = await startRestTimerAt(75_000, api, database, () => 5_000);
+
+		expect(timer).toMatchObject({ scheduledAt: 75_000, createdAt: 5_000 });
+		expect(api.schedule).toHaveBeenCalledWith(75_000);
+	});
+});
+
+describe("cancelPendingRestTimers", () => {
+	it("cancels due pending timers on the worker and the device", async () => {
+		const timer = await startRestTimer(60, api, database, () => 0);
+
+		await cancelPendingRestTimers(api, database, () => 1_000);
+
+		expect(api.cancel).toHaveBeenCalledOnce();
+		expect((await database.restTimers.get(timer.id))?.status).toBe(
+			TIMER_STATUS.cancelled,
+		);
+	});
+
+	it("leaves timers whose time has passed, and calls no worker", async () => {
+		const timer = await startRestTimer(60, api, database, () => 0);
+
+		await cancelPendingRestTimers(api, database, () => 60_000);
+
+		expect(api.cancel).not.toHaveBeenCalled();
 		expect((await database.restTimers.get(timer.id))?.status).toBe(
 			TIMER_STATUS.pending,
 		);

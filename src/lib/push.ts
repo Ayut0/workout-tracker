@@ -1,6 +1,7 @@
 /**
  * Notification permission, push subscription, and calls to the timer worker.
  */
+import type { TimerApi } from "./restTimerFlow";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? "";
 const PUSH_API_URL = (import.meta.env.VITE_PUSH_API_URL ?? "").replace(
@@ -100,4 +101,12 @@ export function scheduleRestPush(
 
 export function cancelRestPush(subscription: PushSubscription): Promise<void> {
 	return callTimerApi("DELETE", { endpoint: subscription.endpoint });
+}
+
+/** The timer worker, bound to this device's push subscription. */
+export function timerApiFor(subscription: PushSubscription): TimerApi {
+	return {
+		schedule: (fireAt) => scheduleRestPush(subscription, fireAt),
+		cancel: () => cancelRestPush(subscription),
+	};
 }

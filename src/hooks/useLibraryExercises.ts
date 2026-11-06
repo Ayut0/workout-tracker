@@ -8,6 +8,7 @@ import {
 	removeExercise,
 	renameExercise,
 	restoreExercise,
+	setExerciseRestSeconds,
 } from "../db";
 import type { Exercise } from "../db/types";
 import { filterExercisesByName } from "../lib/exerciseLibrary";
@@ -38,4 +39,7 @@ export const exerciseLibraryActions = {
 	remove: (id: string): Promise<"deleted" | "archived"> =>
 		removeExercise(id, Date.now()),
 	restore: (id: string): Promise<boolean> => restoreExercise(id),
+	/** Sets the exercise's own rest, or clears it (undefined) to use the default. */
+	setRest: (id: string, restSeconds: number | undefined): Promise<boolean> =>
+		setExerciseRestSeconds(id, restSeconds),
 };
