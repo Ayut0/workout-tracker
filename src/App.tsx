@@ -4,6 +4,7 @@ import type { Route } from "./lib/routes";
 import { Exercises } from "./screens/Exercises";
 import { NotificationCheck } from "./screens/NotificationCheck";
 import { Placeholder } from "./screens/Placeholder";
+import { Progress } from "./screens/Progress";
 import { Settings } from "./screens/Settings";
 
 /** The app shell: the screen for the current URL above the bottom tab bar. */
@@ -39,12 +40,7 @@ function Screen({ route }: { route: Route | null }) {
 		case "exercises":
 			return <Exercises />;
 		case "progress":
-			return (
-				<Placeholder
-					title="Progress"
-					text="Charts of estimated 1RM and volume will show here."
-				/>
-			);
+			return <Progress />;
 		case "settings":
 			return <Settings />;
 		case "notification-check":

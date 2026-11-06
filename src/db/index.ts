@@ -180,6 +180,28 @@ export async function restoreExercise(
 }
 
 /**
+ * Exercises that appear in at least one workout, sorted by name ignoring case.
+ * Archived ones are included: their history still counts as progress.
+ */
+export async function listExercisesWithHistory(
+	database: WorkoutDB = db,
+): Promise<Exercise[]> {
+	return database.transaction(
+		"r",
+		[database.exercises, database.workoutExercises],
+		async () => {
+			const ids = await database.workoutExercises
+				.orderBy("exerciseId")
+				.uniqueKeys();
+			const exercises = await database.exercises.bulkGet(ids.map(String));
+			return exercises
+				.filter((exercise) => exercise !== undefined)
+				.sort((a, b) => a.nameKey.localeCompare(b.nameKey));
+		},
+	);
+}
+
+/**
  * Removes an exercise from the library. One that a workout or template refers
  * to is archived (kept, hidden) so history still resolves; any other is deleted.
  */
