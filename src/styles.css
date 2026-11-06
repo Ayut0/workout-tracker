@@ -905,10 +905,6 @@ fieldset {
 
 /* ---- Previous column (#28) ---- */
 
-.set-grid.with-previous {
-	--set-columns: 28px 1.4fr 1fr 1fr 48px 44px;
-}
-
 .previous-fill {
 	width: 100%;
 	min-width: 0;
@@ -922,7 +918,7 @@ fieldset {
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
 	line-height: 1.2;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
 }
 
 .previous-fill:active {
