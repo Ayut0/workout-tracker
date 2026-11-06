@@ -490,7 +490,8 @@ fieldset {
 	color: var(--muted);
 }
 
-.archived summary {
+.archived summary,
+.import-details summary {
 	min-height: 44px;
 	display: flex;
 	align-items: center;
@@ -664,4 +665,35 @@ fieldset {
 .chart-table th:last-child,
 .chart-table td:last-child {
 	text-align: right;
+}
+
+/* ---- Strong import (#34) ---- */
+
+.file-pick {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+}
+
+.file-pick:focus-within {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.import-summary {
+	margin: 0;
+	list-style: none;
+	font-size: 15px;
+}
+
+.import-list {
+	margin: 0;
+	padding: 0 0 0 18px;
+	display: grid;
+	gap: 4px;
+	font-size: 14px;
+	color: var(--muted);
+	max-height: 40vh;
+	overflow-y: auto;
 }
