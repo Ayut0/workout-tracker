@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { TemplateList } from "../components/templates/TemplateList";
 import { ActiveWorkout } from "../components/workout/ActiveWorkout";
 import { ExercisePicker } from "../components/workout/ExercisePicker";
 import { PreviousSet } from "../components/workout/PreviousSet";
@@ -15,8 +16,10 @@ import {
 } from "../hooks/useLibraryExercises";
 import { usePreviousSets } from "../hooks/usePreviousSets";
 import { useSettings } from "../hooks/useSettings";
+import { templateActions, useTemplates } from "../hooks/useTemplates";
 import { describeExerciseNameError } from "../lib/exerciseLibrary";
 import { formatPreviousSet, planFillFromPrevious } from "../lib/previousSets";
+import { describeTemplateFromWorkout } from "../lib/templates";
 
 type WorkoutProps = {
 	/**
@@ -35,6 +38,9 @@ export function Workout({ onSetCompleted }: WorkoutProps) {
 	const { settings } = useSettings();
 	const [notice, setNotice] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const templates = useTemplates();
+	/** The workout just finished, offered to be saved as a template (#31). */
+	const [finishedId, setFinishedId] = useState<string | null>(null);
 
 	/** Runs a write, showing its error instead of losing it. */
 	function run(write: () => Promise<unknown>) {
@@ -72,18 +78,48 @@ export function Workout({ onSetCompleted }: WorkoutProps) {
 					</p>
 				</header>
 				{messages}
+				{finishedId !== null && (
+					<button
+						type="button"
+						className="secondary"
+						onClick={() =>
+							run(async () => {
+								const result =
+									await templateActions.saveFromWorkout(finishedId);
+								setFinishedId(null);
+								setNotice(describeTemplateFromWorkout(result));
+							})
+						}
+					>
+						Save as template
+					</button>
+				)}
 				<button
 					type="button"
 					className="primary"
 					onClick={() =>
 						run(async () => {
 							setNotice(null);
+							setFinishedId(null);
 							await workoutLogActions.start();
 						})
 					}
 				>
 					Start an empty workout
 				</button>
+				<TemplateList
+					templates={templates}
+					onStart={(template) =>
+						run(async () => {
+							setNotice(null);
+							setFinishedId(null);
+							const result = await templateActions.start(template.id);
+							if (!result.ok && result.reason === "not-found") {
+								setNotice("That template no longer exists.");
+							}
+						})
+					}
+				/>
 			</>
 		);
 	}
@@ -95,7 +131,11 @@ export function Workout({ onSetCompleted }: WorkoutProps) {
 			messages={messages}
 			run={run}
 			onSetCompleted={onSetCompleted}
-			onFinished={(name) => setNotice(`Saved “${name}”.`)}
+			onFinished={(name) => {
+				setNotice(`Saved “${name}”.`);
+				// The workout that just finished is the one that was active.
+				setFinishedId(active.detail.workout.id);
+			}}
 			onDiscarded={() => setNotice("Workout discarded.")}
 		/>
 	);

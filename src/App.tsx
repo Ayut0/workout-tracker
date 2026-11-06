@@ -11,6 +11,7 @@ import { NotificationCheck } from "./screens/NotificationCheck";
 import { Placeholder } from "./screens/Placeholder";
 import { Progress } from "./screens/Progress";
 import { Settings } from "./screens/Settings";
+import { TemplateEditor } from "./screens/TemplateEditor";
 import { Workout } from "./screens/Workout";
 
 /** The app shell: the screen for the current URL above the bottom tab bar. */
@@ -49,6 +50,12 @@ function Screen({ route }: { route: Route | null }) {
 			return <Settings />;
 		case "notification-check":
 			return <NotificationCheck />;
+		case "template-new":
+			return <TemplateEditor />;
+		case "template-edit":
+			return (
+				<TemplateEditor key={route.templateId} templateId={route.templateId} />
+			);
 		case undefined:
 			return (
 				<Placeholder
