@@ -127,6 +127,22 @@ export async function removeExercise(
 	);
 }
 
+/**
+ * Sets an exercise's own rest in seconds, or clears it (undefined) so the
+ * default rest applies. Returns false when no such exercise exists.
+ */
+export async function setExerciseRestSeconds(
+	id: string,
+	restSeconds: number | undefined,
+	database: WorkoutDB = db,
+): Promise<boolean> {
+	const updated = await database.exercises.update(id, (exercise) => {
+		if (restSeconds === undefined) delete exercise.restSeconds;
+		else exercise.restSeconds = restSeconds;
+	});
+	return updated > 0;
+}
+
 /** A workout exercise with its sets, in set order. */
 export interface WorkoutExerciseDetail {
 	workoutExercise: WorkoutExercise;

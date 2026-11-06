@@ -28,7 +28,15 @@ with no weight or 0 kg (bodyweight), has no Estimated 1RM.
 **Volume** — The work done for an exercise in a workout: the sum of weight × reps
 over its complete sets (all reps, no cap). Bodyweight sets add nothing.
 
+**Rest** — The pause after a set before the next one, timed by the rest timer.
+The default rest is a setting; an exercise may set its own rest, which wins
+over the default.
+
 ## Units
 
 Weight is stored in kilograms and distance in metres. The weight unit setting
 (kg or lb) only changes display and input.
+
+Weights are shown to one decimal place (100 kg is 220.5 lb); suggested weights
+round to what a bar can be loaded with (2.5 kg or 5 lb). Stored values are
+never rounded.

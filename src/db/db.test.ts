@@ -13,6 +13,7 @@ import {
 	normalizeExerciseName,
 	removeExercise,
 	saveSettings,
+	setExerciseRestSeconds,
 	WorkoutDB,
 } from "./index";
 import type { Exercise, RestTimer } from "./types";
@@ -265,5 +266,38 @@ describe("settings", () => {
 			...DEFAULT_SETTINGS,
 			weightUnit: "lb",
 		});
+	});
+});
+
+describe("per-exercise rest", () => {
+	const bench: Exercise = {
+		id: "bench",
+		name: "Bench Press (Barbell)",
+		nameKey: "bench press (barbell)",
+	};
+
+	it("sets and clears an exercise's rest without touching other fields", async () => {
+		await database.exercises.add(bench);
+
+		await setExerciseRestSeconds("bench", 180, database);
+		expect(await database.exercises.get("bench")).toEqual({
+			...bench,
+			restSeconds: 180,
+		});
+
+		await setExerciseRestSeconds("bench", undefined, database);
+		const cleared = await database.exercises.get("bench");
+		expect(cleared).toEqual(bench);
+		expect(cleared && "restSeconds" in cleared).toBe(false);
+	});
+
+	it("reports whether the exercise exists", async () => {
+		expect(await setExerciseRestSeconds("missing", 60, database)).toBe(false);
+		await database.exercises.add(bench);
+		expect(await setExerciseRestSeconds("bench", undefined, database)).toBe(
+			true,
+		);
+		expect(await setExerciseRestSeconds("bench", 60, database)).toBe(true);
+		expect(await setExerciseRestSeconds("bench", 60, database)).toBe(true);
 	});
 });
