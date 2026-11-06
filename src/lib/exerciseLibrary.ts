@@ -14,7 +14,7 @@ export function filterExercisesByName(
 	return exercises.filter((exercise) => exercise.nameKey.includes(key));
 }
 
-export type ExerciseNameError = Extract<ExerciseNameResult, { ok: false }>;
+type ExerciseNameError = Extract<ExerciseNameResult, { ok: false }>;
 
 /** A message for the user explaining why a name was rejected. */
 export function describeExerciseNameError(error: ExerciseNameError): string {
