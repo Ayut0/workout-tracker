@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Link } from "../components/Link";
+import { StrongImport } from "../components/StrongImport";
 import type { WeightUnit } from "../db/types";
 import { useSettings } from "../hooks/useSettings";
 import {
@@ -56,8 +57,8 @@ export function Settings() {
 
 			<section aria-labelledby="backup">
 				<h2 id="backup">Backup</h2>
-				{/* Export / restore (#37) and the Strong import (#34) go here. */}
-				<p className="empty">Backup and import are coming soon.</p>
+				{/* Export / restore (#37) goes here. */}
+				<StrongImport />
 			</section>
 
 			<section aria-labelledby="diagnostics">

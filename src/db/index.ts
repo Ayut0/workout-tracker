@@ -116,7 +116,7 @@ export type ExerciseNameResult =
 	| { ok: false; reason: "not-found" };
 
 /** A name as stored: trimmed, with runs of whitespace collapsed; case kept. */
-function tidyExerciseName(name: string): string {
+export function tidyExerciseName(name: string): string {
 	return name.trim().replace(/\s+/g, " ");
 }
 
