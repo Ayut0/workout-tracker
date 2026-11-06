@@ -6,6 +6,7 @@ import { NotificationCheck } from "./screens/NotificationCheck";
 import { Placeholder } from "./screens/Placeholder";
 import { Progress } from "./screens/Progress";
 import { Settings } from "./screens/Settings";
+import { Workout } from "./screens/Workout";
 
 /** The app shell: the screen for the current URL above the bottom tab bar. */
 export function App() {
@@ -24,12 +25,7 @@ export function App() {
 function Screen({ route }: { route: Route | null }) {
 	switch (route?.name) {
 		case "workout":
-			return (
-				<Placeholder
-					title="Workout"
-					text="Start a workout and log your sets here."
-				/>
-			);
+			return <Workout />;
 		case "history":
 			return (
 				<Placeholder
