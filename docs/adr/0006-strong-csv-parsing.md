@@ -1,4 +1,4 @@
-# 0005. Reading the Strong CSV export
+# 0006. Reading the Strong CSV export
 
 - Status: accepted
 - Date: 2026-11-06
