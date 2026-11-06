@@ -6,9 +6,11 @@ export function currentPath(): string {
 	return window.location.pathname;
 }
 
-export function navigate(path: string): void {
+/** Goes to `path`; `replace` swaps the current history entry, e.g. after deleting what it showed. */
+export function navigate(path: string, { replace = false } = {}): void {
 	if (path === currentPath()) return;
-	window.history.pushState(null, "", path);
+	if (replace) window.history.replaceState(null, "", path);
+	else window.history.pushState(null, "", path);
 	window.scrollTo(0, 0);
 	window.dispatchEvent(new Event(NAVIGATE));
 }

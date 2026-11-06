@@ -2,6 +2,8 @@ import { TabBar } from "./components/TabBar";
 import { useRoute } from "./hooks/useRoute";
 import type { Route } from "./lib/routes";
 import { Exercises } from "./screens/Exercises";
+import { History } from "./screens/History";
+import { HistoryDetail } from "./screens/HistoryDetail";
 import { NotificationCheck } from "./screens/NotificationCheck";
 import { Placeholder } from "./screens/Placeholder";
 import { Progress } from "./screens/Progress";
@@ -27,12 +29,9 @@ function Screen({ route }: { route: Route | null }) {
 		case "workout":
 			return <Workout />;
 		case "history":
-			return (
-				<Placeholder
-					title="History"
-					text="Your past workouts will show here."
-				/>
-			);
+			return <History />;
+		case "history-detail":
+			return <HistoryDetail workoutId={route.workoutId} />;
 		case "exercises":
 			return <Exercises />;
 		case "progress":
