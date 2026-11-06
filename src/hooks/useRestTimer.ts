@@ -2,7 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 import { db } from "../db";
 import type { RestTimer } from "../db/types";
-import { cancelRestPush, scheduleRestPush } from "../lib/push";
+import { timerApiFor } from "../lib/push";
 import { findActiveTimer } from "../lib/restTimer";
 import {
 	cancelRestTimer,
@@ -33,10 +33,7 @@ export function useRestTimer(subscription: PushSubscription | null) {
 	);
 	const active = findActiveTimer(history, now);
 
-	const api: TimerApi | null = subscription && {
-		schedule: (fireAt) => scheduleRestPush(subscription, fireAt),
-		cancel: () => cancelRestPush(subscription),
-	};
+	const api: TimerApi | null = subscription && timerApiFor(subscription);
 
 	async function start() {
 		if (!api) return;

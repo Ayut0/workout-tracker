@@ -1019,3 +1019,80 @@ fieldset {
 	justify-self: stretch;
 	min-height: 56px;
 }
+
+/* ---- Rest timer (#29) ---- */
+
+/* Sticks above the tab bar while resting; sits last in the flow so it hides nothing. */
+.rest-bar {
+	position: sticky;
+	bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 8px);
+	z-index: 1;
+	display: grid;
+	gap: 8px;
+	padding: 10px 12px 12px;
+	border: 1px solid var(--line);
+	border-radius: 16px;
+	background: var(--surface);
+	box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+}
+
+.rest-track {
+	height: 4px;
+	border-radius: 2px;
+	background: var(--line);
+	overflow: hidden;
+}
+
+.rest-fill {
+	height: 100%;
+	background: var(--accent);
+	transform-origin: left;
+	transition: transform 250ms linear;
+}
+
+.rest-row {
+	display: grid;
+	grid-template-columns: auto repeat(3, 1fr);
+	grid-template-rows: auto auto;
+	align-items: center;
+	column-gap: 8px;
+}
+
+.rest-label {
+	grid-column: 1;
+	grid-row: 1;
+	font-size: 12px;
+	color: var(--muted);
+	line-height: 1;
+}
+
+.rest-time {
+	grid-column: 1;
+	grid-row: 2;
+	min-width: 3.2em;
+	font-size: 26px;
+	font-weight: 700;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+}
+
+.rest-row .chip {
+	grid-row: 1 / span 2;
+	padding: 0 8px;
+}
+
+.rest-row .rest-skip {
+	background: var(--fg);
+	color: var(--bg);
+	border-color: var(--fg);
+}
+
+.rest-note {
+	margin: 0;
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.rest-note a {
+	color: var(--accent);
+}

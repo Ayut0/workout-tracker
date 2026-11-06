@@ -1,4 +1,7 @@
+import { RestSessionProvider } from "./components/RestSessionProvider";
+import { RestTimerBar } from "./components/RestTimerBar";
 import { TabBar } from "./components/TabBar";
+import { useRestSession } from "./hooks/useRestSession";
 import { useRoute } from "./hooks/useRoute";
 import type { Route } from "./lib/routes";
 import { Exercises } from "./screens/Exercises";
@@ -15,19 +18,25 @@ export function App() {
 	const route = useRoute();
 
 	return (
-		<>
+		<RestSessionProvider>
 			<main className="app">
 				<Screen route={route} />
 			</main>
 			<TabBar active={route?.tab ?? null} />
-		</>
+		</RestSessionProvider>
 	);
 }
 
 function Screen({ route }: { route: Route | null }) {
+	const rest = useRestSession();
 	switch (route?.name) {
 		case "workout":
-			return <Workout />;
+			return (
+				<>
+					<Workout onSetCompleted={rest.start} />
+					<RestTimerBar />
+				</>
+			);
 		case "history":
 			return <History />;
 		case "history-detail":

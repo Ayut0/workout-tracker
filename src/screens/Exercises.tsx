@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { ExerciseList } from "../components/ExerciseList";
 import { ExerciseNameForm } from "../components/ExerciseNameForm";
+import { ExerciseRestField } from "../components/ExerciseRestField";
 import type { ExerciseNameResult } from "../db";
 import type { Exercise } from "../db/types";
 import {
@@ -8,6 +9,7 @@ import {
 	useArchivedExercises,
 	useLibraryExercises,
 } from "../hooks/useLibraryExercises";
+import { useSettings } from "../hooks/useSettings";
 import { describeExerciseNameError } from "../lib/exerciseLibrary";
 
 function toFormMessage(result: ExerciseNameResult): string | null {
@@ -22,6 +24,7 @@ export function Exercises() {
 	const [notice, setNotice] = useState<string | null>(null);
 	const exercises = useLibraryExercises(query);
 	const archived = useArchivedExercises();
+	const { settings } = useSettings();
 
 	async function create(name: string) {
 		const result = await exerciseLibraryActions.create(name);
@@ -110,6 +113,14 @@ export function Exercises() {
 									submitLabel="Save"
 									initialName={exercise.name}
 									onSubmit={(name) => rename(exercise, name)}
+								/>
+								<ExerciseRestField
+									key={`${exercise.id}-rest`}
+									restSeconds={exercise.restSeconds}
+									defaultSeconds={settings.restSeconds}
+									onSave={(seconds) =>
+										void exerciseLibraryActions.setRest(exercise.id, seconds)
+									}
 								/>
 								<button
 									type="button"
