@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { ActiveWorkout } from "../components/workout/ActiveWorkout";
 import { ExercisePicker } from "../components/workout/ExercisePicker";
+import { PreviousSet } from "../components/workout/PreviousSet";
 import type { Exercise, WeightUnit, WorkoutSet } from "../db/types";
 import type { CompletedSet } from "../db/workoutLog";
 import {
@@ -12,8 +13,10 @@ import {
 	exerciseLibraryActions,
 	useLibraryExercises,
 } from "../hooks/useLibraryExercises";
+import { usePreviousSets } from "../hooks/usePreviousSets";
 import { useSettings } from "../hooks/useSettings";
 import { describeExerciseNameError } from "../lib/exerciseLibrary";
+import { formatPreviousSet, planFillFromPrevious } from "../lib/previousSets";
 
 type WorkoutProps = {
 	/**
@@ -120,6 +123,9 @@ function LogWorkout({
 	const [picking, setPicking] = useState(false);
 	const [query, setQuery] = useState("");
 	const library = useLibraryExercises(query);
+	const previous = usePreviousSets(
+		view.detail.exercises.map((e) => e.workoutExercise.exerciseId),
+	);
 	const { workout } = view.detail;
 
 	function closePicker() {
@@ -170,6 +176,21 @@ function LogWorkout({
 				detail={view.detail}
 				exercises={view.exercises}
 				weightUnit={weightUnit}
+				renderPrevious={(exerciseId, setIndex, set) => {
+					const last = previous?.get(exerciseId)?.[setIndex];
+					const name = view.exercises.get(exerciseId)?.name ?? "Exercise";
+					return (
+						<PreviousSet
+							text={last && formatPreviousSet(last, weightUnit)}
+							setLabel={`${name} set ${setIndex + 1}`}
+							onFill={() => {
+								if (!last) return;
+								const changes = planFillFromPrevious(last);
+								run(() => workoutLogActions.updateSet(set.id, changes));
+							}}
+						/>
+					);
+				}}
 				onRename={(name) =>
 					run(() => workoutLogActions.update(workout.id, { name }))
 				}

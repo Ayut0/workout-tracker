@@ -13,9 +13,12 @@ type ExerciseCardProps = {
 	weightUnit: WeightUnit;
 	/**
 	 * The Previous column (#28): what the set at this position did the last
-	 * time this exercise was logged. Without it the column is not shown.
+	 * time this exercise was logged, given today's set to fill. Without it the
+	 * column is not shown.
 	 */
-	renderPrevious?: ((setIndex: number) => ReactNode) | undefined;
+	renderPrevious?:
+		| ((setIndex: number, set: WorkoutSet) => ReactNode)
+		| undefined;
 	onMove: (toIndex: number) => void;
 	onRemove: () => void;
 	onAddSet: () => void;
@@ -92,7 +95,9 @@ export function ExerciseCard({
 							exerciseName={name}
 							weightUnit={weightUnit}
 							previous={
-								renderPrevious ? (renderPrevious(setIndex) ?? "–") : undefined
+								renderPrevious
+									? (renderPrevious(setIndex, set) ?? "–")
+									: undefined
 							}
 							onChange={(changes) => onSetChange(set.id, changes)}
 							onToggleDone={() => onToggleSetDone(set)}
