@@ -19,8 +19,12 @@ import {
 
 type ExerciseAttributesFieldsProps = {
 	attributes: ExerciseAttributes;
-	/** The whole set of attributes after one change. */
-	onChange: (attributes: ExerciseAttributes) => void;
+	/**
+	 * One change, as an edit of the latest attributes rather than a snapshot
+	 * of the rendered ones, so a second tap before the next render does not
+	 * undo the first.
+	 */
+	onEdit: (edit: (current: ExerciseAttributes) => ExerciseAttributes) => void;
 };
 
 /** The value of a select's "Not set" option. */
@@ -37,17 +41,19 @@ const MUSCLE_ROLE_LABELS: Record<MuscleRole, string> = {
  */
 export function ExerciseAttributesFields({
 	attributes,
-	onChange,
+	onEdit,
 }: ExerciseAttributesFieldsProps) {
-	/** The attributes with one field set, or cleared when undefined. */
+	/** Sets one field, or clears it when undefined. */
 	function change<K extends keyof ExerciseAttributes>(
 		key: K,
 		value: ExerciseAttributes[K] | undefined,
 	) {
-		const next = { ...attributes };
-		if (value === undefined) delete next[key];
-		else next[key] = value;
-		onChange(next);
+		onEdit((current) => {
+			const next = { ...current };
+			if (value === undefined) delete next[key];
+			else next[key] = value;
+			return next;
+		});
 	}
 
 	return (
@@ -127,7 +133,9 @@ export function ExerciseAttributesFields({
 										className={on ? "chip on" : "chip"}
 										aria-pressed={on}
 										onClick={() =>
-											onChange(toggleMuscleRole(attributes, role, muscle))
+											onEdit((current) =>
+												toggleMuscleRole(current, role, muscle),
+											)
 										}
 									>
 										{MUSCLE_GROUP_LABELS[muscle]}

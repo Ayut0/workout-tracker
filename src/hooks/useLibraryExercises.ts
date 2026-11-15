@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import {
 	createExercise,
 	db,
+	type ExerciseAttributesEdit,
 	type ExerciseNameResult,
 	listArchivedExercises,
 	listLibraryExercises,
@@ -13,7 +14,7 @@ import {
 	setExerciseMeasure,
 	setExerciseRestSeconds,
 } from "../db";
-import type { Exercise, ExerciseAttributes, SetMeasure } from "../db/types";
+import type { Exercise, SetMeasure } from "../db/types";
 import { filterExercisesByName } from "../lib/exerciseLibrary";
 
 /**
@@ -50,9 +51,12 @@ export const exerciseLibraryActions = {
 	/** Sets what the exercise's sets record; logged values are kept. */
 	setMeasure: (id: string, measure: SetMeasure): Promise<boolean> =>
 		setExerciseMeasure(id, measure),
-	/** Replaces the exercise's muscles, pattern, category and equipment. */
-	setAttributes: (
+	/**
+	 * Edits the exercise's muscles, pattern, category and equipment, starting
+	 * from what is stored, so quick edits do not overwrite each other.
+	 */
+	editAttributes: (
 		id: string,
-		attributes: ExerciseAttributes,
-	): Promise<boolean> => setExerciseAttributes(id, attributes),
+		edit: ExerciseAttributesEdit,
+	): Promise<boolean> => setExerciseAttributes(id, edit),
 };

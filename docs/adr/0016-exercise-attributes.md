@@ -45,7 +45,11 @@ which a lifter cannot set on an exercise named without one.
 - **Edited in the library** (Exercises tab, the expanded exercise): selects
   for equipment, category and movement pattern, each with "Not set", and
   toggle chips for primary and secondary muscles. Each change is saved
-  immediately, like the measure. Not offered when adding an exercise, to keep
+  immediately, like the measure, as an edit (set this field, toggle that
+  muscle) that `setExerciseAttributes` applies to the stored record inside
+  its write transaction. IndexedDB runs the writes one after another, so two
+  taps faster than the screen re-renders both land instead of the second
+  overwriting the first with attributes read before it. Not offered when adding an exercise, to keep
   that form short; the Strong import and the exercise picker create
   exercises without attributes.
 - **Equipment decides the progression increment when set.**
@@ -65,10 +69,6 @@ which a lifter cannot set on an exercise named without one.
 
 - `parseBackup` checks only the fields it has a spec for and keeps the
   record as read, so the attributes are restored as they were backed up.
-- Each change in the library is its own write of all five attributes, built
-  from the exercise as last rendered; two taps faster than the live query
-  refreshes could lose the first. Acceptable for an edit screen; a local
-  draft can fix it if it shows up.
 - Changing a vocabulary later (renaming or splitting a muscle group) needs a
   migration of stored exercises and of backups; adding a value does not.
 - Nothing infers attributes from the name or from Strong exports; filling
