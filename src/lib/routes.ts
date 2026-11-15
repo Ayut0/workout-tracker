@@ -6,6 +6,8 @@ export const NEW_TEMPLATE_PATH = `${TEMPLATES_PATH}/new`;
 export const PROGRESS_PATH = "/progress";
 /** Body weight and waist by day (ADR-0015), reached from Progress. */
 export const BODY_LOG_PATH = `${PROGRESS_PATH}/body`;
+/** Hard sets per muscle group by week (#75), reached from Progress. */
+export const WEEKLY_SETS_PATH = `${PROGRESS_PATH}/weekly-sets`;
 
 /** The bottom tab bar, in display order. Workout lives at the root so the app opens on it. */
 export const TABS = [
@@ -23,6 +25,7 @@ export type Route =
 	| { name: TabId; tab: TabId }
 	| { name: "notification-check"; tab: "settings" }
 	| { name: "body-log"; tab: "progress" }
+	| { name: "weekly-sets"; tab: "progress" }
 	| { name: "history-detail"; tab: "history"; workoutId: string }
 	| { name: "template-new"; tab: "workout" }
 	| { name: "template-edit"; tab: "workout"; templateId: string };
@@ -64,6 +67,9 @@ export function parseRoute(pathname: string): Route | null {
 	}
 	if (path === BODY_LOG_PATH) {
 		return { name: "body-log", tab: "progress" };
+	}
+	if (path === WEEKLY_SETS_PATH) {
+		return { name: "weekly-sets", tab: "progress" };
 	}
 	const workoutId = readIdBelow(HISTORY_PATH, path);
 	if (workoutId !== undefined) {

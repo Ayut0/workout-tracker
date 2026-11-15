@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	type HistoryCursor,
 	listWorkoutHistory,
+	listWorkoutsStartedBetween,
 	rescheduleWorkout,
 } from "./history";
 import { findWorkoutDetail, WorkoutDB } from "./index";
@@ -362,5 +363,42 @@ describe("deleting a finished workout", () => {
 
 	it("reports a workout that is already gone", async () => {
 		expect(await deleteWorkout("nope", database)).toBe(false);
+	});
+});
+
+describe("listWorkoutsStartedBetween", () => {
+	const WEEK = 7 * DAY;
+	const START = Date.UTC(2026, 10, 9);
+
+	it("lists workouts that started in [from, to), with their exercises and sets", async () => {
+		await addFinished("before", START - 1);
+		await addFinished("first", START);
+		await addFinished("last", START + WEEK - 1);
+		await addFinished("after", START + WEEK);
+		const entries = await listWorkoutsStartedBetween(
+			START,
+			START + WEEK,
+			database,
+		);
+		expect(entries.map((entry) => entry.workout.id)).toEqual(["first", "last"]);
+		const [exercise] = entries[0]?.exercises ?? [];
+		expect(exercise?.exercise?.id).toBe("bench");
+		expect(exercise?.sets.map((set) => set.id)).toEqual(["first-set"]);
+	});
+
+	it("includes the active workout", async () => {
+		const started = await startWorkout(
+			{ name: "Push", startedAt: START + DAY },
+			database,
+		);
+		if (!started.ok) throw new Error("expected a new workout");
+		const entries = await listWorkoutsStartedBetween(
+			START,
+			START + WEEK,
+			database,
+		);
+		expect(entries.map((entry) => entry.workout.id)).toEqual([
+			started.workout.id,
+		]);
 	});
 });

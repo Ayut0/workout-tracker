@@ -15,7 +15,7 @@ import {
 	formatVolume,
 	type ProgressMetric,
 } from "../lib/progress";
-import { BODY_LOG_PATH } from "../lib/routes";
+import { BODY_LOG_PATH, WEEKLY_SETS_PATH } from "../lib/routes";
 import { formatWeight } from "../lib/units";
 
 const CHARTS: { metric: ProgressMetric; title: string }[] = [
@@ -72,6 +72,10 @@ export function Progress() {
 				<Link to={BODY_LOG_PATH} className="menu-item">
 					<span className="label">Body log</span>
 					<span className="hint">Body weight and waist by day</span>
+				</Link>
+				<Link to={WEEKLY_SETS_PATH} className="menu-item">
+					<span className="label">Weekly sets</span>
+					<span className="hint">Hard sets per muscle group by week</span>
 				</Link>
 			</nav>
 

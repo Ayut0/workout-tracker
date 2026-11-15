@@ -86,6 +86,35 @@ export async function listWorkoutHistory(
 }
 
 /**
+ * Workouts that started at or after `from` and before `to`, oldest first,
+ * with their exercises and sets: e.g. one week for weekly sets per muscle
+ * group (#75). The active workout is included, since its complete sets are
+ * already done. Reads along the `startedAt` index, so only the range loads.
+ */
+export async function listWorkoutsStartedBetween(
+	from: number,
+	to: number,
+	database: WorkoutDB = db,
+): Promise<HistoryEntry[]> {
+	return database.transaction(
+		"r",
+		[
+			database.workouts,
+			database.workoutExercises,
+			database.sets,
+			database.exercises,
+		],
+		async () => {
+			const workouts = await database.workouts
+				.where("startedAt")
+				.between(from, to, true, false)
+				.toArray();
+			return attachExercises(workouts, database);
+		},
+	);
+}
+
+/**
  * Newest first, ties broken by id descending: the order IndexedDB walks the
  * `startedAt` index in reverse.
  */
