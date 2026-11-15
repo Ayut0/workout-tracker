@@ -1,7 +1,8 @@
 import { db, findWorkoutDetail, type WorkoutDB } from "./index";
-import type { Template, TemplateExercise } from "./types";
+import type { Template, TemplateExercise, TemplateSet } from "./types";
 import {
 	planNextSet,
+	resolveMeasure,
 	type StartWorkoutResult,
 	startWorkout,
 } from "./workoutLog";
@@ -119,7 +120,8 @@ export type TemplateFromWorkoutResult =
 
 /**
  * Saves a workout as a new template named after it. Only complete sets are
- * planned (their weight and reps): an incomplete set is one that was skipped.
+ * planned (the measurements their exercise's measure shows, ADR-0012): an
+ * incomplete set is one that was skipped.
  * An exercise with no complete set is left out; a workout with none at all
  * gives no template.
  */
@@ -129,10 +131,14 @@ export async function templateFromWorkout(
 ): Promise<TemplateFromWorkoutResult> {
 	const detail = await findWorkoutDetail(workoutId, database);
 	if (!detail) return { ok: false, reason: "not-found" };
-	const exercises: TemplateExercise[] = detail.exercises.flatMap((entry) => {
+	const library = await database.exercises.bulkGet(
+		detail.exercises.map((entry) => entry.workoutExercise.exerciseId),
+	);
+	const exercises: TemplateExercise[] = detail.exercises.flatMap((entry, i) => {
+		const measure = resolveMeasure(library[i]);
 		const sets = entry.sets
 			.filter((set) => set.completedAt !== undefined)
-			.map(planNextSet);
+			.map((set) => planNextSet(set, measure));
 		return sets.length === 0
 			? []
 			: [{ exerciseId: entry.workoutExercise.exerciseId, sets }];
@@ -161,6 +167,16 @@ function copyTemplateExercises(
 ): TemplateExercise[] {
 	return exercises.map((exercise) => ({
 		exerciseId: exercise.exerciseId,
-		sets: exercise.sets.map(planNextSet),
+		sets: exercise.sets.map(copyTemplateSet),
 	}));
+}
+
+/** A planned set with only the fields a template stores. */
+function copyTemplateSet(set: TemplateSet): TemplateSet {
+	const copy: TemplateSet = {};
+	if (set.weightKg !== undefined) copy.weightKg = set.weightKg;
+	if (set.reps !== undefined) copy.reps = set.reps;
+	if (set.seconds !== undefined) copy.seconds = set.seconds;
+	if (set.distanceM !== undefined) copy.distanceM = set.distanceM;
+	return copy;
 }

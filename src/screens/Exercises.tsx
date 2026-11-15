@@ -1,9 +1,15 @@
 import { useId, useState } from "react";
 import { ExerciseList } from "../components/ExerciseList";
+import { ExerciseMeasureField } from "../components/ExerciseMeasureField";
 import { ExerciseNameForm } from "../components/ExerciseNameForm";
 import { ExerciseRestField } from "../components/ExerciseRestField";
 import type { ExerciseNameResult } from "../db";
-import type { Exercise } from "../db/types";
+import {
+	DEFAULT_SET_MEASURE,
+	type Exercise,
+	type SetMeasure,
+} from "../db/types";
+import { resolveMeasure } from "../db/workoutLog";
 import {
 	exerciseLibraryActions,
 	useArchivedExercises,
@@ -22,13 +28,18 @@ export function Exercises() {
 	const [query, setQuery] = useState("");
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
+	/** What the next exercise added will log. */
+	const [newMeasure, setNewMeasure] = useState<SetMeasure>(DEFAULT_SET_MEASURE);
 	const exercises = useLibraryExercises(query);
 	const archived = useArchivedExercises();
 	const { settings } = useSettings();
 
 	async function create(name: string) {
-		const result = await exerciseLibraryActions.create(name);
-		if (result.ok) setNotice(`Added “${result.exercise.name}”.`);
+		const result = await exerciseLibraryActions.create(name, newMeasure);
+		if (result.ok) {
+			setNotice(`Added “${result.exercise.name}”.`);
+			setNewMeasure(DEFAULT_SET_MEASURE);
+		}
 		return toFormMessage(result);
 	}
 
@@ -72,6 +83,7 @@ export function Exercises() {
 				clearOnSuccess
 				onSubmit={create}
 			/>
+			<ExerciseMeasureField measure={newMeasure} onChange={setNewMeasure} />
 
 			{notice !== null && (
 				<p className="notice" role="status">
@@ -113,6 +125,13 @@ export function Exercises() {
 									submitLabel="Save"
 									initialName={exercise.name}
 									onSubmit={(name) => rename(exercise, name)}
+								/>
+								<ExerciseMeasureField
+									measure={resolveMeasure(exercise)}
+									onChange={(measure) =>
+										void exerciseLibraryActions.setMeasure(exercise.id, measure)
+									}
+									hint="Sets already logged keep their values; this changes which are shown."
 								/>
 								<ExerciseRestField
 									key={`${exercise.id}-rest`}

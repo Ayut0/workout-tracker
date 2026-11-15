@@ -7,18 +7,23 @@ The domain language of this repo. Use these terms in code, issues and docs.
 **Exercise** — A movement in the library, such as "Bench Press (Barbell)".
 Names are unique ignoring case and spacing. An exercise that history refers to
 is archived (hidden from the library) instead of deleted. An archived exercise
-keeps its name and can be restored.
+keeps its name and can be restored. Each exercise has a **measure**, what its
+sets record: weight and reps (the default), reps only, seconds, or distance.
 
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active
 workout). It holds exercises in order, each with its sets in order.
 
 **Set** — One round of an exercise in a workout: weight, reps, and optionally
-distance, seconds, RPE and notes. A set is complete once marked done; only
-complete sets count towards Volume and Estimated 1RM.
+distance, seconds, RPE and notes. The exercise's measure decides which of
+weight, reps, seconds and distance a set shows and is logged by; changing the
+measure hides values already logged but keeps them. A set is complete once
+marked done; only complete sets count towards Volume and Estimated 1RM, which
+use weight × reps alone, so a reps, seconds or distance set adds nothing.
 
 **Template** — A reusable plan for a workout: exercises in order, each with
-planned sets (weight and reps).
+planned sets (weight and reps, or reps, seconds or distance, following the
+exercise's measure).
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
 computed from its weight and reps by Epley: weight × (1 + reps / 30). A single

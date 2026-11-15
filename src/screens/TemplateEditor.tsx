@@ -4,6 +4,7 @@ import { TemplateExerciseCard } from "../components/templates/TemplateExerciseCa
 import { ExercisePicker } from "../components/workout/ExercisePicker";
 import type { TemplateInput } from "../db/templates";
 import type { Exercise } from "../db/types";
+import { resolveMeasure } from "../db/workoutLog";
 import {
 	exerciseLibraryActions,
 	useLibraryExercises,
@@ -184,6 +185,7 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 					name={
 						exercisesById.get(exercise.exerciseId)?.name ?? "Unknown exercise"
 					}
+					measure={resolveMeasure(exercisesById.get(exercise.exerciseId))}
 					index={index}
 					count={exercises.length}
 					weightUnit={settings.weightUnit}
@@ -196,7 +198,13 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 						setExercises((current) => removeTemplateExercise(current, index))
 					}
 					onAddSet={() =>
-						setExercises((current) => appendPlannedSet(current, index))
+						setExercises((current) =>
+							appendPlannedSet(
+								current,
+								index,
+								resolveMeasure(exercisesById.get(exercise.exerciseId)),
+							),
+						)
 					}
 					onSetChange={(setIndex, changes) =>
 						setExercises((current) =>
