@@ -54,8 +54,25 @@ async function seedEveryStore(target: WorkoutDB) {
 			startedAt: T0,
 			endedAt: T0 + HOUR_MS,
 			notes: "felt strong",
+			source: {
+				templateId: "t-1",
+				templateName: "Push day",
+				program: {
+					programId: "p-1",
+					programName: "Generic block",
+					block: 1,
+					week: 4,
+					day: "A",
+					deload: true,
+				},
+			},
 		},
-		{ id: "w-active", name: "Legs", startedAt: T0 + 24 * HOUR_MS },
+		{
+			id: "w-active",
+			name: "Legs",
+			startedAt: T0 + 24 * HOUR_MS,
+			source: { templateId: "t-gone", templateName: "Legs" },
+		},
 	]);
 	await target.workoutExercises.bulkAdd([
 		{
@@ -104,6 +121,14 @@ async function seedEveryStore(target: WorkoutDB) {
 			},
 			{ exerciseId: "ex-squat", sets: [{ seconds: 60, distanceM: 40 }] },
 		],
+		program: {
+			programId: "p-1",
+			programName: "Generic block",
+			block: 1,
+			week: 4,
+			day: "A",
+			deload: true,
+		},
 	});
 	await saveSettings(
 		{ weightUnit: "lb", restSeconds: 120, lastBackupAt: T0 },
@@ -590,6 +615,97 @@ describe("planned targets in a backup (ADR-0014)", () => {
 			"a workout set's target RIR above the cap",
 			makeWorkoutSetFile({ targetRir: 100 }),
 			/Set record 1: targetRir must be a whole number, 0 to 99/,
+		],
+	])("reject %s", (_name, text, reason) => {
+		const parsed = parseBackup(text);
+		expect(parsed.ok).toBe(false);
+		if (!parsed.ok) expect(parsed.reason).toMatch(reason);
+	});
+});
+
+/** A file whose only workout is a valid one with `changes`. */
+function makeWorkoutFile(changes: Record<string, unknown>): string {
+	return makeFile({
+		data: {
+			exercises: [],
+			workouts: [{ id: "w", name: "Push", startedAt: T0, ...changes }],
+			workoutExercises: [],
+			sets: [],
+			templates: [],
+			settings: [],
+			bodyEntries: [],
+		},
+	});
+}
+
+/** A file whose only template is a valid one with `changes`. */
+function makeTemplateFile(changes: Record<string, unknown>): string {
+	return makeFile({
+		data: {
+			exercises: [],
+			workouts: [],
+			workoutExercises: [],
+			sets: [],
+			templates: [{ id: "t", name: "A", exercises: [], ...changes }],
+			settings: [],
+			bodyEntries: [],
+		},
+	});
+}
+
+const LINK = { programId: "p", programName: "Block", block: 1, week: 2 };
+
+describe("workout sources and program links in a backup (ADR-0018)", () => {
+	it("restore workouts and templates from before #74, which have none", () => {
+		expect(parseBackup(makeWorkoutFile({})).ok).toBe(true);
+		expect(parseBackup(makeTemplateFile({})).ok).toBe(true);
+	});
+
+	it("accept a source without a program, and a link without day or deload", () => {
+		expect(
+			parseBackup(
+				makeWorkoutFile({ source: { templateId: "t", templateName: "A" } }),
+			).ok,
+		).toBe(true);
+		expect(parseBackup(makeTemplateFile({ program: LINK })).ok).toBe(true);
+	});
+
+	it.each([
+		[
+			"a source that is not an object",
+			makeWorkoutFile({ source: "t" }),
+			/Workout record 1: source: must be an object/,
+		],
+		[
+			"a source with no template id",
+			makeWorkoutFile({ source: { templateName: "A" } }),
+			/Workout record 1: source: templateId must be an id/,
+		],
+		[
+			"a source's program with week 0",
+			makeWorkoutFile({
+				source: {
+					templateId: "t",
+					templateName: "A",
+					program: { ...LINK, week: 0 },
+				},
+			}),
+			/Workout record 1: source: program: week must be a whole number, 1 or more/,
+		],
+		[
+			"a template's program with a fractional block",
+			makeTemplateFile({ program: { ...LINK, block: 1.5 } }),
+			/Template record 1: program: block must be a whole number, 1 or more/,
+		],
+		[
+			"a template's program with no program id",
+			makeTemplateFile({ program: { ...LINK, programId: "" } }),
+			/Template record 1: program: programId must be an id/,
+		],
+		[
+			"a template's program whose deload is not a flag",
+			makeTemplateFile({ program: { ...LINK, deload: "yes" } }),
+			/Template record 1: program: deload must be true or false/,
 		],
 	])("reject %s", (_name, text, reason) => {
 		const parsed = parseBackup(text);
