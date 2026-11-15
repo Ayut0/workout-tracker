@@ -3,6 +3,9 @@ import {
 	type BodyEntry,
 	DEFAULT_SET_MEASURE,
 	type Exercise,
+	type ExerciseAttributes,
+	MUSCLE_GROUPS,
+	type MuscleGroup,
 	type RestTimer,
 	type SetMeasure,
 	type Settings,
@@ -277,6 +280,49 @@ export async function setExerciseMeasure(
 	const updated = await database.exercises.update(id, (exercise) => {
 		if (measure === DEFAULT_SET_MEASURE) delete exercise.measure;
 		else exercise.measure = measure;
+	});
+	return updated > 0;
+}
+
+/** The chosen muscles, once each and in vocabulary order, minus `exclude`. */
+function orderMuscles(
+	chosen: readonly MuscleGroup[] | undefined,
+	exclude: readonly MuscleGroup[] = [],
+): MuscleGroup[] {
+	return MUSCLE_GROUPS.filter(
+		(muscle) => chosen?.includes(muscle) && !exclude.includes(muscle),
+	);
+}
+
+/**
+ * Replaces an exercise's attributes (ADR-0016): muscles, movement pattern,
+ * category and equipment. An attribute left out is cleared, and an empty
+ * muscle list is stored as none. Muscles are kept once each, in vocabulary
+ * order, and a muscle chosen as both primary and secondary stays primary only,
+ * so weekly sets per muscle group never count it twice. Returns false when no
+ * such exercise exists.
+ */
+export async function setExerciseAttributes(
+	id: string,
+	attributes: ExerciseAttributes,
+	database: WorkoutDB = db,
+): Promise<boolean> {
+	const primary = orderMuscles(attributes.primaryMuscles);
+	const secondary = orderMuscles(attributes.secondaryMuscles, primary);
+	const updated = await database.exercises.update(id, (exercise) => {
+		if (primary.length > 0) exercise.primaryMuscles = primary;
+		else delete exercise.primaryMuscles;
+		if (secondary.length > 0) exercise.secondaryMuscles = secondary;
+		else delete exercise.secondaryMuscles;
+		if (attributes.movementPattern !== undefined) {
+			exercise.movementPattern = attributes.movementPattern;
+		} else delete exercise.movementPattern;
+		if (attributes.category !== undefined) {
+			exercise.category = attributes.category;
+		} else delete exercise.category;
+		if (attributes.equipment !== undefined) {
+			exercise.equipment = attributes.equipment;
+		} else delete exercise.equipment;
 	});
 	return updated > 0;
 }

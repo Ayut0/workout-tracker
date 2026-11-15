@@ -61,8 +61,86 @@ export const MEASURE_FIELDS: Record<SetMeasure, readonly MeasureField[]> = {
 	distance: ["distanceM"],
 };
 
+/**
+ * Muscle groups an exercise trains (ADR-0016). The groups do not overlap, so
+ * a set can be counted once per group: weekly sets per muscle group (#75)
+ * count a primary muscle as one set and a secondary muscle as half.
+ */
+export const MUSCLE_GROUPS = [
+	"chest",
+	"lats",
+	"upper-back",
+	"lower-back",
+	"front-delts",
+	"side-delts",
+	"rear-delts",
+	"biceps",
+	"triceps",
+	"forearms",
+	"abs",
+	"glutes",
+	"quads",
+	"hamstrings",
+	"adductors",
+	"calves",
+] as const;
+
+export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
+
+/** The movement pattern of an exercise (ADR-0016). */
+export const MOVEMENT_PATTERNS = [
+	"squat",
+	"hinge",
+	"lunge",
+	"horizontal-push",
+	"vertical-push",
+	"horizontal-pull",
+	"vertical-pull",
+	"carry",
+	"rotation",
+	"isolation",
+] as const;
+
+export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
+
+/** What kind of training an exercise is (ADR-0016). */
+export const EXERCISE_CATEGORIES = [
+	"strength",
+	"power",
+	"agility",
+	"mobility",
+	"core",
+] as const;
+
+export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
+
+/** What an exercise is done with; decides the progression increment. */
+export const EQUIPMENT = [
+	"barbell",
+	"dumbbell",
+	"machine",
+	"cable",
+	"bodyweight",
+	"other",
+] as const;
+
+export type Equipment = (typeof EQUIPMENT)[number];
+
+/**
+ * The optional, descriptive attributes of an exercise (ADR-0016). None is
+ * indexed, so adding them needs no schema version. A muscle is either primary
+ * or secondary, never both; an empty muscle list is stored as no field.
+ */
+export interface ExerciseAttributes {
+	primaryMuscles?: MuscleGroup[];
+	secondaryMuscles?: MuscleGroup[];
+	movementPattern?: MovementPattern;
+	category?: ExerciseCategory;
+	equipment?: Equipment;
+}
+
 /** A movement in the library, such as "Bench Press (Barbell)". */
-export interface Exercise {
+export interface Exercise extends ExerciseAttributes {
 	id: string;
 	name: string;
 	/**

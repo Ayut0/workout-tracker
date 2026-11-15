@@ -18,6 +18,7 @@ import {
 	renameExercise,
 	restoreExercise,
 	saveSettings,
+	setExerciseAttributes,
 	setExerciseMeasure,
 	setExerciseRestSeconds,
 	WorkoutDB,
@@ -584,5 +585,80 @@ describe("exercise measure (ADR-0012)", () => {
 		expect(await setExerciseMeasure("missing", "reps", database)).toBe(false);
 		await database.exercises.add(plank);
 		expect(await setExerciseMeasure("plank", "reps", database)).toBe(true);
+	});
+});
+
+describe("exercise attributes (ADR-0016)", () => {
+	const squat: Exercise = { id: "squat", name: "Squat", nameKey: "squat" };
+
+	it("stores the attributes and keeps the other fields", async () => {
+		await database.exercises.add({ ...squat, restSeconds: 180 });
+
+		await setExerciseAttributes(
+			"squat",
+			{
+				primaryMuscles: ["quads", "glutes"],
+				secondaryMuscles: ["adductors", "lower-back"],
+				movementPattern: "squat",
+				category: "strength",
+				equipment: "barbell",
+			},
+			database,
+		);
+
+		expect(await database.exercises.get("squat")).toEqual({
+			...squat,
+			restSeconds: 180,
+			// In vocabulary order, whatever order they were chosen in.
+			primaryMuscles: ["glutes", "quads"],
+			secondaryMuscles: ["lower-back", "adductors"],
+			movementPattern: "squat",
+			category: "strength",
+			equipment: "barbell",
+		});
+	});
+
+	it("clears what is left out, storing no empty muscle lists", async () => {
+		await database.exercises.add({
+			...squat,
+			primaryMuscles: ["quads"],
+			movementPattern: "squat",
+			equipment: "barbell",
+		});
+
+		await setExerciseAttributes(
+			"squat",
+			{ primaryMuscles: [], secondaryMuscles: [] },
+			database,
+		);
+
+		const cleared = await database.exercises.get("squat");
+		expect(cleared).toEqual(squat);
+		expect(cleared && "primaryMuscles" in cleared).toBe(false);
+	});
+
+	it("keeps a muscle only once, primary over secondary", async () => {
+		await database.exercises.add(squat);
+
+		await setExerciseAttributes(
+			"squat",
+			{
+				primaryMuscles: ["quads", "quads"],
+				secondaryMuscles: ["quads", "glutes", "glutes"],
+			},
+			database,
+		);
+
+		expect(await database.exercises.get("squat")).toEqual({
+			...squat,
+			primaryMuscles: ["quads"],
+			secondaryMuscles: ["glutes"],
+		});
+	});
+
+	it("reports whether the exercise exists", async () => {
+		expect(await setExerciseAttributes("missing", {}, database)).toBe(false);
+		await database.exercises.add(squat);
+		expect(await setExerciseAttributes("squat", {}, database)).toBe(true);
 	});
 });

@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { ExerciseAttributesFields } from "../components/ExerciseAttributesFields";
 import { ExerciseList } from "../components/ExerciseList";
 import { ExerciseMeasureField } from "../components/ExerciseMeasureField";
 import { ExerciseNameForm } from "../components/ExerciseNameForm";
@@ -22,7 +23,10 @@ function toFormMessage(result: ExerciseNameResult): string | null {
 	return result.ok ? null : describeExerciseNameError(result);
 }
 
-/** The Exercises tab: search, add, rename, remove and restore exercises. */
+/**
+ * The Exercises tab: search, add, rename, remove and restore exercises, and
+ * edit their measure, rest and attributes.
+ */
 export function Exercises() {
 	const searchId = useId();
 	const [query, setQuery] = useState("");
@@ -139,6 +143,15 @@ export function Exercises() {
 									defaultSeconds={settings.restSeconds}
 									onSave={(seconds) =>
 										void exerciseLibraryActions.setRest(exercise.id, seconds)
+									}
+								/>
+								<ExerciseAttributesFields
+									attributes={exercise}
+									onChange={(attributes) =>
+										void exerciseLibraryActions.setAttributes(
+											exercise.id,
+											attributes,
+										)
 									}
 								/>
 								<button
