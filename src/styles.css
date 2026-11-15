@@ -1282,6 +1282,33 @@ fieldset {
 	color: var(--fg);
 }
 
+/* A set's planned targets (ADR-0014): a line of its own under the set's
+   inputs, from the first input column to the end of the row. */
+.set-target,
+.set-targets {
+	grid-column: 2 / -1;
+}
+
+.set-target {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.set-targets {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+
+.set-target-field {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	color: var(--muted);
+}
+
 /* Columns: set number, weight, reps, remove. */
 .set-grid.planned {
 	--set-columns: 28px 1fr 1fr 44px;

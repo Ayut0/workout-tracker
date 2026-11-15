@@ -48,6 +48,9 @@ type Check = (value: unknown) => string | undefined;
 /** One check per field, so the compiler insists every field is covered. */
 type Spec<T> = { readonly [K in keyof T]-?: Check };
 
+/** A check across fields, run once every field passed its own. */
+type Rule = (value: Record<string, unknown>) => string | undefined;
+
 type RawData = Record<string, unknown>;
 
 /** Turns data written at `version` into data at `version + 1`. */
@@ -101,6 +104,11 @@ const flag: Check = (value) =>
 const integer: Check = (value) =>
 	Number.isInteger(value) ? undefined : "must be a whole number";
 
+const count: Check = (value) =>
+	Number.isInteger(value) && Number(value) >= 0
+		? undefined
+		: "must be a whole number, 0 or more";
+
 function optional(check: Check): Check {
 	return (value) => (value === undefined ? undefined : check(value));
 }
@@ -113,24 +121,28 @@ function oneOf(...allowed: unknown[]): Check {
 }
 
 /** The first problem with an object's fields, as "field problem". */
-function findProblem<T>(value: unknown, spec: Spec<T>): string | undefined {
+function findProblem<T>(
+	value: unknown,
+	spec: Spec<T>,
+	rule?: Rule,
+): string | undefined {
 	if (!isObject(value)) return "must be an object";
 	for (const [field, check] of Object.entries<Check>(spec)) {
 		const problem = check(value[field]);
 		if (problem !== undefined) return `${field} ${problem}`;
 	}
-	return undefined;
+	return rule?.(value);
 }
 
-function conforms<T>(value: unknown, spec: Spec<T>): value is T {
-	return findProblem(value, spec) === undefined;
+function conforms<T>(value: unknown, spec: Spec<T>, rule?: Rule): value is T {
+	return findProblem(value, spec, rule) === undefined;
 }
 
-function listOf<T>(spec: Spec<T>): Check {
+function listOf<T>(spec: Spec<T>, rule?: Rule): Check {
 	return (value) => {
 		if (!Array.isArray(value)) return "must be a list";
 		for (const [i, item] of value.entries()) {
-			const problem = findProblem(item, spec);
+			const problem = findProblem(item, spec, rule);
 			if (problem !== undefined) return `item ${i + 1}: ${problem}`;
 		}
 		return undefined;
@@ -202,6 +214,20 @@ const WORKOUT_EXERCISE: Spec<WorkoutExercise> = {
 	notes: optional(text),
 };
 
+/**
+ * A planned rep range (ADR-0014) has both ends or neither, and its bottom is
+ * not above its top. Each end is already known to be a count.
+ */
+const repRange: Rule = ({ repMin, repMax }) => {
+	if ((repMin === undefined) !== (repMax === undefined)) {
+		return "repMin and repMax must be given together";
+	}
+	if (Number(repMin) > Number(repMax)) {
+		return "repMin must not be more than repMax";
+	}
+	return undefined;
+};
+
 const SET: Spec<WorkoutSet> = {
 	id,
 	workoutExerciseId: id,
@@ -215,6 +241,10 @@ const SET: Spec<WorkoutSet> = {
 	// Missing in backups made before warm-ups (#65): a working set.
 	warmup: optional(flag),
 	completedAt: optional(finite),
+	// Planned targets copied from a template (ADR-0014); absent before #69.
+	repMin: optional(count),
+	repMax: optional(count),
+	targetRir: optional(count),
 };
 
 const TEMPLATE_SET: Spec<TemplateSet> = {
@@ -223,11 +253,14 @@ const TEMPLATE_SET: Spec<TemplateSet> = {
 	seconds: optional(finite),
 	distanceM: optional(finite),
 	warmup: optional(flag),
+	repMin: optional(count),
+	repMax: optional(count),
+	targetRir: optional(count),
 };
 
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {
 	exerciseId: id,
-	sets: listOf(TEMPLATE_SET),
+	sets: listOf(TEMPLATE_SET, repRange),
 	notes: optional(text),
 };
 
@@ -270,6 +303,7 @@ function readRows<T extends { id: string }>(
 	data: RawData,
 	store: BackupStore,
 	spec: Spec<T>,
+	rule?: Rule,
 ): T[] | string {
 	const rows = data[store];
 	const label = STORE_LABELS[store];
@@ -277,8 +311,8 @@ function readRows<T extends { id: string }>(
 	const read: T[] = [];
 	const ids = new Set<string>();
 	for (const [i, row] of rows.entries()) {
-		if (!conforms(row, spec)) {
-			return `${label} record ${i + 1}: ${findProblem(row, spec)}.`;
+		if (!conforms(row, spec, rule)) {
+			return `${label} record ${i + 1}: ${findProblem(row, spec, rule)}.`;
 		}
 		if (ids.has(row.id)) {
 			return `${label} record ${i + 1}: id "${row.id}" appears twice.`;
@@ -310,7 +344,7 @@ function readData(data: RawData): BackupData | string {
 	if (typeof workouts === "string") return workouts;
 	const workoutExercises = readRows(data, "workoutExercises", WORKOUT_EXERCISE);
 	if (typeof workoutExercises === "string") return workoutExercises;
-	const sets = readRows(data, "sets", SET);
+	const sets = readRows(data, "sets", SET, repRange);
 	if (typeof sets === "string") return sets;
 	const templates = readRows(data, "templates", TEMPLATE);
 	if (typeof templates === "string") return templates;

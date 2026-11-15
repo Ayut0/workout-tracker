@@ -71,11 +71,15 @@ const PLANNED_SET_FIELDS = [
 	"seconds",
 	"distanceM",
 	"warmup",
+	"repMin",
+	"repMax",
+	"targetRir",
 ] as const satisfies readonly (keyof TemplateSet)[];
 
 /**
- * Changes a planned set's weight, reps, seconds, distance or warm-up mark.
- * Keys present with `undefined` are cleared.
+ * Changes a planned set's weight, reps, seconds, distance or warm-up mark, or
+ * its targets (rep range and RIR, ADR-0014). Keys present with `undefined`
+ * are cleared.
  */
 export function updatePlannedSet(
 	exercises: readonly TemplateExercise[],
