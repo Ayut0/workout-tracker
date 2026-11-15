@@ -893,14 +893,39 @@ fieldset {
 	font-size: 20px;
 }
 
-/* A second line under a set's inputs, spanning every column: the RPE chips
-   (#64). It keeps the weight and reps columns as wide as before. */
+/* A second line under a set's inputs, spanning every column: the warm-up
+   toggle (#65) and the RPE chips (#64). It keeps the weight and reps columns
+   as wide as before. */
 .set-extras {
 	grid-column: 1 / -1;
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	padding: 0 0 4px 34px;
+	padding: 0 0 4px;
+}
+
+.set-warmup {
+	flex: none;
+	width: 40px;
+	min-height: 36px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--bg);
+	color: var(--muted);
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.set-warmup[aria-pressed="true"] {
+	background: var(--fg);
+	border-color: var(--fg);
+	color: var(--bg);
+}
+
+/* A warm-up's number is muted further: it is not a working set. */
+.set-row.warmup .set-number {
+	font-style: italic;
+	opacity: 0.6;
 }
 
 .rpe-chips {

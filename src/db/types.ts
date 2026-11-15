@@ -192,6 +192,12 @@ export interface WorkoutSet {
 	seconds?: number;
 	rpe?: number;
 	notes?: string;
+	/**
+	 * Marked by hand as a warm-up (#65): it does not count towards Volume,
+	 * Estimated 1RM, records or progression. Only `true` is stored; a working
+	 * set has no field. Not indexed (ADR-0012).
+	 */
+	warmup?: boolean;
 	/** Set when the set is marked done; incomplete sets have none. */
 	completedAt?: number;
 }
@@ -202,6 +208,8 @@ export interface TemplateSet {
 	reps?: number;
 	seconds?: number;
 	distanceM?: number;
+	/** A planned warm-up (#65), copied onto the set when a workout starts. */
+	warmup?: boolean;
 }
 
 /** An exercise in a template; array position is its order. */

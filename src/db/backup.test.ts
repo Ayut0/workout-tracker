@@ -69,6 +69,7 @@ async function seedEveryStore(target: WorkoutDB) {
 			weightKg: 82.5,
 			reps: 5,
 			rpe: 8.5,
+			warmup: true,
 			notes: "paused",
 			completedAt: T0 + 10 * 60_000,
 		},
@@ -84,7 +85,13 @@ async function seedEveryStore(target: WorkoutDB) {
 		id: "t-1",
 		name: "Push day",
 		exercises: [
-			{ exerciseId: "ex-bench", sets: [{ weightKg: 80, reps: 5 }] },
+			{
+				exerciseId: "ex-bench",
+				sets: [
+					{ weightKg: 40, reps: 10, warmup: true },
+					{ weightKg: 80, reps: 5 },
+				],
+			},
 			{ exerciseId: "ex-squat", sets: [{ seconds: 60, distanceM: 40 }] },
 		],
 	});
@@ -560,6 +567,40 @@ describe("parseBackup rejects", () => {
 				},
 			}),
 			/Template record 1: exercises item 1: sets item 1: seconds must be a number/,
+		],
+		[
+			"a set's warm-up mark that is not true or false",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [{ id: "s", workoutExerciseId: "we", order: 0, warmup: "yes" }],
+					templates: [],
+					settings: [],
+				},
+			}),
+			/Set record 1: warmup must be true or false/,
+		],
+		[
+			"a template set's warm-up mark that is not true or false",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [
+						{
+							id: "t",
+							name: "A",
+							exercises: [{ exerciseId: "e", sets: [{ warmup: 1 }] }],
+						},
+					],
+					settings: [],
+				},
+			}),
+			/Template record 1: exercises item 1: sets item 1: warmup must be true or false/,
 		],
 		[
 			"an unknown weight unit",

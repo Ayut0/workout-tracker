@@ -93,6 +93,21 @@ describe("template draft edits", () => {
 		});
 	});
 
+	it("marks a planned set as a warm-up and clears the mark (#65)", () => {
+		const marked = updatePlannedSet(DRAFT, 0, 0, { warmup: true });
+		expect(marked[0]?.sets[0]).toEqual({ weightKg: 60, reps: 8, warmup: true });
+
+		const cleared = updatePlannedSet(marked, 0, 0, { warmup: undefined });
+		expect(cleared[0]?.sets[0]).toEqual({ weightKg: 60, reps: 8 });
+	});
+
+	it("does not make a set added after a warm-up a warm-up (#65)", () => {
+		const marked = updatePlannedSet(DRAFT, 0, 1, { warmup: true });
+		expect(appendPlannedSet(marked, 0, "weight-reps")[0]?.sets.at(-1)).toEqual({
+			reps: 6,
+		});
+	});
+
 	it("counts planned sets", () => {
 		expect(countPlannedSets(DRAFT)).toBe(3);
 	});

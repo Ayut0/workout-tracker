@@ -378,3 +378,64 @@ describe("planned sets measured by time or distance (ADR-0012)", () => {
 		expect(set && "weightKg" in set).toBe(false);
 	});
 });
+
+describe("warm-up sets (#65)", () => {
+	it("are stored on planned sets", async () => {
+		const created = await createTemplate(
+			{
+				name: "Push",
+				exercises: [
+					{
+						exerciseId: "bench",
+						sets: [{ weightKg: 40, reps: 10, warmup: true }, { weightKg: 60 }],
+					},
+				],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+		expect(created.template.exercises[0]?.sets).toEqual([
+			{ weightKg: 40, reps: 10, warmup: true },
+			{ weightKg: 60 },
+		]);
+	});
+
+	it("carry the mark from template to workout and back", async () => {
+		const created = await createTemplate(
+			{
+				name: "Push",
+				exercises: [
+					{
+						exerciseId: "bench",
+						sets: [
+							{ weightKg: 40, reps: 10, warmup: true },
+							{ weightKg: 60, reps: 8 },
+						],
+					},
+				],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+
+		const started = await startWorkoutFromTemplate(
+			created.template.id,
+			5_000,
+			database,
+		);
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		const sets = detail?.exercises[0]?.sets ?? [];
+		expect(sets[0]).toMatchObject({ weightKg: 40, reps: 10, warmup: true });
+		expect(sets[1] && "warmup" in sets[1]).toBe(false);
+
+		for (const set of sets) await completeSet(set.id, 6_000, database);
+		await finishWorkout(started.workout.id, 7_000, database);
+		const saved = await templateFromWorkout(started.workout.id, database);
+		if (!saved.ok) throw new Error("expected a template");
+		expect(saved.template.exercises[0]?.sets).toEqual([
+			{ weightKg: 40, reps: 10, warmup: true },
+			{ weightKg: 60, reps: 8 },
+		]);
+	});
+});
