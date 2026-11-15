@@ -40,14 +40,23 @@ type LineChartProps = {
 	/** Oldest first, already in the user's unit. */
 	data: readonly ChartDatum[];
 	formatValue: (value: number) => string;
+	/** What one point is, for the screen-reader summary; workouts by default. */
+	pointNoun?: { one: string; other: string };
 };
+
+const WORKOUT_NOUN = { one: "workout", other: "workouts" };
 
 /**
  * A single-series line chart over time. Touch, drag or use the arrow keys to
- * read a workout's value; the latest is shown until then. Geometry comes from
+ * read a point's value; the latest is shown until then. Geometry comes from
  * src/lib/chart, so this only draws.
  */
-export function LineChart({ title, data, formatValue }: LineChartProps) {
+export function LineChart({
+	title,
+	data,
+	formatValue,
+	pointNoun = WORKOUT_NOUN,
+}: LineChartProps) {
 	const layout = useMemo(() => layoutLineChart(data, FRAME), [data]);
 	const [selected, setSelected] = useState<number | undefined>(undefined);
 	const summaryId = useId();
@@ -84,7 +93,7 @@ export function LineChart({ title, data, formatValue }: LineChartProps) {
 	}
 
 	const plotBottom = FRAME.height - FRAME.bottom;
-	const summary = `${data.length} ${data.length === 1 ? "workout" : "workouts"} from ${DAY_FORMAT.format(first.date)} to ${DAY_FORMAT.format(last.date)}, latest ${formatValue(last.value)}.`;
+	const summary = `${data.length} ${data.length === 1 ? pointNoun.one : pointNoun.other} from ${DAY_FORMAT.format(first.date)} to ${DAY_FORMAT.format(last.date)}, latest ${formatValue(last.value)}.`;
 	const readout = `${formatValue(active.datum.value)}, ${DAY_FORMAT.format(active.datum.date)}`;
 
 	return (
@@ -135,7 +144,7 @@ export function LineChart({ title, data, formatValue }: LineChartProps) {
 					{layout.dots.length <= MAX_DOTS &&
 						layout.dots.map((dot) => (
 							<circle
-								key={dot.datum.workoutId}
+								key={dot.datum.id}
 								className="chart-dot"
 								cx={dot.x}
 								cy={dot.y}
@@ -179,7 +188,7 @@ export function LineChart({ title, data, formatValue }: LineChartProps) {
 					</thead>
 					<tbody>
 						{data.map((datum) => (
-							<tr key={datum.workoutId}>
+							<tr key={datum.id}>
 								<td>{DAY_FORMAT.format(datum.date)}</td>
 								<td>{formatValue(datum.value)}</td>
 							</tr>

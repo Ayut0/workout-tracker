@@ -80,8 +80,8 @@ describe("buildMetricSeries", () => {
 
 	it("plots the Estimated 1RM in kg, skipping workouts without one", () => {
 		expect(buildMetricSeries(points, "e1rm", "kg")).toEqual([
-			{ workoutId: "a", date: 1, value: 100 },
-			{ workoutId: "c", date: 3, value: 110 },
+			{ id: "a", date: 1, value: 100 },
+			{ id: "c", date: 3, value: 110 },
 		]);
 	});
 

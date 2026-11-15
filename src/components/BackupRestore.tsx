@@ -17,6 +17,7 @@ const STORE_LABELS: Record<BackupStore, string> = {
 	sets: "Sets",
 	templates: "Templates",
 	settings: "Settings",
+	bodyEntries: "Body log entries",
 };
 
 function formatDate(epochMs: number): string {
