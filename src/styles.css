@@ -897,6 +897,64 @@ fieldset {
 	font-size: 20px;
 }
 
+/* A second line under a set's inputs, spanning every column: the RPE chips
+   (#64). It keeps the weight and reps columns as wide as before. */
+.set-extras {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 0 4px 34px;
+}
+
+.rpe-chips {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 4px;
+}
+
+.rpe-legend {
+	float: left;
+	margin-right: 2px;
+	padding: 0;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--muted);
+}
+
+.rpe-chip,
+.rpe-other {
+	flex: 1;
+	max-width: 48px;
+	min-width: 0;
+	min-height: 36px;
+	border-radius: 18px;
+	font-size: 14px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.rpe-chip {
+	border: 1px solid var(--line);
+	background: var(--bg);
+	color: var(--muted);
+}
+
+.rpe-chip[aria-pressed="true"] {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--on-accent);
+}
+
+/* An RPE no chip stands for, such as an imported 8.5: shown, not tappable. */
+.rpe-other {
+	display: grid;
+	place-items: center;
+	border: 1px dashed var(--accent);
+	color: var(--accent);
+}
+
 .add-set {
 	min-height: 44px;
 	font-size: 15px;
