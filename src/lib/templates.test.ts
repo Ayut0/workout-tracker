@@ -45,13 +45,13 @@ describe("template draft edits", () => {
 	});
 
 	it("appends a set copying the weight and reps of the last one", () => {
-		const first = appendPlannedSet(DRAFT, 0)[0];
+		const first = appendPlannedSet(DRAFT, 0, "weight-reps")[0];
 		expect(first?.sets).toEqual([
 			{ weightKg: 60, reps: 8 },
 			{ reps: 6 },
 			{ reps: 6 },
 		]);
-		expect(appendPlannedSet(DRAFT, 1)[1]?.sets).toEqual([{}]);
+		expect(appendPlannedSet(DRAFT, 1, "weight-reps")[1]?.sets).toEqual([{}]);
 		expect(DRAFT[0]?.sets).toHaveLength(2);
 	});
 
@@ -66,6 +66,31 @@ describe("template draft edits", () => {
 		const cleared = updatePlannedSet(DRAFT, 0, 0, { reps: undefined });
 		expect(cleared[0]?.sets[0]).toEqual({ weightKg: 60 });
 		expect(DRAFT[0]?.sets[0]).toEqual({ weightKg: 60, reps: 8 });
+	});
+
+	it("updates and clears a set's seconds and distance", () => {
+		const timed = updatePlannedSet(DRAFT, 2, 0, { seconds: 60 });
+		expect(timed[2]?.sets[0]).toEqual({ seconds: 60 });
+
+		const carried = updatePlannedSet(timed, 2, 0, {
+			seconds: undefined,
+			distanceM: 40,
+		});
+		expect(carried[2]?.sets[0]).toEqual({ distanceM: 40 });
+	});
+
+	it("starts an added set with the seconds or distance of the one before", () => {
+		const timed = updatePlannedSet(DRAFT, 2, 0, { seconds: 45 });
+		expect(appendPlannedSet(timed, 2, "seconds")[2]?.sets).toEqual([
+			{ seconds: 45 },
+			{ seconds: 45 },
+		]);
+	});
+
+	it("does not carry values the measure hides into an added set", () => {
+		expect(appendPlannedSet(DRAFT, 0, "reps")[0]?.sets.at(-1)).toEqual({
+			reps: 6,
+		});
 	});
 
 	it("counts planned sets", () => {

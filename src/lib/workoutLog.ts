@@ -70,3 +70,29 @@ export function readRepsField(text: string): SetFieldInput {
 	if (!REPS_INPUT.test(trimmed)) return { ok: false };
 	return { ok: true, value: Number(trimmed) };
 }
+
+const SECONDS_INPUT = /^\d+$/;
+const MINUTES_SECONDS_INPUT = /^(\d+):([0-5]\d)$/;
+
+/** Reads a set's time: whole seconds ("45") or minutes and seconds ("1:30"). */
+export function readSecondsField(text: string): SetFieldInput {
+	const trimmed = text.trim();
+	if (trimmed === "") return { ok: true, value: undefined };
+	if (SECONDS_INPUT.test(trimmed)) return { ok: true, value: Number(trimmed) };
+	const match = MINUTES_SECONDS_INPUT.exec(trimmed);
+	if (!match) return { ok: false };
+	return {
+		ok: true,
+		value: Number(match[1]) * SECONDS_PER_MINUTE + Number(match[2]),
+	};
+}
+
+const DISTANCE_INPUT = /^\d+(?:[.,]\d*)?$|^[.,]\d+$/;
+
+/** Reads a set's distance in metres, 0 or more; a decimal comma is accepted. */
+export function readDistanceField(text: string): SetFieldInput {
+	const trimmed = text.trim();
+	if (trimmed === "") return { ok: true, value: undefined };
+	if (!DISTANCE_INPUT.test(trimmed)) return { ok: false };
+	return { ok: true, value: Number(trimmed.replace(",", ".")) };
+}

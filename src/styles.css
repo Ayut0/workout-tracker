@@ -1164,3 +1164,17 @@ fieldset {
 .set-grid.planned {
 	--set-columns: 28px 1fr 1fr 44px;
 }
+
+/* A measure with one input (reps, seconds or distance; ADR-0012): one
+   column where weight and reps take two. */
+.set-grid.single-measure {
+	--set-columns: 28px 1fr 48px 44px;
+}
+
+.set-grid.with-previous.single-measure {
+	--set-columns: 28px 1fr 1fr 48px 44px;
+}
+
+.set-grid.planned.single-measure {
+	--set-columns: 28px 1fr 44px;
+}

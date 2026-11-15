@@ -18,6 +18,7 @@ import {
 	renameExercise,
 	restoreExercise,
 	saveSettings,
+	setExerciseMeasure,
 	setExerciseRestSeconds,
 	WorkoutDB,
 } from "./index";
@@ -209,6 +210,23 @@ describe("exercises", () => {
 				reason: "duplicate",
 				existing: { id: "o", archivedAt: 5 },
 			});
+		});
+
+		it("stores a measure other than weight and reps (ADR-0012)", async () => {
+			const result = await createExercise("Plank", database, "seconds");
+
+			if (!result.ok) throw new Error("expected an exercise");
+			expect(result.exercise.measure).toBe("seconds");
+			expect(await database.exercises.get(result.exercise.id)).toEqual(
+				result.exercise,
+			);
+		});
+
+		it("stores no measure for weight and reps, the default", async () => {
+			const result = await createExercise("Row", database, "weight-reps");
+
+			if (!result.ok) throw new Error("expected an exercise");
+			expect("measure" in result.exercise).toBe(false);
 		});
 	});
 
@@ -432,5 +450,49 @@ describe("per-exercise rest", () => {
 		);
 		expect(await setExerciseRestSeconds("bench", 60, database)).toBe(true);
 		expect(await setExerciseRestSeconds("bench", 60, database)).toBe(true);
+	});
+});
+
+describe("exercise measure (ADR-0012)", () => {
+	const plank: Exercise = { id: "plank", name: "Plank", nameKey: "plank" };
+
+	it("sets a measure, and clears it for weight and reps", async () => {
+		await database.exercises.add({ ...plank, restSeconds: 60 });
+
+		await setExerciseMeasure("plank", "seconds", database);
+		expect(await database.exercises.get("plank")).toEqual({
+			...plank,
+			restSeconds: 60,
+			measure: "seconds",
+		});
+
+		await setExerciseMeasure("plank", "weight-reps", database);
+		const cleared = await database.exercises.get("plank");
+		expect(cleared).toEqual({ ...plank, restSeconds: 60 });
+		expect(cleared && "measure" in cleared).toBe(false);
+	});
+
+	it("keeps the values already logged when the measure changes", async () => {
+		await database.exercises.add(plank);
+		await database.sets.add({
+			id: "s",
+			workoutExerciseId: "we",
+			order: 0,
+			weightKg: 10,
+			reps: 3,
+		});
+
+		await setExerciseMeasure("plank", "seconds", database);
+
+		expect(await database.sets.get("s")).toMatchObject({
+			weightKg: 10,
+			reps: 3,
+		});
+	});
+
+	it("reports whether the exercise exists", async () => {
+		expect(await setExerciseMeasure("missing", "reps", database)).toBe(false);
+		await database.exercises.add(plank);
+		expect(await setExerciseMeasure("plank", "reps", database)).toBe(true);
 	});
 });

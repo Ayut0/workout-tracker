@@ -206,6 +206,17 @@ describe("sets", () => {
 		expect(next?.completedAt).toBeUndefined();
 	});
 
+	it("adds a set with only what the exercise's measure shows (ADR-0012)", async () => {
+		const { bench, firstSetId } = await startWithBench();
+		await updateSet(firstSetId, { weightKg: 20, seconds: 45 }, database);
+		await database.exercises.update("bench", { measure: "seconds" });
+
+		const next = await addSet(bench.workoutExercise.id, database);
+
+		expect(next).toMatchObject({ order: 1, seconds: 45 });
+		expect(next && "weightKg" in next).toBe(false);
+	});
+
 	it("edits a set's weight and reps and clears a field with undefined", async () => {
 		const { firstSetId } = await startWithBench();
 
@@ -382,11 +393,28 @@ describe("planNextSet", () => {
 			rpe: 8,
 			completedAt: 1,
 		};
-		expect(planNextSet(last)).toEqual({ weightKg: 50, reps: 10 });
+		expect(planNextSet(last, "weight-reps")).toEqual({
+			weightKg: 50,
+			reps: 10,
+		});
+	});
+
+	it("copies only what the exercise's measure shows", () => {
+		const last: WorkoutSet = {
+			id: "s",
+			workoutExerciseId: "we",
+			order: 0,
+			seconds: 45,
+			distanceM: 40,
+			notes: "grip",
+		};
+		expect(planNextSet(last, "seconds")).toEqual({ seconds: 45 });
+		expect(planNextSet(last, "distance")).toEqual({ distanceM: 40 });
+		expect(planNextSet(last, "weight-reps")).toEqual({});
 	});
 
 	it("starts empty when there is no previous set", () => {
-		expect(planNextSet(undefined)).toEqual({});
+		expect(planNextSet(undefined, "seconds")).toEqual({});
 	});
 });
 

@@ -1,5 +1,5 @@
 type PreviousSetProps = {
-	/** The previous set as shown, e.g. "100 kg × 5"; undefined when there is none. */
+	/** The previous set as shown, e.g. "100 kg × 5" or "45 s"; undefined when there is none. */
 	text: string | undefined;
 	/** Names the set it fills, e.g. "Bench Press set 1". */
 	setLabel: string;
@@ -7,9 +7,9 @@ type PreviousSetProps = {
 };
 
 /**
- * A cell of the Previous column (#28): what this set did last time. Tapping
- * it copies that weight and reps into today's set; with nothing to copy it
- * shows "–".
+ * A cell of the Previous column (#28): what this set did last time, in the
+ * exercise's measure. Tapping it copies those values into today's set; with
+ * nothing to copy it shows "–".
  */
 export function PreviousSet({ text, setLabel, onFill }: PreviousSetProps) {
 	if (text === undefined) {
