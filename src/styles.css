@@ -1340,3 +1340,29 @@ fieldset {
 .body-delete {
 	font-size: 14px;
 }
+
+/* ---- Weekly sets (#75): week navigation ---- */
+
+.week-nav {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 8px;
+}
+
+.week-label {
+	display: grid;
+	margin: 0;
+	text-align: center;
+	font-weight: 600;
+}
+
+.week-label .hint {
+	font-size: 13px;
+	font-weight: 400;
+	color: var(--muted);
+}
+
+.week-nav .chip:disabled {
+	opacity: 0.4;
+}

@@ -6,6 +6,7 @@ import {
 	parseRoute,
 	TABS,
 	templatePath,
+	WEEKLY_SETS_PATH,
 } from "./routes";
 
 describe("parseRoute", () => {
@@ -28,6 +29,13 @@ describe("parseRoute", () => {
 			tab: "progress",
 		});
 		expect(parseRoute("/progress/body/")?.name).toBe("body-log");
+	});
+
+	it("puts weekly sets under the Progress tab", () => {
+		expect(parseRoute(WEEKLY_SETS_PATH)).toEqual({
+			name: "weekly-sets",
+			tab: "progress",
+		});
 	});
 
 	it("puts the notification check under the Settings tab", () => {
