@@ -154,10 +154,10 @@ export function Exercises() {
 								/>
 								<ExerciseAttributesFields
 									attributes={exercise}
-									onChange={(attributes) =>
-										void exerciseLibraryActions.setAttributes(
+									onEdit={(edit) =>
+										void exerciseLibraryActions.editAttributes(
 											exercise.id,
-											attributes,
+											edit,
 										)
 									}
 								/>

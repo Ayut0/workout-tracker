@@ -656,6 +656,39 @@ describe("exercise attributes (ADR-0016)", () => {
 		});
 	});
 
+	it("applies an edit to the stored attributes, so quick edits all land", async () => {
+		await database.exercises.add({ ...squat, equipment: "barbell" });
+
+		// Two taps before the screen re-renders: neither waits for the other.
+		await Promise.all([
+			setExerciseAttributes(
+				"squat",
+				(current) => ({ ...current, primaryMuscles: ["quads"] }),
+				database,
+			),
+			setExerciseAttributes(
+				"squat",
+				(current) => ({
+					...current,
+					primaryMuscles: [...(current.primaryMuscles ?? []), "glutes"],
+				}),
+				database,
+			),
+			setExerciseAttributes(
+				"squat",
+				(current) => ({ ...current, category: "strength" }),
+				database,
+			),
+		]);
+
+		expect(await database.exercises.get("squat")).toEqual({
+			...squat,
+			equipment: "barbell",
+			primaryMuscles: ["glutes", "quads"],
+			category: "strength",
+		});
+	});
+
 	it("reports whether the exercise exists", async () => {
 		expect(await setExerciseAttributes("missing", {}, database)).toBe(false);
 		await database.exercises.add(squat);
