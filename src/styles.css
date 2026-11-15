@@ -1178,3 +1178,22 @@ fieldset {
 .set-grid.planned.single-measure {
 	--set-columns: 28px 1fr 44px;
 }
+
+/* ---- Body log (#73): days with body weight and waist ---- */
+
+.body-row {
+	align-items: center;
+}
+
+.body-values {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 4px 12px;
+	margin-left: auto;
+	font-weight: 600;
+}
+
+.body-delete {
+	font-size: 14px;
+}

@@ -5,6 +5,7 @@ import {
 	formatWeight,
 	formatWeightValue,
 	KG_PER_LB,
+	parseDecimalInput,
 	parseWeightInput,
 	roundForDisplay,
 	roundToPlateIncrement,
@@ -51,6 +52,15 @@ describe("formatWeight", () => {
 	it("formats the number alone for prefilling an input", () => {
 		expect(formatWeightValue(100, "lb")).toBe("220.5");
 		expect(formatWeightValue(60, "kg")).toBe("60");
+	});
+});
+
+describe("parseDecimalInput", () => {
+	it("reads a non-negative number with a decimal point or comma", () => {
+		expect(parseDecimalInput(" 80,5 ")).toBe(80.5);
+		expect(parseDecimalInput(".5")).toBe(0.5);
+		expect(parseDecimalInput("-1")).toBeUndefined();
+		expect(parseDecimalInput("")).toBeUndefined();
 	});
 });
 
