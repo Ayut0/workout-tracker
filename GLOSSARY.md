@@ -49,7 +49,9 @@ from, as a snapshot: editing or deleting the template never changes it.
 
 **Program** — A plan of several weeks, made outside the app and imported as
 templates: **blocks** (from 1) of **weeks** (from 1 within the block), each
-week of **days** ("A", "B"). A template made from a program knows its
+week of **days** ("A", "B"). Importing a program file adds one template per
+week and day and never changes what is stored; a block already imported is
+refused. A template made from a program knows its
 program, block, week and day, and whether the week is a **deload**; a workout
 started from it records the same, shown as "Week 2 · Block 1 · Day A" (the
 day only when it has one).

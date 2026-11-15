@@ -186,7 +186,7 @@ export async function templateFromWorkout(
 const FALLBACK_TEMPLATE_NAME = "Workout";
 
 /** A template name as stored: trimmed, with runs of whitespace collapsed. */
-function tidyTemplateName(name: string): string {
+export function tidyTemplateName(name: string): string {
 	return name.trim().replace(/\s+/g, " ");
 }
 
