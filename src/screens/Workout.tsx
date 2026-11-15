@@ -4,7 +4,7 @@ import { ActiveWorkout } from "../components/workout/ActiveWorkout";
 import { ExercisePicker } from "../components/workout/ExercisePicker";
 import { PreviousSet } from "../components/workout/PreviousSet";
 import type { Exercise, WeightUnit, WorkoutSet } from "../db/types";
-import type { CompletedSet } from "../db/workoutLog";
+import { type CompletedSet, resolveMeasure } from "../db/workoutLog";
 import {
 	type ActiveWorkoutView,
 	useActiveWorkout,
@@ -218,14 +218,16 @@ function LogWorkout({
 				weightUnit={weightUnit}
 				renderPrevious={(exerciseId, setIndex, set) => {
 					const last = previous?.get(exerciseId)?.[setIndex];
-					const name = view.exercises.get(exerciseId)?.name ?? "Exercise";
+					const exercise = view.exercises.get(exerciseId);
+					const name = exercise?.name ?? "Exercise";
+					const measure = resolveMeasure(exercise);
 					return (
 						<PreviousSet
-							text={last && formatPreviousSet(last, weightUnit)}
+							text={last && formatPreviousSet(last, weightUnit, measure)}
 							setLabel={`${name} set ${setIndex + 1}`}
 							onFill={() => {
 								if (!last) return;
-								const changes = planFillFromPrevious(last);
+								const changes = planFillFromPrevious(last, measure);
 								run(() => workoutLogActions.updateSet(set.id, changes));
 							}}
 						/>

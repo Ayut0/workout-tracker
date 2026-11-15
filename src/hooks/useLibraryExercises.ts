@@ -2,15 +2,17 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
 import {
 	createExercise,
+	db,
 	type ExerciseNameResult,
 	listArchivedExercises,
 	listLibraryExercises,
 	removeExercise,
 	renameExercise,
 	restoreExercise,
+	setExerciseMeasure,
 	setExerciseRestSeconds,
 } from "../db";
-import type { Exercise } from "../db/types";
+import type { Exercise, SetMeasure } from "../db/types";
 import { filterExercisesByName } from "../lib/exerciseLibrary";
 
 /**
@@ -33,7 +35,9 @@ export function useArchivedExercises(): Exercise[] | undefined {
 
 /** The library's write actions, bound to the app database. */
 export const exerciseLibraryActions = {
-	create: (name: string): Promise<ExerciseNameResult> => createExercise(name),
+	/** Adds an exercise; its sets record weight and reps unless a measure is given. */
+	create: (name: string, measure?: SetMeasure): Promise<ExerciseNameResult> =>
+		createExercise(name, db, measure),
 	rename: (id: string, name: string): Promise<ExerciseNameResult> =>
 		renameExercise(id, name),
 	remove: (id: string): Promise<"deleted" | "archived"> =>
@@ -42,4 +46,7 @@ export const exerciseLibraryActions = {
 	/** Sets the exercise's own rest, or clears it (undefined) to use the default. */
 	setRest: (id: string, restSeconds: number | undefined): Promise<boolean> =>
 		setExerciseRestSeconds(id, restSeconds),
+	/** Sets what the exercise's sets record; logged values are kept. */
+	setMeasure: (id: string, measure: SetMeasure): Promise<boolean> =>
+		setExerciseMeasure(id, measure),
 };

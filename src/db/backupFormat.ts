@@ -7,14 +7,15 @@ import {
 	type BackupStore,
 } from "./backup";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
-import type {
-	Exercise,
-	Template,
-	TemplateExercise,
-	TemplateSet,
-	Workout,
-	WorkoutExercise,
-	WorkoutSet,
+import {
+	type Exercise,
+	SET_MEASURES,
+	type Template,
+	type TemplateExercise,
+	type TemplateSet,
+	type Workout,
+	type WorkoutExercise,
+	type WorkoutSet,
 } from "./types";
 
 /**
@@ -127,6 +128,8 @@ const EXERCISE: Spec<Exercise> = {
 	nameKey: text,
 	archivedAt: optional(finite),
 	restSeconds: optional(finite),
+	// Missing in backups made before measures (ADR-0012): weight and reps.
+	measure: optional(oneOf(...SET_MEASURES)),
 };
 
 const WORKOUT: Spec<Workout> = {
@@ -160,6 +163,8 @@ const SET: Spec<WorkoutSet> = {
 const TEMPLATE_SET: Spec<TemplateSet> = {
 	weightKg: optional(finite),
 	reps: optional(finite),
+	seconds: optional(finite),
+	distanceM: optional(finite),
 };
 
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {

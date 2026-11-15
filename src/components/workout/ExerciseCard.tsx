@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import type { WorkoutExerciseDetail } from "../../db";
-import type { WeightUnit, WorkoutSet } from "../../db/types";
+import {
+	MEASURE_FIELDS,
+	type SetMeasure,
+	type WeightUnit,
+	type WorkoutSet,
+} from "../../db/types";
 import type { SetChanges } from "../../db/workoutLog";
+import { describeFieldColumn } from "../../lib/setMeasure";
 import { SetRow } from "./SetRow";
 
 type ExerciseCardProps = {
@@ -10,6 +16,8 @@ type ExerciseCardProps = {
 	/** Position in the workout, from 0, and how many exercises it has. */
 	index: number;
 	count: number;
+	/** What the exercise's sets record; picks the set columns (ADR-0012). */
+	measure: SetMeasure;
 	weightUnit: WeightUnit;
 	/**
 	 * The Previous column (#28): what the set at this position did the last
@@ -33,6 +41,7 @@ export function ExerciseCard({
 	name,
 	index,
 	count,
+	measure,
 	weightUnit,
 	renderPrevious,
 	onMove,
@@ -44,6 +53,14 @@ export function ExerciseCard({
 }: ExerciseCardProps) {
 	const headingId = `exercise-${entry.workoutExercise.id}`;
 	const withPrevious = renderPrevious !== undefined;
+	const fields = MEASURE_FIELDS[measure];
+	const gridClass = [
+		"set-grid",
+		withPrevious && "with-previous",
+		fields.length === 1 && "single-measure",
+	]
+		.filter(Boolean)
+		.join(" ");
 	return (
 		<section className="exercise-card" aria-labelledby={headingId}>
 			<div className="exercise-card-head">
@@ -77,12 +94,13 @@ export function ExerciseCard({
 					</button>
 				</div>
 			</div>
-			<div className={withPrevious ? "set-grid with-previous" : "set-grid"}>
+			<div className={gridClass}>
 				<div className="set-head" aria-hidden="true">
 					<span>Set</span>
 					{withPrevious && <span>Previous</span>}
-					<span>{weightUnit}</span>
-					<span>Reps</span>
+					{fields.map((field) => (
+						<span key={field}>{describeFieldColumn(field, weightUnit)}</span>
+					))}
 					<span>Done</span>
 					<span />
 				</div>
@@ -93,6 +111,7 @@ export function ExerciseCard({
 							set={set}
 							number={setIndex + 1}
 							exerciseName={name}
+							measure={measure}
 							weightUnit={weightUnit}
 							previous={
 								renderPrevious
