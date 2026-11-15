@@ -47,7 +47,8 @@ left open.
   (case-insensitive): 2 kg per dumbbell; "(Barbell)", "(Machine)" and anything
   else 2.5 kg. In pounds every step is 5 lb (dumbbells included, as pound
   dumbbells step by 5 lb). A later per-exercise increment setting can replace
-  the helper without changing the rule. A zero, negative or non-finite
+  the helper without changing the rule. (ADR-0016: an exercise's
+  `equipment`, when set, wins over the name.) A zero, negative or non-finite
   increment cannot raise anything: the group is *keep* instead of a raise.
 - **Rounding:** the raised weight is the weight plus the increment, rounded to
   the unit's plate grid (`PLATE_INCREMENT`: 2.5 kg, 5 lb) via

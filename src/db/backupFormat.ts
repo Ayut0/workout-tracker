@@ -9,15 +9,19 @@ import {
 import { isLocalDay, MAX_BODY_WEIGHT_KG, MAX_WAIST_CM } from "./bodyLog";
 import { SET_MEASURES } from "./constants";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
-import type {
-	BodyEntry,
-	Exercise,
-	Template,
-	TemplateExercise,
-	TemplateSet,
-	Workout,
-	WorkoutExercise,
-	WorkoutSet,
+import {
+	type BodyEntry,
+	EQUIPMENT,
+	EXERCISE_CATEGORIES,
+	type Exercise,
+	MOVEMENT_PATTERNS,
+	MUSCLE_GROUPS,
+	type Template,
+	type TemplateExercise,
+	type TemplateSet,
+	type Workout,
+	type WorkoutExercise,
+	type WorkoutSet,
 } from "./types";
 
 /**
@@ -127,6 +131,20 @@ function listOf<T>(spec: Spec<T>): Check {
 	};
 }
 
+/** A list whose every item passes `check`. */
+function listOfValues(check: Check): Check {
+	return (value) => {
+		if (!Array.isArray(value)) return "must be a list";
+		for (const [i, item] of value.entries()) {
+			const problem = check(item);
+			if (problem !== undefined) return `item ${i + 1} ${problem}`;
+		}
+		return undefined;
+	};
+}
+
+const muscles = optional(listOfValues(oneOf(...MUSCLE_GROUPS)));
+
 const EXERCISE: Spec<Exercise> = {
 	id,
 	name: text,
@@ -135,6 +153,12 @@ const EXERCISE: Spec<Exercise> = {
 	restSeconds: optional(finite),
 	// Missing in backups made before measures (ADR-0012): weight and reps.
 	measure: optional(oneOf(...SET_MEASURES)),
+	// Missing in backups made before attributes (ADR-0016): none chosen.
+	primaryMuscles: muscles,
+	secondaryMuscles: muscles,
+	movementPattern: optional(oneOf(...MOVEMENT_PATTERNS)),
+	category: optional(oneOf(...EXERCISE_CATEGORIES)),
+	equipment: optional(oneOf(...EQUIPMENT)),
 };
 
 const WORKOUT: Spec<Workout> = {

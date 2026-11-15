@@ -40,6 +40,11 @@ async function seedEveryStore(target: WorkoutDB) {
 			restSeconds: 180,
 			archivedAt: T0,
 			measure: "distance",
+			primaryMuscles: ["glutes", "quads"],
+			secondaryMuscles: ["adductors"],
+			movementPattern: "squat",
+			category: "strength",
+			equipment: "barbell",
 		},
 	]);
 	await target.workouts.bulkAdd([
@@ -440,6 +445,101 @@ describe("parseBackup rejects", () => {
 				},
 			}),
 			/Exercise record 1: measure must be "weight-reps" or "reps" or "seconds" or "distance"/,
+		],
+		[
+			"an unknown muscle group",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							primaryMuscles: ["lats", "wings"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: primaryMuscles item 2 must be "chest" or /,
+		],
+		[
+			"secondary muscles that are not a list",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							secondaryMuscles: "biceps",
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: secondaryMuscles must be a list/,
+		],
+		[
+			"an unknown movement pattern",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", movementPattern: "push" },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: movementPattern must be "squat" or /,
+		],
+		[
+			"an unknown exercise category",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", category: "cardio" },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: category must be "strength" or /,
+		],
+		[
+			"unknown equipment",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", equipment: "kettlebell" },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: equipment must be "barbell" or /,
 		],
 		[
 			"a template set's seconds that are not a number",

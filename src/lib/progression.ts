@@ -1,5 +1,9 @@
-import type { WeightUnit } from "../db/types";
-import { convertToKg, PLATE_INCREMENT, roundToPlateIncrement } from "./units";
+import type { Equipment, WeightUnit } from "../db/types";
+import {
+	convertToKg,
+	PLATE_INCREMENT,
+	roundToPlateIncrement,
+} from "./units";
 
 /**
  * Progression (#70, ADR-0013): what to lift next time for an exercise, from
@@ -78,19 +82,31 @@ const DUMBBELL_INCREMENT_KG = 2;
 
 const DUMBBELL_MARK = /\(dumbbell\)/i;
 
+/** The parts of an exercise the increment reads. */
+export interface IncrementExercise {
+	name: string;
+	equipment?: Equipment | undefined;
+}
+
 /**
- * The increment for an exercise, in kilograms, from its name's equipment
- * mark: 2 kg per dumbbell for "(Dumbbell)" anywhere in the name, otherwise (barbell, machine,
- * anything else) one plate step, 2.5 kg. In pounds every step is 5 lb.
+ * The increment for an exercise, in kilograms: 2 kg per dumbbell, otherwise
+ * (barbell, machine, anything else) one plate step, 2.5 kg. In pounds every
+ * step is 5 lb. The exercise's equipment decides when it has one (ADR-0016);
+ * otherwise, or given only a name, the name's equipment mark, "(Dumbbell)" anywhere in it, does.
  */
 export function deriveIncrementKg(
-	exerciseName: string,
+	exercise: string | IncrementExercise,
 	unit: WeightUnit = "kg",
 ): number {
-	if (unit === "kg" && DUMBBELL_MARK.test(exerciseName)) {
-		return DUMBBELL_INCREMENT_KG;
-	}
+	if (unit === "kg" && isDumbbell(exercise)) return DUMBBELL_INCREMENT_KG;
 	return convertToKg(PLATE_INCREMENT[unit], unit);
+}
+
+function isDumbbell(exercise: string | IncrementExercise): boolean {
+	const { name, equipment } =
+		typeof exercise === "string" ? { name: exercise } : exercise;
+	if (equipment !== undefined) return equipment === "dumbbell";
+	return DUMBBELL_MARK.test(name);
 }
 
 /**
