@@ -3,6 +3,7 @@ import type { SetMeasure, WeightUnit, WorkoutSet } from "../../db/types";
 import type { SetChanges } from "../../db/workoutLog";
 import { MeasureInputs } from "./MeasureInputs";
 import { RpeChips } from "./RpeChips";
+import { WarmupToggle } from "./WarmupToggle";
 
 type SetRowProps = {
 	set: WorkoutSet;
@@ -24,7 +25,8 @@ type SetRowProps = {
 
 /**
  * One set: the inputs for the exercise's measure and a done toggle, with the
- * RPE chip row (#64) beneath. Edits are saved as typed.
+ * warm-up toggle (#65) and the RPE chip row (#64) beneath. Edits are saved as
+ * typed.
  */
 export function SetRow({
 	set,
@@ -39,9 +41,12 @@ export function SetRow({
 }: SetRowProps) {
 	const done = set.completedAt !== undefined;
 	const label = `${exerciseName} set ${number}`;
+	const className = ["set-row", done && "done", set.warmup && "warmup"]
+		.filter(Boolean)
+		.join(" ");
 
 	return (
-		<li className={done ? "set-row done" : "set-row"}>
+		<li className={className}>
 			<span className="set-number">{number}</span>
 			{previous !== undefined && (
 				<span className="set-previous">{previous}</span>
@@ -71,6 +76,11 @@ export function SetRow({
 				×
 			</button>
 			<div className="set-extras">
+				<WarmupToggle
+					warmup={set.warmup}
+					label={label}
+					onChange={(warmup) => onChange({ warmup })}
+				/>
 				<RpeChips
 					rpe={set.rpe}
 					label={label}

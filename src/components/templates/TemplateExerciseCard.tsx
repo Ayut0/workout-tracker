@@ -8,6 +8,7 @@ import type {
 import { describeFieldColumn } from "../../lib/setMeasure";
 import type { PlannedSetChanges } from "../../lib/templates";
 import { MeasureInputs } from "../workout/MeasureInputs";
+import { WarmupToggle } from "../workout/WarmupToggle";
 
 type TemplateExerciseCardProps = {
 	exercise: TemplateExercise;
@@ -123,7 +124,10 @@ type PlannedSetRowProps = {
 	onRemove: () => void;
 };
 
-/** One planned set: the inputs for the exercise's measure (weight in the user's unit). */
+/**
+ * One planned set: the inputs for the exercise's measure (weight in the
+ * user's unit), with the warm-up toggle (#65) beneath.
+ */
 function PlannedSetRow({
 	set,
 	label,
@@ -134,7 +138,7 @@ function PlannedSetRow({
 	onRemove,
 }: PlannedSetRowProps) {
 	return (
-		<li className="set-row">
+		<li className={set.warmup ? "set-row warmup" : "set-row"}>
 			<span className="set-number">{number}</span>
 			<MeasureInputs
 				measure={measure}
@@ -151,6 +155,13 @@ function PlannedSetRow({
 			>
 				×
 			</button>
+			<div className="set-extras">
+				<WarmupToggle
+					warmup={set.warmup}
+					label={label}
+					onChange={(warmup) => onChange({ warmup })}
+				/>
+			</div>
 		</li>
 	);
 }

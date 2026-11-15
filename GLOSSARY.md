@@ -27,21 +27,25 @@ workout). It holds exercises in order, each with its sets in order.
 distance, seconds, RPE and notes. The exercise's measure decides which of
 weight, reps, seconds and distance a set shows and is logged by; changing the
 measure hides values already logged but keeps them. A set is complete once
-marked done; only complete sets count towards Volume and Estimated 1RM, which
-use weight × reps alone, so a reps, seconds or distance set adds nothing.
+marked done. A set may be marked by hand as a **warm-up** ("W"); a set that is
+not is a working set. Only complete working sets count towards Volume,
+Estimated 1RM, personal records and progression, which use weight × reps
+alone, so a warm-up, or a reps, seconds or distance set, adds nothing.
 
 **Template** — A reusable plan for a workout: exercises in order, each with
 planned sets (weight and reps, or reps, seconds or distance, following the
-exercise's measure).
+exercise's measure). A planned set may be a warm-up; starting a workout from
+the template, and saving a workout as a template, keep the mark.
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
 computed from its weight and reps by Epley: weight × (1 + reps / 30). A single
 rep is the weight itself. Reps above 12 count as 12, because Epley overstates
-the 1RM of high-rep sets; the cap keeps it conservative. A set with 0 reps, or
-with no weight or 0 kg (bodyweight), has no Estimated 1RM.
+the 1RM of high-rep sets; the cap keeps it conservative. A warm-up, a set with
+0 reps, or with no weight or 0 kg (bodyweight), has no Estimated 1RM.
 
 **Volume** — The work done for an exercise in a workout: the sum of weight × reps
-over its complete sets (all reps, no cap). Bodyweight sets add nothing.
+over its complete working sets (all reps, no cap). Warm-ups and bodyweight
+sets add nothing.
 
 **Progression** — The suggestion for an exercise's next workout from its last
 one. Its complete working sets (warm-ups never count) are judged in groups

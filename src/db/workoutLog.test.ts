@@ -230,6 +230,31 @@ describe("sets", () => {
 		expect(set && "weightKg" in set).toBe(false);
 	});
 
+	it("marks a set as a warm-up and clears the mark with undefined (#65)", async () => {
+		const { firstSetId } = await startWithBench();
+
+		await updateSet(firstSetId, { warmup: true }, database);
+		expect((await database.sets.get(firstSetId))?.warmup).toBe(true);
+
+		await updateSet(firstSetId, { warmup: undefined }, database);
+		const set = await database.sets.get(firstSetId);
+		expect(set && "warmup" in set).toBe(false);
+	});
+
+	it("adds a set after a warm-up that is not a warm-up (#65)", async () => {
+		const { bench, firstSetId } = await startWithBench();
+		await updateSet(
+			firstSetId,
+			{ weightKg: 40, reps: 10, warmup: true },
+			database,
+		);
+
+		const next = await addSet(bench.workoutExercise.id, database);
+
+		expect(next).toMatchObject({ weightKg: 40, reps: 10 });
+		expect(next && "warmup" in next).toBe(false);
+	});
+
 	it("leaves fields that are not in the changes alone", async () => {
 		const { firstSetId } = await startWithBench();
 		await updateSet(firstSetId, { weightKg: 60, reps: 8 }, database);

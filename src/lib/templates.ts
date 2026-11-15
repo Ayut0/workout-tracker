@@ -70,11 +70,12 @@ const PLANNED_SET_FIELDS = [
 	"reps",
 	"seconds",
 	"distanceM",
+	"warmup",
 ] as const satisfies readonly (keyof TemplateSet)[];
 
 /**
- * Changes a planned set's weight, reps, seconds or distance. Keys present
- * with `undefined` are cleared.
+ * Changes a planned set's weight, reps, seconds, distance or warm-up mark.
+ * Keys present with `undefined` are cleared.
  */
 export function updatePlannedSet(
 	exercises: readonly TemplateExercise[],
@@ -90,7 +91,7 @@ export function updatePlannedSet(
 				if (!(field in changes)) continue;
 				const value = changes[field];
 				if (value === undefined) delete next[field];
-				else next[field] = value;
+				else Object.assign(next, { [field]: value });
 			}
 			return next;
 		}),
