@@ -20,7 +20,10 @@ afterEach(async () => {
 	await database.delete();
 });
 
-type SeedSet = Pick<WorkoutSet, "weightKg" | "reps"> & { done?: boolean };
+type SeedSet = Pick<
+	WorkoutSet,
+	"weightKg" | "reps" | "warmup" | "repMin" | "repMax"
+> & { done?: boolean };
 
 /** Stores a workout with the given exercises (in order) and their sets. */
 async function seedWorkout(
@@ -141,6 +144,33 @@ describe("listPreviousSets", () => {
 			{ weightKg: 100, reps: 5 },
 			{ weightKg: 70, reps: 12 },
 			{ weightKg: 70, reps: 10 },
+		]);
+	});
+
+	it("keeps each set's warm-up mark and planned rep range, for Progression (#71)", async () => {
+		await seedWorkout("planned", 1_000, true, [
+			[
+				"bench",
+				[
+					{ weightKg: 60, reps: 8, warmup: true },
+					{ weightKg: 100, reps: 6, repMin: 4, repMax: 6 },
+				],
+			],
+		]);
+
+		const sets = await listPreviousSets("bench", database);
+
+		expect(
+			sets.map(({ weightKg, reps, warmup, repMin, repMax }) => ({
+				weightKg,
+				reps,
+				warmup,
+				repMin,
+				repMax,
+			})),
+		).toEqual([
+			{ weightKg: 60, reps: 8, warmup: true },
+			{ weightKg: 100, reps: 6, repMin: 4, repMax: 6 },
 		]);
 	});
 

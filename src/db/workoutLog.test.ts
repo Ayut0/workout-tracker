@@ -20,6 +20,7 @@ import {
 	startWorkout,
 	uncompleteSet,
 	updateSet,
+	updateSets,
 	updateWorkout,
 } from "./workoutLog";
 
@@ -273,6 +274,33 @@ describe("sets", () => {
 		expect(await database.sets.get(firstSetId)).toMatchObject({
 			weightKg: 60,
 			reps: 6,
+		});
+	});
+
+	it("changes several sets at once, e.g. to use a suggestion (#71)", async () => {
+		const { bench, firstSetId } = await startWithBench();
+		const second = await addSet(bench.workoutExercise.id, database);
+		if (!second) throw new Error("expected a set");
+		await updateSet(firstSetId, { rpe: 8 }, database);
+
+		const updated = await updateSets(
+			[
+				{ setId: firstSetId, changes: { weightKg: 102.5, reps: 4 } },
+				{ setId: second.id, changes: { weightKg: 102.5, reps: 4 } },
+				{ setId: "missing", changes: { reps: 1 } },
+			],
+			database,
+		);
+
+		expect(updated).toBe(2);
+		expect(await database.sets.get(firstSetId)).toMatchObject({
+			weightKg: 102.5,
+			reps: 4,
+			rpe: 8,
+		});
+		expect(await database.sets.get(second.id)).toMatchObject({
+			weightKg: 102.5,
+			reps: 4,
 		});
 	});
 

@@ -313,6 +313,30 @@ export async function updateSet(
 	return updated > 0;
 }
 
+/** Changes for one set, as `updateSets` takes them. */
+export interface SetUpdate {
+	setId: string;
+	changes: SetChanges;
+}
+
+/**
+ * Changes several sets in one transaction, all or none: e.g. using a
+ * Progression suggestion (#71) fills a group's sets together. Returns how many
+ * sets were found and changed; a missing set is skipped.
+ */
+export async function updateSets(
+	updates: readonly SetUpdate[],
+	database: WorkoutDB = db,
+): Promise<number> {
+	return database.transaction("rw", database.sets, async () => {
+		let updated = 0;
+		for (const { setId, changes } of updates) {
+			if (await updateSet(setId, changes, database)) updated += 1;
+		}
+		return updated;
+	});
+}
+
 const SET_CHANGE_KEYS = [
 	"weightKg",
 	"reps",
