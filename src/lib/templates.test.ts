@@ -153,3 +153,34 @@ describe("template exercise notes (ADR-0014)", () => {
 		expect(edited[0]?.notes).toBe("seat 4");
 	});
 });
+
+describe("planned rep range and target RIR (ADR-0014)", () => {
+	it("are set and cleared on a planned set", () => {
+		const planned = updatePlannedSet(DRAFT, 0, 0, {
+			repMin: 6,
+			repMax: 8,
+			targetRir: 2,
+		});
+		expect(planned[0]?.sets[0]).toEqual({
+			weightKg: 60,
+			reps: 8,
+			repMin: 6,
+			repMax: 8,
+			targetRir: 2,
+		});
+
+		const cleared = updatePlannedSet(planned, 0, 0, {
+			repMin: undefined,
+			repMax: undefined,
+			targetRir: undefined,
+		});
+		expect(cleared[0]?.sets[0]).toEqual({ weightKg: 60, reps: 8 });
+	});
+
+	it("start an added set with the targets of the one before", () => {
+		const planned = updatePlannedSet(DRAFT, 0, 1, { repMin: 6, repMax: 8 });
+		expect(appendPlannedSet(planned, 0, "weight-reps")[0]?.sets.at(-1)).toEqual(
+			{ reps: 6, repMin: 6, repMax: 8 },
+		);
+	});
+});

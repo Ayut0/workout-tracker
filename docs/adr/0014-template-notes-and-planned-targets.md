@@ -12,6 +12,8 @@ so anything shown while logging has to be copied too. This ADR collects the
 decisions; each section belongs to one issue:
 
 - **Exercise notes** — #66: notes on a template exercise, shown while logging.
+- **Planned targets** — #69: a rep range and target RIR on planned sets,
+  copied into the workout's sets.
 
 ## Exercise notes (#66)
 
@@ -46,3 +48,50 @@ decisions; each section belongs to one issue:
   workout; the lifter sees them next time.
 - History shows the cue the workout was done with, which explains an odd set
   (a different seat) months later.
+
+## Planned rep range and target RIR (#69)
+
+### Decision
+
+- **Fields.** `repMin?`, `repMax?` and `targetRir?` on both `TemplateSet` and
+  `WorkoutSet` (the shared `PlannedTargets` type). Optional and not indexed:
+  no Dexie version (ADR-0002). Whole numbers, 0 or more; a range has both
+  ends or neither, and `repMin` is not above `repMax`.
+- **Stored on the workout's sets, copied like weight and reps** (ADR-0010).
+  Starting from a template copies a planned set's targets into the new set,
+  so the Progression rule (ADR-0013, `src/lib/progression.ts`) reads the range
+  from the last workout's sets without a link to the template. Copying goes
+  through `planNextSet`, which therefore also carries the targets into a set
+  added during a workout, into a planned set added in the editor, and back
+  into a template saved from a workout: an extra set aims for what the set
+  before it aimed for. Filling a set from the Previous column copies
+  measurements only, never targets.
+- **Only for measures that count reps** (`plansTargets`: weight-reps and
+  reps). A rep range means nothing to a plank or a carry, so seconds and
+  distance sets neither show nor copy targets; values already stored are
+  kept, only hidden, as for measures (ADR-0012).
+- **Entry.** Each planned set in the template editor has a "Rep range" field
+  and an "RIR" field under its measurements. A single number plans exactly
+  that many reps (`8` is stored as 8–8, shown as "8"); `6-8`, `6–8` or
+  `6 to 8` plans a range; blank clears it. A range with its ends swapped, a
+  fraction or a negative number is not saved, and the field is marked
+  invalid until it loses focus, when it shows the stored value again. Parsing
+  and formatting live in `src/lib/plannedTargets.ts`.
+- **Shown read-only while logging**, as a line under the set's inputs:
+  "Target 4–6 reps · RIR 2" (`SetTargets`). History shows the same. The
+  targets are edited in the template, not in the workout, for the MVP.
+- **Backup** (ADR-0011): `parseBackup` checks the three fields on template
+  sets and workout sets (whole numbers, 0 or more) and checks the range
+  across fields (both ends, bottom not above top) with a per-record rule.
+  Older backups have none and restore unchanged; the schema version does not
+  change.
+
+### Consequences
+
+- RPE, logged per set (ADR-0012), and target RIR are not compared yet; a
+  "hit the target RIR" hint is a possible follow-up.
+- An exercise-level default range (`ProgressionInput.repMin`/`repMax`) is
+  not stored anywhere yet; until it is, Progression only judges sets planned
+  with a range.
+- A workout not started from a template has no targets, so Progression has
+  nothing to judge for it unless its sets were added after a targeted set.

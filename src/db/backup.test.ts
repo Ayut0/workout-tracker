@@ -77,6 +77,9 @@ async function seedEveryStore(target: WorkoutDB) {
 			rpe: 8.5,
 			warmup: true,
 			notes: "paused",
+			repMin: 4,
+			repMax: 6,
+			targetRir: 2,
 			completedAt: T0 + 10 * 60_000,
 		},
 		{
@@ -95,7 +98,7 @@ async function seedEveryStore(target: WorkoutDB) {
 				exerciseId: "ex-bench",
 				sets: [
 					{ weightKg: 40, reps: 10, warmup: true },
-					{ weightKg: 80, reps: 5 },
+					{ weightKg: 80, reps: 5, repMin: 4, repMax: 6, targetRir: 2 },
 				],
 				notes: "seat 4",
 			},
@@ -364,6 +367,94 @@ describe("restoring an older schema version", () => {
 			ok: false,
 			reason: "This backup's version is not valid.",
 		});
+	});
+});
+
+/** A file whose only template has one planned set, `set`. */
+function makeTemplateSetFile(set: Record<string, unknown>): string {
+	return makeFile({
+		data: {
+			exercises: [],
+			workouts: [],
+			workoutExercises: [],
+			sets: [],
+			templates: [
+				{ id: "t", name: "A", exercises: [{ exerciseId: "e", sets: [set] }] },
+			],
+			settings: [],
+			bodyEntries: [],
+		},
+	});
+}
+
+/** A file whose only workout set is `set`'s fields on a valid set. */
+function makeWorkoutSetFile(set: Record<string, unknown>): string {
+	return makeFile({
+		data: {
+			exercises: [],
+			workouts: [],
+			workoutExercises: [],
+			sets: [{ id: "s", workoutExerciseId: "we", order: 0, ...set }],
+			templates: [],
+			settings: [],
+			bodyEntries: [],
+		},
+	});
+}
+
+describe("planned targets in a backup (ADR-0014)", () => {
+	it("restore sets and planned sets from before #69, which have none", () => {
+		const parsed = parseBackup(makeTemplateSetFile({ weightKg: 60, reps: 5 }));
+		expect(parsed.ok).toBe(true);
+	});
+
+	it("accept a single-number range and a target RIR of 0", () => {
+		expect(
+			parseBackup(makeWorkoutSetFile({ repMin: 8, repMax: 8, targetRir: 0 }))
+				.ok,
+		).toBe(true);
+	});
+
+	it.each([
+		[
+			"a template set's range with its ends swapped",
+			makeTemplateSetFile({ repMin: 8, repMax: 6 }),
+			/Template record 1: exercises item 1: sets item 1: repMin must not be more than repMax/,
+		],
+		[
+			"a template set's range with one end",
+			makeTemplateSetFile({ repMin: 6 }),
+			/sets item 1: repMin and repMax must be given together/,
+		],
+		[
+			"a template set's negative target RIR",
+			makeTemplateSetFile({ targetRir: -1 }),
+			/sets item 1: targetRir must be a whole number, 0 or more/,
+		],
+		[
+			"a workout set's range with its ends swapped",
+			makeWorkoutSetFile({ repMin: 10, repMax: 8 }),
+			/Set record 1: repMin must not be more than repMax/,
+		],
+		[
+			"a workout set's fractional rep range",
+			makeWorkoutSetFile({ repMin: 6.5, repMax: 8 }),
+			/Set record 1: repMin must be a whole number, 0 or more/,
+		],
+		[
+			"a workout set's range with one end",
+			makeWorkoutSetFile({ repMax: 8 }),
+			/Set record 1: repMin and repMax must be given together/,
+		],
+		[
+			"a workout set's target RIR that is not a number",
+			makeWorkoutSetFile({ targetRir: "2" }),
+			/Set record 1: targetRir must be a whole number, 0 or more/,
+		],
+	])("reject %s", (_name, text, reason) => {
+		const parsed = parseBackup(text);
+		expect(parsed.ok).toBe(false);
+		if (!parsed.ok) expect(parsed.reason).toMatch(reason);
 	});
 });
 

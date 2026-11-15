@@ -10,6 +10,7 @@ import {
 	DEFAULT_SET_MEASURE,
 	type Exercise,
 	MEASURE_FIELDS,
+	PLANNED_TARGET_FIELDS,
 	type SetMeasure,
 	type TemplateExercise,
 	type Workout,
@@ -425,10 +426,20 @@ function renumber<T extends { order: number }>(records: readonly T[]): T[] {
 	);
 }
 
-/** The measurements a new set starts with; the exercise's measure picks which show. */
+/**
+ * What a new set starts with: the measurements (the exercise's measure picks
+ * which show) and the planned targets (ADR-0014).
+ */
 export type PlannedSet = Pick<
 	WorkoutSet,
-	"weightKg" | "reps" | "seconds" | "distanceM" | "warmup"
+	| "weightKg"
+	| "reps"
+	| "seconds"
+	| "distanceM"
+	| "warmup"
+	| "repMin"
+	| "repMax"
+	| "targetRir"
 >;
 
 /**
@@ -436,8 +447,10 @@ export type PlannedSet = Pick<
  * measure shows (ADR-0012): weight and reps, reps, seconds or distance, and
  * nothing else (no RPE or notes), so a straight set is one tap to confirm.
  * Values kept hidden after a measure change are not carried into new sets.
- * The first set starts empty. A warm-up mark is not carried either: the set
- * after a warm-up is usually a working set (#65).
+ * A measure with reps also carries the planned rep range and target RIR
+ * (ADR-0014): an added set aims for what the set before it aimed for.
+ * The first set starts empty. A warm-up mark is not carried: the set after a
+ * warm-up is usually a working set (#65).
  */
 export function planNextSet(
 	last: PlannedSet | undefined,
@@ -447,6 +460,12 @@ export function planNextSet(
 	for (const field of MEASURE_FIELDS[measure]) {
 		const value = last?.[field];
 		if (value !== undefined) planned[field] = value;
+	}
+	if (plansTargets(measure)) {
+		for (const field of PLANNED_TARGET_FIELDS) {
+			const value = last?.[field];
+			if (value !== undefined) planned[field] = value;
+		}
 	}
 	return planned;
 }
@@ -463,6 +482,14 @@ export function copyPlannedSet(
 	const planned = planNextSet(set, measure);
 	if (set.warmup) planned.warmup = true;
 	return planned;
+}
+
+/**
+ * Whether sets of a measure plan a rep range and target RIR (ADR-0014): only
+ * measures that count reps do.
+ */
+export function plansTargets(measure: SetMeasure): boolean {
+	return MEASURE_FIELDS[measure].includes("reps");
 }
 
 /**
