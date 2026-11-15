@@ -7,6 +7,7 @@ import {
 } from "./types";
 import {
 	copyPlannedSet,
+	copyProgramLink,
 	resolveMeasure,
 	type StartWorkoutResult,
 	startWorkout,
@@ -65,7 +66,10 @@ export async function createTemplate(
 	return { ok: true, template };
 }
 
-/** Replaces a template's name and exercises. A blank name is rejected. */
+/**
+ * Replaces a template's name and exercises. A blank name is rejected. The
+ * program it belongs to (ADR-0018) is not edited here and is kept.
+ */
 export async function updateTemplate(
 	id: string,
 	input: TemplateInput,
@@ -74,14 +78,16 @@ export async function updateTemplate(
 	const name = tidyTemplateName(input.name);
 	if (name === "") return { ok: false, reason: "empty" };
 	return database.transaction("rw", database.templates, async () => {
-		if (!(await database.templates.get(id))) {
-			return { ok: false, reason: "not-found" };
-		}
+		const current = await database.templates.get(id);
+		if (!current) return { ok: false, reason: "not-found" };
 		const template: Template = {
 			id,
 			name,
 			exercises: copyTemplateExercises(input.exercises),
 		};
+		if (current.program !== undefined) {
+			template.program = copyProgramLink(current.program);
+		}
 		await database.templates.put(template);
 		return { ok: true, template };
 	});
@@ -104,8 +110,9 @@ export async function deleteTemplate(
 
 /**
  * Starts a workout from a template: named after it, with its exercises and
- * planned sets copied in (none marked done). Refuses while a workout is
- * active, like startWorkout.
+ * planned sets copied in (none marked done), and a snapshot of the template
+ * and its program recorded as the workout's source (ADR-0018). Refuses while
+ * a workout is active, like startWorkout.
  */
 export async function startWorkoutFromTemplate(
 	templateId: string,
@@ -115,7 +122,18 @@ export async function startWorkoutFromTemplate(
 	const template = await database.templates.get(templateId);
 	if (!template) return { ok: false, reason: "not-found" };
 	return startWorkout(
-		{ name: template.name, startedAt, exercises: template.exercises },
+		{
+			name: template.name,
+			startedAt,
+			exercises: template.exercises,
+			source: {
+				templateId: template.id,
+				templateName: template.name,
+				...(template.program === undefined
+					? {}
+					: { program: template.program }),
+			},
+		},
 		database,
 	);
 }

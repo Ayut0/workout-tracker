@@ -1,7 +1,13 @@
 # 0010. Templates: whole-record edits, copy on start, plain delete
 
-- Status: accepted
+- Status: accepted; superseded in part by ADR-0018
 - Date: 2026-11-06
+
+> Superseded in part by [ADR-0018](0018-workout-program-link.md): a workout
+> started from a template now records a snapshot of the template (id, name)
+> and the program, block and week it plans. Exercises and sets are still
+> copied as below, and editing or deleting the template still never changes
+> a past workout.
 
 ## Context
 
