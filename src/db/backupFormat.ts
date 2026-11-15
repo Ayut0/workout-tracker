@@ -92,6 +92,9 @@ const finite: Check = (value) =>
 		? undefined
 		: "must be a number";
 
+const flag: Check = (value) =>
+	typeof value === "boolean" ? undefined : "must be true or false";
+
 const integer: Check = (value) =>
 	Number.isInteger(value) ? undefined : "must be a whole number";
 
@@ -186,6 +189,8 @@ const SET: Spec<WorkoutSet> = {
 	seconds: optional(finite),
 	rpe: optional(finite),
 	notes: optional(text),
+	// Missing in backups made before warm-ups (#65): a working set.
+	warmup: optional(flag),
 	completedAt: optional(finite),
 };
 
@@ -194,6 +199,7 @@ const TEMPLATE_SET: Spec<TemplateSet> = {
 	reps: optional(finite),
 	seconds: optional(finite),
 	distanceM: optional(finite),
+	warmup: optional(flag),
 };
 
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {

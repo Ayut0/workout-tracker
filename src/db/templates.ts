@@ -1,7 +1,7 @@
 import { db, findWorkoutDetail, type WorkoutDB } from "./index";
 import type { Template, TemplateExercise, TemplateSet } from "./types";
 import {
-	planNextSet,
+	copyPlannedSet,
 	resolveMeasure,
 	type StartWorkoutResult,
 	startWorkout,
@@ -138,7 +138,7 @@ export async function templateFromWorkout(
 		const measure = resolveMeasure(library[i]);
 		const sets = entry.sets
 			.filter((set) => set.completedAt !== undefined)
-			.map((set) => planNextSet(set, measure));
+			.map((set) => copyPlannedSet(set, measure));
 		return sets.length === 0
 			? []
 			: [{ exerciseId: entry.workoutExercise.exerciseId, sets }];
@@ -178,5 +178,6 @@ function copyTemplateSet(set: TemplateSet): TemplateSet {
 	if (set.reps !== undefined) copy.reps = set.reps;
 	if (set.seconds !== undefined) copy.seconds = set.seconds;
 	if (set.distanceM !== undefined) copy.distanceM = set.distanceM;
+	if (set.warmup) copy.warmup = true;
 	return copy;
 }
