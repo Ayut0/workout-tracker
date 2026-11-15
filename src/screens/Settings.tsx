@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { BackupRestore } from "../components/BackupRestore";
 import { Link } from "../components/Link";
+import { ProgramImport } from "../components/ProgramImport";
 import { StrongImport } from "../components/StrongImport";
 import type { WeightUnit } from "../db/types";
 import { useSettings } from "../hooks/useSettings";
@@ -60,6 +61,11 @@ export function Settings() {
 				<h2 id="backup">Backup</h2>
 				<BackupRestore />
 				<StrongImport />
+			</section>
+
+			<section aria-labelledby="program">
+				<h2 id="program">Training program</h2>
+				<ProgramImport />
 			</section>
 
 			<section aria-labelledby="diagnostics">
