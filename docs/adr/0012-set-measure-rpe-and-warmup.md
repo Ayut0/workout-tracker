@@ -12,7 +12,7 @@ lifter type them. This ADR collects the decisions about what a set records.
 Each section below belongs to one issue; later issues add sections:
 
 - **Measure** — #63: log a set by weight and reps, reps, seconds or distance.
-- RPE — #64 (to be added).
+- **RPE** — #64: enter RPE on a set with a 6–10 chip row.
 - Warm-up sets — #65 (to be added).
 
 ## Measure (#63)
@@ -71,3 +71,36 @@ Each section below belongs to one issue; later issues add sections:
   exercise's measure; inferring a measure on import is a possible follow-up.
 - On a phone the seconds field opens the numeric keypad, which has no colon,
   so m:ss is mainly for hardware keyboards; typing plain seconds always works.
+
+## RPE (#64)
+
+### Decision
+
+- **A chip row 6 · 7 · 8 · 9 · 10 under every set**, whatever the
+  exercise's measure, in the active workout and when editing a past workout.
+  It sits on a second line of the set row spanning all columns, so the
+  weight and reps inputs keep their width at phone size. One tap sets the
+  RPE; tapping the selected chip again clears it (the field is deleted, as
+  `updateSet` does for any `undefined` change). RPE is optional and nothing
+  asks for it.
+- **Whole numbers only from the chips.** Half points (8.5) are a precision
+  the MVP does not need on a phone; RPE below 6 says little about effort
+  near failure, so the row starts at 6.
+- **A stored RPE no chip stands for is kept and shown.** The Strong import
+  can store 8.5 (and backups or imports could hold a value outside 6–10).
+  Such a value selects no chip and is shown as a dashed, non-tappable chip
+  ("8.5") before the row; it is only overwritten when the lifter taps a
+  chip (tapping 8 or 9 replaces 8.5 with that value). Half-highlighting both
+  8 and 9 was rejected: it reads as two selections and does not say which
+  value is stored.
+- The toggle and what the row shows are pure functions in `src/lib/rpe.ts`
+  (`toggleRpe`, `describeRpeChips`); `RpeChips` only renders them.
+- **No schema or backup change.** `WorkoutSet.rpe` already exists
+  (ADR-0002) and `parseBackup` already checks it is a number when present.
+  RPE is not copied into new sets (`planNextSet`) or templates, and the
+  progression rule records but does not use it (ADR-0013).
+
+### Consequences
+
+- Every set row is taller by one chip line; a long workout scrolls more.
+- Templates do not plan an RPE; planned effort belongs to #69 (RIR).
