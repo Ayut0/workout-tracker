@@ -6,6 +6,7 @@ import {
 	type WorkoutDB,
 } from "./index";
 import type {
+	BodyEntry,
 	Exercise,
 	Template,
 	Workout,
@@ -28,7 +29,7 @@ export const BACKUP_FORMAT_VERSION = 1;
  * The Dexie schema version backups are written and restored at. A test keeps
  * it equal to WorkoutDB's version, so a schema bump needs a backup migration.
  */
-export const BACKUP_SCHEMA_VERSION = 2;
+export const BACKUP_SCHEMA_VERSION = 3;
 
 /**
  * The stores a backup carries. restTimers is left out: it holds
@@ -41,6 +42,7 @@ export const BACKUP_STORES = [
 	"sets",
 	"templates",
 	"settings",
+	"bodyEntries",
 ] as const;
 
 export type BackupStore = (typeof BACKUP_STORES)[number];
@@ -53,6 +55,7 @@ export interface BackupData {
 	sets: WorkoutSet[];
 	templates: Template[];
 	settings: SettingsRecord[];
+	bodyEntries: BodyEntry[];
 }
 
 /** A backup file's contents. */
@@ -87,6 +90,7 @@ export async function exportBackup(
 			sets: await database.sets.toArray(),
 			templates: await database.templates.toArray(),
 			settings: await database.settings.toArray(),
+			bodyEntries: await database.bodyEntries.toArray(),
 		}),
 	);
 	return {
@@ -107,6 +111,7 @@ export function countBackupRecords(data: BackupData): BackupCounts {
 		sets: data.sets.length,
 		templates: data.templates.length,
 		settings: data.settings.length,
+		bodyEntries: data.bodyEntries.length,
 	};
 }
 
@@ -165,6 +170,7 @@ export async function restoreBackup(
 		await database.sets.bulkAdd(data.sets);
 		await database.templates.bulkAdd(data.templates);
 		await database.settings.bulkAdd(data.settings);
+		await database.bodyEntries.bulkAdd(data.bodyEntries);
 	});
 }
 

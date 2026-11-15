@@ -75,7 +75,7 @@ describe("rest timers", () => {
 });
 
 describe("schema upgrade", () => {
-	it("keeps version-1 rest timers when the database upgrades to version 2", async () => {
+	it("keeps version-1 rest timers when the database upgrades to the latest version", async () => {
 		const name = `test-${crypto.randomUUID()}`;
 		const timer: RestTimer = {
 			id: "t1",
@@ -93,9 +93,99 @@ describe("schema upgrade", () => {
 		const upgraded = new WorkoutDB(name);
 		await upgraded.open();
 		try {
-			expect(upgraded.verno).toBe(2);
+			expect(upgraded.verno).toBe(3);
 			expect(await upgraded.restTimers.toArray()).toEqual([timer]);
 			expect(await upgraded.exercises.count()).toBe(0);
+			expect(await upgraded.bodyEntries.count()).toBe(0);
+		} finally {
+			await upgraded.delete();
+		}
+	});
+
+	it("keeps every version-2 record when the database upgrades to version 3", async () => {
+		const name = `test-${crypto.randomUUID()}`;
+		// A phone that ran version 2: the version-1 and version-2 schemas as
+		// shipped, written out here so a later edit to WorkoutDB cannot hide a
+		// change to them.
+		const v2 = new Dexie(name);
+		v2.version(1).stores({ restTimers: "id, scheduledAt, status" });
+		v2.version(2).stores({
+			exercises: "id, &nameKey",
+			workouts: "id, startedAt",
+			workoutExercises: "id, workoutId, exerciseId",
+			sets: "id, workoutExerciseId",
+			templates: "id",
+			settings: "id",
+		});
+		const records = {
+			restTimers: [
+				{
+					id: "t1",
+					scheduledAt: 1_000,
+					createdAt: 0,
+					status: TIMER_STATUS.received,
+					receivedAt: 1_200,
+				},
+			],
+			exercises: [
+				{ id: "e1", name: "Squat", nameKey: "squat", restSeconds: 180 },
+				{ id: "e2", name: "Row", nameKey: "row", archivedAt: 5 },
+			],
+			workouts: [
+				{ id: "w1", name: "Legs", startedAt: 1_000, endedAt: 2_000 },
+				{ id: "w2", name: "Pull", startedAt: 3_000 },
+			],
+			workoutExercises: [
+				{ id: "we1", workoutId: "w1", exerciseId: "e1", order: 0 },
+			],
+			sets: [
+				{
+					id: "s1",
+					workoutExerciseId: "we1",
+					order: 0,
+					weightKg: 100,
+					reps: 5,
+					completedAt: 1_500,
+				},
+			],
+			templates: [
+				{
+					id: "tp1",
+					name: "Legs",
+					exercises: [{ exerciseId: "e1", sets: [{ weightKg: 100, reps: 5 }] }],
+				},
+			],
+			settings: [{ id: "app", weightUnit: "lb", restSeconds: 120 }],
+		};
+		await v2.open();
+		for (const [store, rows] of Object.entries(records)) {
+			await v2.table(store).bulkAdd(rows);
+		}
+		v2.close();
+
+		const upgraded = new WorkoutDB(name);
+		await upgraded.open();
+		try {
+			expect(upgraded.verno).toBe(3);
+			for (const [store, rows] of Object.entries(records)) {
+				expect(await upgraded.table(store).toArray()).toEqual(rows);
+			}
+			expect(await upgraded.bodyEntries.count()).toBe(0);
+			// The version-2 indexes still work after the upgrade.
+			expect(await upgraded.exercises.get({ nameKey: "squat" })).toMatchObject({
+				id: "e1",
+			});
+			expect((await findActiveWorkout(upgraded))?.id).toBe("w2");
+			await upgraded.bodyEntries.add({
+				id: "b1",
+				date: "2026-01-02",
+				bodyWeightKg: 70,
+			});
+			expect(await upgraded.bodyEntries.get({ date: "2026-01-02" })).toEqual({
+				id: "b1",
+				date: "2026-01-02",
+				bodyWeightKg: 70,
+			});
 		} finally {
 			await upgraded.delete();
 		}

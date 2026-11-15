@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import { DEFAULT_SET_MEASURE } from "./constants";
 import {
+	type BodyEntry,
 	type Exercise,
 	type RestTimer,
 	type SetMeasure,
@@ -30,6 +31,7 @@ export class WorkoutDB extends Dexie {
 	sets!: EntityTable<WorkoutSet, "id">;
 	templates!: EntityTable<Template, "id">;
 	settings!: EntityTable<SettingsRecord, "id">;
+	bodyEntries!: EntityTable<BodyEntry, "id">;
 
 	constructor(name = DB_NAME) {
 		super(name);
@@ -48,6 +50,12 @@ export class WorkoutDB extends Dexie {
 			sets: "id, workoutExerciseId",
 			templates: "id",
 			settings: "id",
+		});
+		// The body log (ADR-0015). Only adds a store, so it needs no upgrade
+		// step; Dexie keeps the version-2 stores and their records as they are.
+		// `&date`: one entry per local day.
+		this.version(3).stores({
+			bodyEntries: "id, &date",
 		});
 	}
 }

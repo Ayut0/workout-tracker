@@ -4,6 +4,7 @@ import { TabBar } from "./components/TabBar";
 import { useRestSession } from "./hooks/useRestSession";
 import { useRoute } from "./hooks/useRoute";
 import type { Route } from "./lib/routes";
+import { BodyLog } from "./screens/BodyLog";
 import { Exercises } from "./screens/Exercises";
 import { History } from "./screens/History";
 import { HistoryDetail } from "./screens/HistoryDetail";
@@ -46,6 +47,8 @@ function Screen({ route }: { route: Route | null }) {
 			return <Exercises />;
 		case "progress":
 			return <Progress />;
+		case "body-log":
+			return <BodyLog />;
 		case "settings":
 			return <Settings />;
 		case "notification-check":

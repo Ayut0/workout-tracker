@@ -16,7 +16,7 @@ import type { ChartDatum } from "./progress";
 const DAY = 86_400_000;
 
 function makeDatum(date: number, value: number): ChartDatum {
-	return { workoutId: `w${date}`, date, value };
+	return { id: `w${date}`, date, value };
 }
 
 describe("findRangeStart", () => {

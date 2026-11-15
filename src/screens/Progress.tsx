@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { LineChart } from "../components/LineChart";
+import { Link } from "../components/Link";
 import type { WeightUnit } from "../db/types";
 import {
 	useExerciseProgress,
@@ -14,6 +15,7 @@ import {
 	formatVolume,
 	type ProgressMetric,
 } from "../lib/progress";
+import { BODY_LOG_PATH } from "../lib/routes";
 import { formatWeight } from "../lib/units";
 
 const CHARTS: { metric: ProgressMetric; title: string }[] = [
@@ -65,6 +67,13 @@ export function Progress() {
 			<header className="head">
 				<h1>Progress</h1>
 			</header>
+
+			<nav className="menu" aria-label="More progress">
+				<Link to={BODY_LOG_PATH} className="menu-item">
+					<span className="label">Body log</span>
+					<span className="hint">Body weight and waist by day</span>
+				</Link>
+			</nav>
 
 			{exercises?.length === 0 && (
 				<p className="empty">

@@ -6,9 +6,11 @@ import {
 	type BackupData,
 	type BackupStore,
 } from "./backup";
+import { isLocalDay } from "./bodyLog";
 import { SET_MEASURES } from "./constants";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
 import type {
+	BodyEntry,
 	Exercise,
 	Template,
 	TemplateExercise,
@@ -57,6 +59,8 @@ const MIGRATIONS: Partial<Record<number, Migration>> = {
 		templates: [],
 		settings: [],
 	}),
+	// Version 3 added the body log (ADR-0015); older backups have none.
+	2: (data) => ({ ...data, bodyEntries: [] }),
 };
 
 const STORE_LABELS: Record<BackupStore, string> = {
@@ -66,6 +70,7 @@ const STORE_LABELS: Record<BackupStore, string> = {
 	sets: "Set",
 	templates: "Template",
 	settings: "Settings",
+	bodyEntries: "Body log entry",
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -185,6 +190,16 @@ const SETTINGS: Spec<SettingsRecord> = {
 	lastBackupAt: optional(finite),
 };
 
+const localDay: Check = (value) =>
+	isLocalDay(value) ? undefined : "must be a day (YYYY-MM-DD)";
+
+const BODY_ENTRY: Spec<BodyEntry> = {
+	id,
+	date: localDay,
+	bodyWeightKg: optional(finite),
+	waistCm: optional(finite),
+};
+
 /** Reads one store's records, or says which record is wrong and how. */
 function readRows<T extends { id: string }>(
 	data: RawData,
@@ -223,6 +238,8 @@ function readData(data: RawData): BackupData | string {
 	if (typeof templates === "string") return templates;
 	const settings = readRows(data, "settings", SETTINGS);
 	if (typeof settings === "string") return settings;
+	const bodyEntries = readRows(data, "bodyEntries", BODY_ENTRY);
+	if (typeof bodyEntries === "string") return bodyEntries;
 
 	// Exercise names are unique (the &nameKey index); a clash would fail the write.
 	const nameKeys = new Set<string>();
@@ -232,7 +249,23 @@ function readData(data: RawData): BackupData | string {
 		}
 		nameKeys.add(exercise.nameKey);
 	}
-	return { exercises, workouts, workoutExercises, sets, templates, settings };
+	// One body log entry per day (the &date index); a clash would fail the write.
+	const days = new Set<string>();
+	for (const entry of bodyEntries) {
+		if (days.has(entry.date)) {
+			return `Two body log entries are for the same day (${entry.date}).`;
+		}
+		days.add(entry.date);
+	}
+	return {
+		exercises,
+		workouts,
+		workoutExercises,
+		sets,
+		templates,
+		settings,
+		bodyEntries,
+	};
 }
 
 /** Brings data written at `from` up to BACKUP_SCHEMA_VERSION, or says why not. */
