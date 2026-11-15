@@ -779,6 +779,21 @@ fieldset {
 	overflow-wrap: anywhere;
 }
 
+/* Template exercise notes (ADR-0014): read-only while logging. */
+.exercise-notes {
+	margin: 0;
+	font-size: 14px;
+	color: var(--muted);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.exercise-notes-field .notes-input {
+	width: 100%;
+	box-sizing: border-box;
+	min-height: 44px;
+}
+
 .exercise-card-tools {
 	display: flex;
 	flex-shrink: 0;

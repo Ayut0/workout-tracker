@@ -9,6 +9,7 @@ import { describeFieldColumn } from "../../lib/setMeasure";
 import type { PlannedSetChanges } from "../../lib/templates";
 import { MeasureInputs } from "../workout/MeasureInputs";
 import { WarmupToggle } from "../workout/WarmupToggle";
+import { TemplateExerciseNotes } from "./TemplateExerciseNotes";
 
 type TemplateExerciseCardProps = {
 	exercise: TemplateExercise;
@@ -21,6 +22,7 @@ type TemplateExerciseCardProps = {
 	weightUnit: WeightUnit;
 	onMove: (toIndex: number) => void;
 	onRemove: () => void;
+	onNotesChange: (notes: string) => void;
 	onAddSet: () => void;
 	onSetChange: (setIndex: number, changes: PlannedSetChanges) => void;
 	onRemoveSet: (setIndex: number) => void;
@@ -36,6 +38,7 @@ export function TemplateExerciseCard({
 	weightUnit,
 	onMove,
 	onRemove,
+	onNotesChange,
 	onAddSet,
 	onSetChange,
 	onRemoveSet,
@@ -75,6 +78,11 @@ export function TemplateExerciseCard({
 					</button>
 				</div>
 			</div>
+			<TemplateExerciseNotes
+				name={name}
+				notes={exercise.notes}
+				onChange={onNotesChange}
+			/>
 			<div
 				className={
 					fields.length === 1

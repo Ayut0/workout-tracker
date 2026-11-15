@@ -32,8 +32,11 @@ alone, so a warm-up, or a reps, seconds or distance set, adds nothing.
 
 **Template** — A reusable plan for a workout: exercises in order, each with
 planned sets (weight and reps, or reps, seconds or distance, following the
-exercise's measure). A planned set may be a warm-up; starting a workout from
-the template, and saving a workout as a template, keep the mark.
+exercise's measure) and optional notes, cues such as "seat 4". A planned set
+may be a warm-up; starting a workout from the template, and saving a workout
+as a template, keep the mark. Starting a workout from a template copies its
+exercises, sets and notes into the workout; nothing links them afterwards, so
+the notes show read-only while logging.
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
 computed from its weight and reps by Epley: weight × (1 + reps / 30). A single
