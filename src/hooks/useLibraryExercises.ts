@@ -9,10 +9,11 @@ import {
 	removeExercise,
 	renameExercise,
 	restoreExercise,
+	setExerciseAttributes,
 	setExerciseMeasure,
 	setExerciseRestSeconds,
 } from "../db";
-import type { Exercise, SetMeasure } from "../db/types";
+import type { Exercise, ExerciseAttributes, SetMeasure } from "../db/types";
 import { filterExercisesByName } from "../lib/exerciseLibrary";
 
 /**
@@ -49,4 +50,9 @@ export const exerciseLibraryActions = {
 	/** Sets what the exercise's sets record; logged values are kept. */
 	setMeasure: (id: string, measure: SetMeasure): Promise<boolean> =>
 		setExerciseMeasure(id, measure),
+	/** Replaces the exercise's muscles, pattern, category and equipment. */
+	setAttributes: (
+		id: string,
+		attributes: ExerciseAttributes,
+	): Promise<boolean> => setExerciseAttributes(id, attributes),
 };

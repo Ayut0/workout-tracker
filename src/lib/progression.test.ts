@@ -299,6 +299,33 @@ describe("deriveIncrementKg", () => {
 		expect(deriveIncrementKg("curl (dumbbell) ")).toBe(2);
 	});
 
+	it("uses the exercise's equipment when it has one", () => {
+		expect(
+			deriveIncrementKg({ name: "Incline Press", equipment: "dumbbell" }),
+		).toBe(2);
+		expect(deriveIncrementKg({ name: "Squat", equipment: "barbell" })).toBe(
+			2.5,
+		);
+		expect(deriveIncrementKg({ name: "Row", equipment: "cable" })).toBe(2.5);
+	});
+
+	it("lets the equipment win over the name's suffix", () => {
+		expect(
+			deriveIncrementKg({ name: "Press (Dumbbell)", equipment: "machine" }),
+		).toBe(2.5);
+	});
+
+	it("falls back to the name's suffix for an exercise with no equipment", () => {
+		expect(deriveIncrementKg({ name: "Curl (Dumbbell)" })).toBe(2);
+		expect(deriveIncrementKg({ name: "Squat" })).toBe(2.5);
+	});
+
+	it("is 5 lb for dumbbell equipment too, in pounds", () => {
+		expect(
+			deriveIncrementKg({ name: "Curl", equipment: "dumbbell" }, "lb"),
+		).toBeCloseTo(5 * KG_PER_LB, 9);
+	});
+
 	it("is 5 lb, in kilograms, for a lifter who uses pounds", () => {
 		expect(deriveIncrementKg("Bench Press (Barbell)", "lb")).toBeCloseTo(
 			5 * KG_PER_LB,

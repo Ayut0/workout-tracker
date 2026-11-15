@@ -38,7 +38,8 @@ left open.
   dumbbell; "(Barbell)", "(Machine)" and anything else 2.5 kg. In pounds every
   step is 5 lb (dumbbells included, as pound dumbbells step by 5 lb). A later
   per-exercise increment setting can replace the helper without changing the
-  rule.
+  rule. (ADR-0016: an exercise's `equipment`, when set, now wins over the
+  suffix.)
 - **Rounding:** a raised weight is rounded to a multiple of the increment in
   the user's weight unit (CONTEXT.md § Units), via `roundToPlateIncrement`;
   e.g. 100 kg in pounds (220.46 lb) + 5 lb suggests 225 lb. Kept weights are

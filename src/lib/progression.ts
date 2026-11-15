@@ -1,4 +1,4 @@
-import type { WeightUnit } from "../db/types";
+import type { Equipment, WeightUnit } from "../db/types";
 import {
 	convertFromKg,
 	convertToKg,
@@ -83,19 +83,32 @@ const DUMBBELL_INCREMENT_KG = 2;
 
 const DUMBBELL_SUFFIX = /\(dumbbell\)\s*$/i;
 
+/** The parts of an exercise the increment reads. */
+export interface IncrementExercise {
+	name: string;
+	equipment?: Equipment | undefined;
+}
+
 /**
- * The increment for an exercise, in kilograms, from its name's equipment
- * suffix: 2 kg per dumbbell for "(Dumbbell)", otherwise (barbell, machine,
- * anything else) one plate step, 2.5 kg. In pounds every step is 5 lb.
+ * The increment for an exercise, in kilograms: 2 kg per dumbbell, otherwise
+ * (barbell, machine, anything else) one plate step, 2.5 kg. In pounds every
+ * step is 5 lb. The exercise's equipment decides when it has one (ADR-0016);
+ * otherwise, or given only a name, the name's equipment suffix, such as
+ * "(Dumbbell)", does.
  */
 export function deriveIncrementKg(
-	exerciseName: string,
+	exercise: string | IncrementExercise,
 	unit: WeightUnit = "kg",
 ): number {
-	if (unit === "kg" && DUMBBELL_SUFFIX.test(exerciseName)) {
-		return DUMBBELL_INCREMENT_KG;
-	}
+	if (unit === "kg" && isDumbbell(exercise)) return DUMBBELL_INCREMENT_KG;
 	return convertToKg(PLATE_INCREMENT[unit], unit);
+}
+
+function isDumbbell(exercise: string | IncrementExercise): boolean {
+	const { name, equipment } =
+		typeof exercise === "string" ? { name: exercise } : exercise;
+	if (equipment !== undefined) return equipment === "dumbbell";
+	return DUMBBELL_SUFFIX.test(name);
 }
 
 /**
