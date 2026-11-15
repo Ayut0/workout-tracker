@@ -1,5 +1,10 @@
 import { db, findWorkoutDetail, type WorkoutDB } from "./index";
-import type { Template, TemplateExercise, TemplateSet } from "./types";
+import {
+	PLANNED_TARGET_FIELDS,
+	type Template,
+	type TemplateExercise,
+	type TemplateSet,
+} from "./types";
 import {
 	copyPlannedSet,
 	resolveMeasure,
@@ -193,5 +198,9 @@ function copyTemplateSet(set: TemplateSet): TemplateSet {
 	if (set.seconds !== undefined) copy.seconds = set.seconds;
 	if (set.distanceM !== undefined) copy.distanceM = set.distanceM;
 	if (set.warmup) copy.warmup = true;
+	for (const field of PLANNED_TARGET_FIELDS) {
+		const value = set[field];
+		if (value !== undefined) copy[field] = value;
+	}
 	return copy;
 }

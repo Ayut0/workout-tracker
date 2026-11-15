@@ -185,8 +185,29 @@ export interface WorkoutExercise {
 	notes?: string;
 }
 
+/**
+ * What a planned set aims for (ADR-0014): a rep range and the reps to leave
+ * in reserve. Planned in a template and copied into the workout's sets, so
+ * the last workout's sets say what they aimed for without a template link.
+ * Whole numbers, 0 or more; both ends of the range or neither, and repMin is
+ * not above repMax. Not indexed.
+ */
+export interface PlannedTargets {
+	repMin?: number;
+	repMax?: number;
+	/** Reps in reserve aimed for. */
+	targetRir?: number;
+}
+
+/** The planned target fields, in the order they are copied. */
+export const PLANNED_TARGET_FIELDS = [
+	"repMin",
+	"repMax",
+	"targetRir",
+] as const satisfies readonly (keyof PlannedTargets)[];
+
 /** One set of a workout exercise. Every measurement is optional. */
-export interface WorkoutSet {
+export interface WorkoutSet extends PlannedTargets {
 	id: string;
 	workoutExerciseId: string;
 	/** Position within the workout exercise, starting at 0. */
@@ -208,7 +229,7 @@ export interface WorkoutSet {
 }
 
 /** A planned set in a template; the exercise's measure says which fields apply. */
-export interface TemplateSet {
+export interface TemplateSet extends PlannedTargets {
 	weightKg?: number;
 	reps?: number;
 	seconds?: number;
