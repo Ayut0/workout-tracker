@@ -11,11 +11,13 @@ import {
 	type Exercise,
 	MEASURE_FIELDS,
 	PLANNED_TARGET_FIELDS,
+	type ProgramLink,
 	type SetMeasure,
 	type TemplateExercise,
 	type Workout,
 	type WorkoutExercise,
 	type WorkoutSet,
+	type WorkoutSource,
 } from "./types";
 
 /**
@@ -37,6 +39,8 @@ export interface StartWorkoutInput {
 	startedAt: number;
 	/** Exercises to start with, in order, e.g. from a template (#31). */
 	exercises?: PlannedExercise[] | undefined;
+	/** The template it is started from, recorded on the workout (ADR-0018). */
+	source?: WorkoutSource | undefined;
 }
 
 /**
@@ -67,6 +71,9 @@ export async function startWorkout(
 				id: crypto.randomUUID(),
 				name: input.name,
 				startedAt: input.startedAt,
+				...(input.source === undefined
+					? {}
+					: { source: copyWorkoutSource(input.source) }),
 			};
 			await database.workouts.add(workout);
 			const planned = input.exercises ?? [];
@@ -392,6 +399,34 @@ export async function findActiveWorkoutDetail(
 			return active && findWorkoutDetail(active.id, database);
 		},
 	);
+}
+
+/** A workout source with only the fields a workout stores (ADR-0018). */
+function copyWorkoutSource(source: WorkoutSource): WorkoutSource {
+	const copy: WorkoutSource = {
+		templateId: source.templateId,
+		templateName: source.templateName,
+	};
+	if (source.program !== undefined) {
+		copy.program = copyProgramLink(source.program);
+	}
+	return copy;
+}
+
+/**
+ * A program link with only its own fields (ADR-0018); `deload` is kept only
+ * when true.
+ */
+export function copyProgramLink(link: ProgramLink): ProgramLink {
+	const copy: ProgramLink = {
+		programId: link.programId,
+		programName: link.programName,
+		block: link.block,
+		week: link.week,
+	};
+	if (link.day !== undefined) copy.day = link.day;
+	if (link.deload) copy.deload = true;
+	return copy;
 }
 
 async function insertWorkoutExercise(

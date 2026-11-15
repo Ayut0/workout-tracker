@@ -37,9 +37,16 @@ may be a warm-up; starting a workout from the template, and saving a workout
 as a template, keep the mark. A planned set whose measure counts reps may also
 have **targets**: a rep range (such as 4–6, or a single number such as 8) and
 a target RIR, the reps to leave in reserve. Starting a workout from a template
-copies its exercises, sets, targets and notes into the workout; nothing links
-them afterwards, so the notes and targets show read-only while logging, and
-Progression reads a set's rep range from the set itself.
+copies its exercises, sets, targets and notes into the workout, so the notes
+and targets show read-only while logging, and Progression reads a set's rep
+range from the set itself. The workout also records which template it came
+from, as a snapshot: editing or deleting the template never changes it.
+
+**Program** — A plan of several weeks, made outside the app and imported as
+templates: **blocks** (from 1) of **weeks** (from 1 within the block), each
+week of **days** ("A", "B"). A template made from a program knows its
+program, block, week and day, and whether the week is a **deload**; a workout
+started from it records the same, shown as "Week 2 · Block 1".
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
 computed from its weight and reps by Epley: weight × (1 + reps / 30). A single

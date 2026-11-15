@@ -647,3 +647,93 @@ describe("planned rep range and target RIR (ADR-0014)", () => {
 		expect(set && "targetRir" in set).toBe(false);
 	});
 });
+
+describe("the program a workout came from (ADR-0018)", () => {
+	const LINK = {
+		programId: "generic",
+		programName: "Generic block",
+		block: 1,
+		week: 2,
+		day: "A",
+	};
+
+	async function createProgramTemplate(): Promise<Template> {
+		const template = await createPush("Generic block · W2 · A");
+		await database.templates.update(template.id, { program: LINK });
+		return { ...template, program: LINK };
+	}
+
+	it("records the template on a workout started from it", async () => {
+		const template = await createPush();
+		const result = await startWorkoutFromTemplate(template.id, 1, database);
+		if (!result.ok) throw new Error("expected a workout");
+
+		expect((await database.workouts.get(result.workout.id))?.source).toEqual({
+			templateId: template.id,
+			templateName: "Push day",
+		});
+	});
+
+	it("records the template's program, block and week", async () => {
+		const template = await createProgramTemplate();
+		const result = await startWorkoutFromTemplate(template.id, 1, database);
+		if (!result.ok) throw new Error("expected a workout");
+
+		expect((await database.workouts.get(result.workout.id))?.source).toEqual({
+			templateId: template.id,
+			templateName: "Generic block · W2 · A",
+			program: LINK,
+		});
+	});
+
+	it("keeps the snapshot when the template is renamed or deleted", async () => {
+		const template = await createProgramTemplate();
+		const result = await startWorkoutFromTemplate(template.id, 1, database);
+		if (!result.ok) throw new Error("expected a workout");
+		await updateTemplate(
+			template.id,
+			{ name: "Renamed", exercises: PUSH },
+			database,
+		);
+		await deleteTemplate(template.id, database);
+
+		expect(
+			(await database.workouts.get(result.workout.id))?.source,
+		).toMatchObject({ templateName: "Generic block · W2 · A", program: LINK });
+	});
+
+	it("keeps a template's program when the template is edited", async () => {
+		const template = await createProgramTemplate();
+		await updateTemplate(
+			template.id,
+			{ name: "Renamed", exercises: PUSH },
+			database,
+		);
+
+		expect((await findTemplate(template.id, database))?.program).toEqual(LINK);
+	});
+
+	it("leaves a workout started without a template with no source", async () => {
+		const result = await startWorkout({ name: "Free", startedAt: 1 }, database);
+		if (!result.ok) throw new Error("expected a workout");
+
+		expect(
+			(await database.workouts.get(result.workout.id))?.source,
+		).toBeUndefined();
+	});
+
+	it("does not carry the program into a template saved from the workout", async () => {
+		const template = await createProgramTemplate();
+		const result = await startWorkoutFromTemplate(template.id, 1, database);
+		if (!result.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(result.workout.id, database);
+		const firstSet = detail?.exercises[0]?.sets[0];
+		if (!firstSet) throw new Error("expected a set");
+		await completeSet(firstSet.id, 2, database);
+		await finishWorkout(result.workout.id, 3, database);
+
+		const saved = await templateFromWorkout(result.workout.id, database);
+		if (!saved.ok) throw new Error("expected a template");
+		expect(saved.template.program).toBeUndefined();
+	});
+});
