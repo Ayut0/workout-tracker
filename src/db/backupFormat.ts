@@ -177,6 +177,8 @@ const WORKOUT_EXERCISE: Spec<WorkoutExercise> = {
 	workoutId: id,
 	exerciseId: id,
 	order: integer,
+	// Copied from a template exercise (ADR-0014); absent before #66.
+	notes: optional(text),
 };
 
 const SET: Spec<WorkoutSet> = {
@@ -205,6 +207,7 @@ const TEMPLATE_SET: Spec<TemplateSet> = {
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {
 	exerciseId: id,
 	sets: listOf(TEMPLATE_SET),
+	notes: optional(text),
 };
 
 const TEMPLATE: Spec<Template> = {

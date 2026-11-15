@@ -98,6 +98,23 @@ export function updatePlannedSet(
 	);
 }
 
+/**
+ * Sets an exercise's notes (ADR-0014), shown under it while logging. Text
+ * that is all whitespace clears them; the rest is kept as typed and trimmed
+ * when the template is saved.
+ */
+export function setTemplateExerciseNotes(
+	exercises: readonly TemplateExercise[],
+	exerciseIndex: number,
+	notes: string,
+): TemplateExercise[] {
+	return exercises.map((exercise, i) => {
+		if (i !== exerciseIndex) return exercise;
+		const { notes: _old, ...rest } = exercise;
+		return notes.trim() === "" ? rest : { ...rest, notes };
+	});
+}
+
 /** What to tell the user after saving a workout as a template. */
 export function describeTemplateFromWorkout(
 	result: TemplateFromWorkoutResult,
@@ -123,7 +140,7 @@ function updateExerciseSets(
 ): TemplateExercise[] {
 	return exercises.map((exercise, i) =>
 		i === exerciseIndex
-			? { exerciseId: exercise.exerciseId, sets: update(exercise.sets) }
+			? { ...exercise, sets: update(exercise.sets) }
 			: exercise,
 	);
 }

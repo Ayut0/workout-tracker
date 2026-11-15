@@ -439,3 +439,114 @@ describe("warm-up sets (#65)", () => {
 		]);
 	});
 });
+
+describe("template exercise notes (ADR-0014)", () => {
+	it("are trimmed when saved, and blank notes are not stored", async () => {
+		const result = await createTemplate(
+			{
+				name: "Push",
+				exercises: [
+					{ exerciseId: "bench", sets: [{}], notes: "  seat 4  " },
+					{ exerciseId: "squat", sets: [{}], notes: "   " },
+				],
+			},
+			database,
+		);
+
+		if (!result.ok) throw new Error("expected a template");
+		expect(result.template.exercises).toEqual([
+			{ exerciseId: "bench", sets: [{}], notes: "seat 4" },
+			{ exerciseId: "squat", sets: [{}] },
+		]);
+	});
+
+	it("are copied into a workout started from the template", async () => {
+		const created = await createTemplate(
+			{
+				name: "Push",
+				exercises: [
+					{ exerciseId: "bench", sets: [{}], notes: "pause at the bottom" },
+					{ exerciseId: "squat", sets: [{}] },
+				],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+
+		const started = await startWorkoutFromTemplate(
+			created.template.id,
+			1_000,
+			database,
+		);
+
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		expect(detail?.exercises[0]?.workoutExercise.notes).toBe(
+			"pause at the bottom",
+		);
+		expect(
+			Object.hasOwn(detail?.exercises[1]?.workoutExercise ?? {}, "notes"),
+		).toBe(false);
+	});
+
+	it("are not changed in past workouts when the template is edited", async () => {
+		const created = await createTemplate(
+			{
+				name: "Push",
+				exercises: [{ exerciseId: "bench", sets: [{}], notes: "seat 4" }],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+		const started = await startWorkoutFromTemplate(
+			created.template.id,
+			1_000,
+			database,
+		);
+		if (!started.ok) throw new Error("expected a workout");
+
+		await updateTemplate(
+			created.template.id,
+			{
+				name: "Push",
+				exercises: [{ exerciseId: "bench", sets: [{}], notes: "seat 5" }],
+			},
+			database,
+		);
+
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		expect(detail?.exercises[0]?.workoutExercise.notes).toBe("seat 4");
+	});
+
+	it("carry back when a workout is saved as a template", async () => {
+		const started = await startWorkout(
+			{
+				name: "Push",
+				startedAt: 1_000,
+				exercises: [
+					{
+						exerciseId: "bench",
+						sets: [{ weightKg: 60, reps: 8 }],
+						notes: "seat 4",
+					},
+				],
+			},
+			database,
+		);
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		const set = detail?.exercises[0]?.sets[0];
+		if (set) await completeSet(set.id, 2_000, database);
+
+		const result = await templateFromWorkout(started.workout.id, database);
+
+		if (!result.ok) throw new Error("expected a template");
+		expect(result.template.exercises).toEqual([
+			{
+				exerciseId: "bench",
+				sets: [{ weightKg: 60, reps: 8 }],
+				notes: "seat 4",
+			},
+		]);
+	});
+});
