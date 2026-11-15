@@ -22,6 +22,8 @@ type ActiveWorkoutProps = {
 		setIndex: number,
 		set: WorkoutSet,
 	) => ReactNode;
+	/** What Progression suggests for a workout exercise (#71); optional. */
+	renderSuggestions?: (workoutExerciseId: string, name: string) => ReactNode;
 	onRename: (name: string) => void;
 	onNotesChange: (notes: string) => void;
 	onAddExercise: () => void;
@@ -41,6 +43,7 @@ export function ActiveWorkout({
 	exercises,
 	weightUnit,
 	renderPrevious,
+	renderSuggestions,
 	onRename,
 	onNotesChange,
 	onAddExercise,
@@ -116,6 +119,7 @@ export function ActiveWorkout({
 							renderPrevious &&
 							((setIndex, set) => renderPrevious(exerciseId, setIndex, set))
 						}
+						suggestions={renderSuggestions?.(workoutExerciseId, exerciseName)}
 						onMove={(toIndex) => onMoveExercise(workoutExerciseId, toIndex)}
 						onRemove={() => onRemoveExercise(workoutExerciseId, exerciseName)}
 						onAddSet={() => onAddSet(workoutExerciseId)}
