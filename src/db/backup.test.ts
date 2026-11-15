@@ -58,7 +58,13 @@ async function seedEveryStore(target: WorkoutDB) {
 		{ id: "w-active", name: "Legs", startedAt: T0 + 24 * HOUR_MS },
 	]);
 	await target.workoutExercises.bulkAdd([
-		{ id: "we-1", workoutId: "w-done", exerciseId: "ex-bench", order: 0 },
+		{
+			id: "we-1",
+			workoutId: "w-done",
+			exerciseId: "ex-bench",
+			order: 0,
+			notes: "seat 4",
+		},
 		{ id: "we-2", workoutId: "w-active", exerciseId: "ex-squat", order: 0 },
 	]);
 	await target.sets.bulkAdd([
@@ -91,6 +97,7 @@ async function seedEveryStore(target: WorkoutDB) {
 					{ weightKg: 40, reps: 10, warmup: true },
 					{ weightKg: 80, reps: 5 },
 				],
+				notes: "seat 4",
 			},
 			{ exerciseId: "ex-squat", sets: [{ seconds: 60, distanceM: 40 }] },
 		],
@@ -767,6 +774,50 @@ describe("parseBackup rejects", () => {
 				},
 			}),
 			/Template record 1: exercises item 1: sets item 1: warmup must be true or false/,
+		],
+		[
+			"template exercise notes that are not text (ADR-0014)",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [
+						{
+							id: "t",
+							name: "A",
+							exercises: [{ exerciseId: "e", sets: [], notes: 4 }],
+						},
+					],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Template record 1: exercises item 1: notes must be text/,
+		],
+		[
+			"workout exercise notes that are not text (ADR-0014)",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [
+						{
+							id: "we",
+							workoutId: "w",
+							exerciseId: "e",
+							order: 0,
+							notes: null,
+						},
+					],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Workout exercise record 1: notes must be text/,
 		],
 		[
 			"an unknown weight unit",

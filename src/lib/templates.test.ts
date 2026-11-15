@@ -8,6 +8,7 @@ import {
 	moveTemplateExercise,
 	removePlannedSet,
 	removeTemplateExercise,
+	setTemplateExerciseNotes,
 	updatePlannedSet,
 } from "./templates";
 
@@ -127,5 +128,28 @@ describe("describeTemplateFromWorkout", () => {
 		expect(
 			describeTemplateFromWorkout({ ok: false, reason: "not-found" }),
 		).toMatch(/no longer exists/);
+	});
+});
+
+describe("template exercise notes (ADR-0014)", () => {
+	it("sets, keeps as typed and clears an exercise's notes", () => {
+		const noted = setTemplateExerciseNotes(DRAFT, 0, "seat 4 ");
+		expect(noted[0]).toEqual({ ...DRAFT[0], notes: "seat 4 " });
+		expect(noted[1]).toBe(DRAFT[1]);
+
+		const cleared = setTemplateExerciseNotes(noted, 0, "  ");
+		expect(cleared[0]).toEqual(DRAFT[0]);
+		expect(Object.hasOwn(cleared[0] ?? {}, "notes")).toBe(false);
+	});
+
+	it("are kept when the exercise's sets are edited", () => {
+		const noted = setTemplateExerciseNotes(DRAFT, 0, "seat 4");
+		const edited = updatePlannedSet(
+			appendPlannedSet(removePlannedSet(noted, 0, 1), 0, "weight-reps"),
+			0,
+			0,
+			{ reps: 10 },
+		);
+		expect(edited[0]?.notes).toBe("seat 4");
 	});
 });
