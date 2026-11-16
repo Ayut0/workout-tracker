@@ -239,6 +239,15 @@ describe("sets", () => {
 		await updateSet(firstSetId, { warmup: undefined }, database);
 		const set = await database.sets.get(firstSetId);
 		expect(set && "warmup" in set).toBe(false);
+
+		// `false` is normalised away: only `true` is ever stored.
+		await updateSet(firstSetId, { warmup: true }, database);
+		await updateSet(firstSetId, { warmup: false }, database);
+		const unmarked = await database.sets.get(firstSetId);
+		expect(unmarked && "warmup" in unmarked).toBe(false);
+		await updateSet(firstSetId, { warmup: false }, database);
+		const stillUnmarked = await database.sets.get(firstSetId);
+		expect(stillUnmarked && "warmup" in stillUnmarked).toBe(false);
 	});
 
 	it("adds a set after a warm-up that is not a warm-up (#65)", async () => {

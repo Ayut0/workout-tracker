@@ -67,6 +67,34 @@ describe("summarizeWorkout", () => {
 		});
 	});
 
+	it("leaves warm-up sets out of the volume but still counts them as sets", () => {
+		const first = entry.exercises[0];
+		if (!first) throw new Error("expected an exercise");
+		const withWarmup: HistoryEntry = {
+			...entry,
+			exercises: [
+				{
+					...first,
+					sets: [
+						{
+							id: "w",
+							workoutExerciseId: "a",
+							order: 0,
+							weightKg: 60,
+							reps: 10,
+							warmup: true,
+							completedAt: 1,
+						},
+						...first.sets,
+					],
+				},
+			],
+		};
+		const summary = summarizeWorkout(withWarmup);
+		expect(summary.volumeKg).toBe(500);
+		expect(summary.exercises[0]?.setCount).toBe(3);
+	});
+
 	it("has no duration for a workout that has not ended", () => {
 		const open = { ...entry, workout: { id: "w", name: "Push", startedAt: 0 } };
 		expect(summarizeWorkout(open).durationMs).toBeUndefined();

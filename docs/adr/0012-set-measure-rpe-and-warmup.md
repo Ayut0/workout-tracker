@@ -134,8 +134,10 @@ Each section below belongs to one issue; later issues add sections:
 
 - **`WorkoutSet.warmup?: boolean`, marked by hand.** Optional and not
   indexed, so no Dexie version (ADR-0002). Only `true` is stored; clearing
-  the mark deletes the field (`updateSet` with `warmup: undefined`), so a
-  working set looks as it did before #65. Nothing infers a warm-up from a
+  the mark deletes the field (`updateSet` with `warmup: undefined` or
+  `false`), so a working set looks as it did before #65. Planned sets
+  normalise the same way (`copyTemplateSet`, `copyPlannedSet`), and a
+  restore drops a `warmup: false` from a hand-edited or foreign backup. Nothing infers a warm-up from a
   lighter weight: the lifter decides.
 - **A "W" toggle on every set** — active workout, a past workout's edit view
   and a template's planned sets — on the set row's second line, before the
@@ -160,9 +162,14 @@ Each section below belongs to one issue; later issues add sections:
   N done last time; a workout started from the same template has its
   warm-ups in the same places, so leaving them out would misalign the
   working sets instead. Filling from Previous copies measurements only, never
-  the mark (#28's rule).
+  the mark (#28's rule), so a past warm-up's hint is prefixed "W" (e.g.
+  "W 40 kg × 10", `formatPreviousSet`): tapping it fills a working set with
+  warm-up numbers, and the prefix says so. A workout whose only complete sets
+  are warm-ups still counts as "last time"; skipping it would show an older
+  workout's numbers for a lift done more recently.
 - **Backup** (ADR-0011): `parseBackup` checks `warmup` is true or false
-  when present on sets and template sets. Backups made before #65 have none
+  when present on sets and template sets, and drops a `false` so only `true`
+  is stored. Backups made before #65 have none
   and restore as working sets.
 
 ### Consequences
@@ -171,5 +178,10 @@ Each section below belongs to one issue; later issues add sections:
   (ADR-0006), but the import does not read it yet: imported warm-ups count
   as working sets until marked by hand. Reading it is a follow-up, kept out
   of #65 because it changes the import's writes (an Escalation path).
+  Follow-up: in `src/db/strongImport.ts` (parser in `src/lib/strongCsv.ts`),
+  read a "W" in the Set Order column as `warmup: true` on that set, and
+  number the working sets after it from 1 as Strong does; test with a
+  Strong export that has warm-ups, and record it in an ADR as an Escalation
+  change (import writes).
 - Each planned set in the template editor gains a second line for the "W"
   toggle.

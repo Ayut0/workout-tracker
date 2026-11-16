@@ -295,6 +295,48 @@ describe("restoring an older schema version", () => {
 		for (const store of BACKUP_STORES) expect(after.data[store]).toEqual([]);
 	});
 
+	it("restores a hand-edited warmup: false as a working set (#65)", async () => {
+		const parsed = parseBackup(
+			makeFile({
+				data: {
+					exercises: [{ id: "e", name: "Row", nameKey: "row" }],
+					workouts: [{ id: "w", name: "Pull", startedAt: T0 }],
+					workoutExercises: [
+						{ id: "we", workoutId: "w", exerciseId: "e", order: 0 },
+					],
+					sets: [
+						{ id: "s1", workoutExerciseId: "we", order: 0, warmup: false },
+						{ id: "s2", workoutExerciseId: "we", order: 1, warmup: true },
+					],
+					templates: [
+						{
+							id: "t",
+							name: "Pull",
+							exercises: [
+								{
+									exerciseId: "e",
+									sets: [{ weightKg: 60, warmup: false }, { warmup: true }],
+								},
+							],
+						},
+					],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+		);
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		const [first, second] = parsed.backup.data.sets;
+		expect(first && "warmup" in first).toBe(false);
+		expect(second?.warmup).toBe(true);
+		const plan = parsed.backup.data.templates[0]?.exercises[0]?.sets;
+		expect(plan).toEqual([{ weightKg: 60 }, { warmup: true }]);
+		await restoreBackup(parsed.backup, database);
+		const stored = await database.sets.get("s1");
+		expect(stored && "warmup" in stored).toBe(false);
+	});
+
 	it("restores exercises and planned sets from before measures (ADR-0012)", () => {
 		// Written before #63 (schema version 2): no measure, template sets with
 		// weight and reps only.
