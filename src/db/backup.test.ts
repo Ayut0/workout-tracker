@@ -40,6 +40,11 @@ async function seedEveryStore(target: WorkoutDB) {
 			restSeconds: 180,
 			archivedAt: T0,
 			measure: "distance",
+			primaryMuscles: ["glutes", "quads"],
+			secondaryMuscles: ["adductors"],
+			movementPattern: "squat",
+			category: "strength",
+			equipment: "barbell",
 		},
 	]);
 	await target.workouts.bulkAdd([
@@ -313,6 +318,29 @@ describe("restoring an older schema version", () => {
 		]);
 	});
 
+	it("restores a pre-#72 backup unchanged, with no attributes added", async () => {
+		const exercise = { id: "e", name: "Row", nameKey: "row", restSeconds: 90 };
+		const parsed = parseBackup(
+			makeFile({
+				schemaVersion: 3,
+				data: {
+					exercises: [exercise],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+		);
+
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		await restoreBackup(parsed.backup, database);
+		expect(await database.exercises.toArray()).toStrictEqual([exercise]);
+	});
+
 	it("migrates a version-2 backup, keeping every record and adding an empty body log", async () => {
 		await seedEveryStore(database);
 		const current = await exportBackup(T0, database);
@@ -440,6 +468,202 @@ describe("parseBackup rejects", () => {
 				},
 			}),
 			/Exercise record 1: measure must be "weight-reps" or "reps" or "seconds" or "distance"/,
+		],
+		[
+			"an unknown muscle group",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							primaryMuscles: ["lats", "wings"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: primaryMuscles item 2 must be "chest" or /,
+		],
+		[
+			"secondary muscles that are not a list",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							secondaryMuscles: "biceps",
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: secondaryMuscles must be a list/,
+		],
+		[
+			"a muscle repeated in one list",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							primaryMuscles: ["lats", "chest", "lats"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: primaryMuscles lists "lats" more than once/,
+		],
+		[
+			"a muscle repeated in the secondary list",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							secondaryMuscles: ["biceps", "biceps"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: secondaryMuscles lists "biceps" more than once/,
+		],
+		[
+			"a muscle in both the primary and secondary lists",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							primaryMuscles: ["lats"],
+							secondaryMuscles: ["biceps", "lats"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: "lats" is in both primaryMuscles and secondaryMuscles/,
+		],
+		[
+			"an empty primary muscle list",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", primaryMuscles: [] },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: primaryMuscles must not be empty/,
+		],
+		[
+			"an empty secondary muscle list",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", secondaryMuscles: [] },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: secondaryMuscles must not be empty/,
+		],
+		[
+			"an unknown movement pattern",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", movementPattern: "push" },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: movementPattern must be "squat" or /,
+		],
+		[
+			"an unknown exercise category",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", category: "cardio" },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: category must be "strength" or /,
+		],
+		[
+			"unknown equipment",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", equipment: "kettlebell" },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: equipment must be "barbell" or /,
 		],
 		[
 			"a template set's seconds that are not a number",

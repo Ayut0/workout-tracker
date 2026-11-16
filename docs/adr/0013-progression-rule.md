@@ -43,7 +43,7 @@ left open.
   bodyweight progression is left for later. The group is still returned, so a
   caller can line groups up with the sets.
 - **Increment is an explicit input** (`incrementKg`). `deriveIncrementKg`
-  derives it from the name's equipment mark, "(Dumbbell)" anywhere in the name
+  derives it from the exercise's equipment when set (ADR-0016), otherwise from the name's equipment mark, "(Dumbbell)" anywhere in the name
   (case-insensitive): 2 kg per dumbbell; "(Barbell)", "(Machine)" and anything
   else 2.5 kg. In pounds every step is 5 lb (dumbbells included, as pound
   dumbbells step by 5 lb). A later per-exercise increment setting can replace

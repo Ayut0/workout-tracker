@@ -490,6 +490,24 @@ fieldset {
 	color: var(--muted);
 }
 
+/* Muscle groups (#72): toggle chips that wrap at phone width. */
+.muscle-picker legend {
+	margin-bottom: 4px;
+	font-size: 14px;
+	color: var(--muted);
+}
+
+.muscle-picker .chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.muscle-picker .chip {
+	padding: 0 12px;
+	font-size: 14px;
+}
+
 .archived summary,
 .import-details summary {
 	min-height: 44px;
