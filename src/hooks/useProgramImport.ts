@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { type ProgramFile, parseProgram } from "../db/programFormat";
+import {
+	type ProgramFile,
+	parseProgram,
+	programFileSizeProblem,
+} from "../db/programFormat";
 import {
 	importProgram,
 	type ProgramImportPlan,
@@ -43,6 +47,12 @@ export function useProgramImport() {
 		/** Reads and checks a program file and shows what importing it adds. */
 		chooseFile: (file: File) =>
 			run("Reading the program…", async () => {
+				// Before the file is read into memory.
+				const tooLarge = programFileSizeProblem(file.size);
+				if (tooLarge) {
+					setState({ step: "invalid", errors: [tooLarge] });
+					return;
+				}
 				const parsed = parseProgram(await file.text());
 				if (!parsed.ok) {
 					setState({ step: "invalid", errors: parsed.errors });

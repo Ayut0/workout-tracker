@@ -1,6 +1,5 @@
 import { normalizeExerciseName } from "./index";
 import {
-	DEFAULT_SET_MEASURE,
 	MEASURE_FIELDS,
 	type PlannedTargets,
 	SET_MEASURES,
@@ -23,6 +22,44 @@ export const PROGRAM_FORMAT_VERSION = 1;
 
 /** At most this many problems are listed; the rest are counted. */
 export const MAX_PROGRAM_ERRORS = 20;
+
+/**
+ * What a program file may hold (ADR-0019). The file is untrusted, often
+ * generated, and imported in bulk, so size, counts, lengths and numbers are
+ * capped well above a real plan. Every cap reports its own error message.
+ */
+export const PROGRAM_LIMITS = {
+	/** Checked before the file is read into memory. */
+	maxFileBytes: 2 * 1024 * 1024,
+	maxBlocks: 12,
+	maxWeeksPerBlock: 12,
+	maxDaysPerWeek: 7,
+	/** Blocks × weeks × days: one template is created for each. */
+	maxTemplates: 300,
+	maxExercisesPerDay: 30,
+	maxSetsPerExercise: 30,
+	/** Program, day and exercise names. */
+	maxNameLength: 100,
+	/** programId and day ids. */
+	maxIdLength: 40,
+	maxNotesLength: 500,
+	maxBlockNumber: 99,
+	maxWeekNumber: 99,
+	maxWeightKg: 1000,
+	/** Reps, repMin and repMax. */
+	maxReps: 999,
+	/** 24 hours. */
+	maxSeconds: 86_400,
+	maxDistanceM: 100_000,
+	maxTargetRir: 20,
+} as const;
+
+/** The problem with a file of `bytes` size, if it is over the limit. */
+export function programFileSizeProblem(bytes: number): string | undefined {
+	if (bytes <= PROGRAM_LIMITS.maxFileBytes) return undefined;
+	const megabytes = PROGRAM_LIMITS.maxFileBytes / (1024 * 1024);
+	return `The file is larger than ${megabytes} MB, the most a program file may be.`;
+}
 
 /** A planned set: the same fields as a template's planned set. */
 export type ProgramSet = TemplateSet;
@@ -120,8 +157,18 @@ function isObject(value: unknown): value is Json {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Zero-width and soft-hyphen characters, which show as nothing. */
+const INVISIBLE = /[\u00AD\u200B-\u200D\u2060\uFEFF]/g;
+
 function isText(value: unknown): value is string {
-	return typeof value === "string" && value.trim() !== "";
+	return (
+		typeof value === "string" && value.replace(INVISIBLE, "").trim() !== ""
+	);
+}
+
+/** Collapses runs of whitespace, as stored names are (tidyTemplateName). */
+function tidySpaces(text: string): string {
+	return text.trim().replace(/\s+/g, " ");
 }
 
 function isCount(value: unknown, min: number): value is number {
@@ -156,8 +203,15 @@ class Problems {
 		}
 	}
 
-	/** A non-empty list at `path`, or undefined after reporting why not. */
-	nonEmptyList(path: string, value: unknown): unknown[] | undefined {
+	/**
+	 * A non-empty list of at most `max` items at `path`, or undefined after
+	 * reporting why not. A list over its limit is not looked into.
+	 */
+	nonEmptyList(
+		path: string,
+		value: unknown,
+		max: number,
+	): unknown[] | undefined {
 		if (!Array.isArray(value)) {
 			this.add(path, "must be a list.");
 			return undefined;
@@ -166,7 +220,52 @@ class Problems {
 			this.add(path, "must not be empty.");
 			return undefined;
 		}
+		if (value.length > max) {
+			this.add(path, `has ${value.length} items; at most ${max} are allowed.`);
+			return undefined;
+		}
 		return value;
+	}
+
+	/** Reports text longer than `max` characters. */
+	length(path: string, text: string, max: number) {
+		if (text.length > max) {
+			this.add(
+				path,
+				`must be at most ${max} characters (it has ${text.length}).`,
+			);
+		}
+	}
+
+	/** Checks a number, 0 or more and at most `max`; false after reporting. */
+	amount(path: string, value: unknown, max: number): boolean {
+		if (!isAmount(value)) {
+			this.add(path, "must be a number, 0 or more.");
+			return false;
+		}
+		if (value > max) {
+			this.add(path, `must be at most ${max}.`);
+			return false;
+		}
+		return true;
+	}
+
+	/** Checks a whole number from `min` to `max`; false after reporting. */
+	count(path: string, value: unknown, min: number, max: number): boolean {
+		if (!isCount(value, min)) {
+			this.add(
+				path,
+				min === 0
+					? "must be a whole number, 0 or more."
+					: `must be a whole number, ${min} or more.`,
+			);
+			return false;
+		}
+		if (value > max) {
+			this.add(path, `must be at most ${max}.`);
+			return false;
+		}
+		return true;
 	}
 
 	/** An object at `path`, or undefined after reporting it is not one. */
@@ -188,9 +287,42 @@ function index(path: string, i: number): string {
 /** The measure each exercise name is given, by normalized name. */
 type Measures = Map<string, { measure: SetMeasure; path: string }>;
 
+/** The set fields in the order problems are listed. */
+const SET_VALUE_FIELDS = [
+	"weightKg",
+	"reps",
+	"seconds",
+	"distanceM",
+	...TARGET_KEYS,
+] as const;
+
+/** Whether sets of `measure` use `field` (a warm-up mark is always used). */
+function usesSetField(measure: SetMeasure, field: string): boolean {
+	return TARGET_KEYS.some((key) => key === field)
+		? plansTargets(measure)
+		: MEASURE_FIELDS[measure].some((used) => used === field);
+}
+
+/** The set's fields that sets of `measure` do not use. */
+export function unusedSetFields(
+	set: ProgramSet,
+	measure: SetMeasure,
+): (typeof SET_VALUE_FIELDS)[number][] {
+	return SET_VALUE_FIELDS.filter(
+		(field) => set[field] !== undefined && !usesSetField(measure, field),
+	);
+}
+
+/** Why `measure` cannot hold a field, without a closing full stop. */
+export function describeUnusedField(measure: SetMeasure): string {
+	return `is not used by the measure "${measure}" (it uses ${MEASURE_FIELDS[measure].join(", ")})`;
+}
+
 /**
- * Checks a planned set. `measure` is the exercise's; undefined when the file
- * names no valid one, so fields are not checked against it.
+ * Checks a planned set. `measure` is the one the file states for the
+ * exercise; undefined when it states none, then fields are not checked
+ * against a measure: the import checks them against the library's (or the
+ * default for a new exercise).
  */
 function checkSet(
 	path: string,
@@ -201,36 +333,40 @@ function checkSet(
 	const set = problems.object(path, value);
 	if (!set) return;
 	problems.unknownKeys(path, set, SET_KEYS);
-	const shown: readonly string[] =
-		measure === undefined ? SET_KEYS : MEASURE_FIELDS[measure];
-	const targets = measure === undefined || plansTargets(measure);
-	const reportUnused = (field: string) =>
-		problems.add(
-			join(path, field),
-			`is not used by the measure "${measure}" (it uses ${shown.join(", ")}).`,
-		);
+	const checkUsed = (field: string) => {
+		if (measure !== undefined && !usesSetField(measure, field)) {
+			problems.add(join(path, field), `${describeUnusedField(measure)}.`);
+		}
+	};
+	const maxima = {
+		weightKg: PROGRAM_LIMITS.maxWeightKg,
+		seconds: PROGRAM_LIMITS.maxSeconds,
+		distanceM: PROGRAM_LIMITS.maxDistanceM,
+	} as const;
 	for (const field of ["weightKg", "seconds", "distanceM"] as const) {
 		const amount = set[field];
 		if (amount === undefined) continue;
-		if (!isAmount(amount)) {
-			problems.add(join(path, field), "must be a number, 0 or more.");
-		} else if (!shown.includes(field)) {
-			reportUnused(field);
+		if (problems.amount(join(path, field), amount, maxima[field])) {
+			checkUsed(field);
 		}
 	}
+	const maxCounts = {
+		reps: PROGRAM_LIMITS.maxReps,
+		repMin: PROGRAM_LIMITS.maxReps,
+		repMax: PROGRAM_LIMITS.maxReps,
+		targetRir: PROGRAM_LIMITS.maxTargetRir,
+	} as const;
 	for (const field of ["reps", ...TARGET_KEYS] as const) {
 		const amount = set[field];
 		if (amount === undefined) continue;
-		if (!isCount(amount, 0)) {
-			problems.add(join(path, field), "must be a whole number, 0 or more.");
-		} else if (field === "reps" ? !shown.includes(field) : !targets) {
-			reportUnused(field);
+		if (problems.count(join(path, field), amount, 0, maxCounts[field])) {
+			checkUsed(field);
 		}
 	}
 	if (set.warmup !== undefined && typeof set.warmup !== "boolean") {
 		problems.add(join(path, "warmup"), "must be true or false.");
 	}
-	const { repMin, repMax } = set;
+	const { reps, repMin, repMax } = set;
 	if ((repMin === undefined) !== (repMax === undefined)) {
 		problems.add(
 			path,
@@ -246,11 +382,17 @@ function checkSet(
 			`repMin (${repMin}) must not be more than repMax (${repMax}).`,
 		);
 	}
+	if (reps !== undefined && (repMin !== undefined || repMax !== undefined)) {
+		problems.add(
+			path,
+			"give either reps or a repMin and repMax range, not both.",
+		);
+	}
 }
 
 /**
  * Checks an exercise's name and measure, and remembers the measure so the
- * same exercise is not given two. Returns the measure its sets follow:
+ * same exercise is not given two. Returns the measure the file states:
  * undefined when none is given anywhere, null when the one given is invalid.
  */
 function checkExercise(
@@ -260,7 +402,13 @@ function checkExercise(
 	problems: Problems,
 ): SetMeasure | null | undefined {
 	problems.unknownKeys(path, exercise, EXERCISE_KEYS);
-	if (exercise.notes !== undefined && typeof exercise.notes !== "string") {
+	if (typeof exercise.notes === "string") {
+		problems.length(
+			join(path, "notes"),
+			exercise.notes,
+			PROGRAM_LIMITS.maxNotesLength,
+		);
+	} else if (exercise.notes !== undefined) {
 		problems.add(join(path, "notes"), "must be text.");
 	}
 	if (exercise.measure !== undefined && !isMeasure(exercise.measure)) {
@@ -274,6 +422,11 @@ function checkExercise(
 		problems.add(join(path, "name"), "must be a non-empty exercise name.");
 		return exercise.measure;
 	}
+	problems.length(
+		join(path, "name"),
+		exercise.name,
+		PROGRAM_LIMITS.maxNameLength,
+	);
 	const key = normalizeExerciseName(exercise.name);
 	const seen = measures.get(key);
 	if (exercise.measure === undefined) return seen?.measure;
@@ -329,32 +482,41 @@ function checkDay(
 	const day = problems.object(path, value);
 	if (!day) return undefined;
 	problems.unknownKeys(path, day, DAY_KEYS);
-	if (!isText(day.day)) {
+	if (isText(day.day)) {
+		problems.length(join(path, "day"), day.day, PROGRAM_LIMITS.maxIdLength);
+	} else {
 		problems.add(
 			join(path, "day"),
 			'must be a short non-empty id, such as "A".',
 		);
 	}
-	if (day.name !== undefined && !isText(day.name)) {
+	if (isText(day.name)) {
+		problems.length(join(path, "name"), day.name, PROGRAM_LIMITS.maxNameLength);
+	} else if (day.name !== undefined) {
 		problems.add(join(path, "name"), "must be non-empty text when given.");
 	}
 	const exercises = problems.nonEmptyList(
 		join(path, "exercises"),
 		day.exercises,
+		PROGRAM_LIMITS.maxExercisesPerDay,
 	);
 	exercises?.forEach((item, e) => {
 		const exercisePath = index(join(path, "exercises"), e);
 		const exercise = problems.object(exercisePath, item);
 		if (!exercise) return;
 		const given = checkExercise(exercisePath, exercise, measures, problems);
-		const measure = given === null ? undefined : (given ?? DEFAULT_SET_MEASURE);
+		const measure = given === null ? undefined : given;
 		const setsPath = join(exercisePath, "sets");
-		const sets = problems.nonEmptyList(setsPath, exercise.sets);
+		const sets = problems.nonEmptyList(
+			setsPath,
+			exercise.sets,
+			PROGRAM_LIMITS.maxSetsPerExercise,
+		);
 		sets?.forEach((set, s) => {
 			checkSet(index(setsPath, s), set, measure, problems);
 		});
 	});
-	return isText(day.day) ? day.day.trim() : undefined;
+	return isText(day.day) ? tidySpaces(day.day) : undefined;
 }
 
 function checkWeek(
@@ -366,14 +528,21 @@ function checkWeek(
 	const week = problems.object(path, value);
 	if (!week) return undefined;
 	problems.unknownKeys(path, week, WEEK_KEYS);
-	if (!isCount(week.week, 1)) {
-		problems.add(join(path, "week"), "must be a whole number, 1 or more.");
-	}
+	problems.count(
+		join(path, "week"),
+		week.week,
+		1,
+		PROGRAM_LIMITS.maxWeekNumber,
+	);
 	if (week.deload !== undefined && typeof week.deload !== "boolean") {
 		problems.add(join(path, "deload"), "must be true or false.");
 	}
 	const daysPath = join(path, "days");
-	const days = problems.nonEmptyList(daysPath, week.days);
+	const days = problems.nonEmptyList(
+		daysPath,
+		week.days,
+		PROGRAM_LIMITS.maxDaysPerWeek,
+	);
 	const seen = new Map<string, number>();
 	days?.forEach((day, d) => {
 		const id = checkDay(index(daysPath, d), day, measures, problems);
@@ -400,11 +569,18 @@ function checkBlock(
 	const block = problems.object(path, value);
 	if (!block) return undefined;
 	problems.unknownKeys(path, block, BLOCK_KEYS);
-	if (!isCount(block.block, 1)) {
-		problems.add(join(path, "block"), "must be a whole number, 1 or more.");
-	}
+	problems.count(
+		join(path, "block"),
+		block.block,
+		1,
+		PROGRAM_LIMITS.maxBlockNumber,
+	);
 	const weeksPath = join(path, "weeks");
-	const weeks = problems.nonEmptyList(weeksPath, block.weeks);
+	const weeks = problems.nonEmptyList(
+		weeksPath,
+		block.weeks,
+		PROGRAM_LIMITS.maxWeeksPerBlock,
+	);
 	const seen = new Map<number, number>();
 	weeks?.forEach((week, w) => {
 		const number = checkWeek(index(weeksPath, w), week, measures, problems);
@@ -441,22 +617,53 @@ function checkEnvelope(file: Json, problems: Problems): boolean {
 	return true;
 }
 
+/** How many days the blocks hold: one template each. Non-lists count 0. */
+function countTemplates(blocks: unknown[]): number {
+	let count = 0;
+	for (const block of blocks) {
+		if (!isObject(block) || !Array.isArray(block.weeks)) continue;
+		for (const week of block.weeks) {
+			if (isObject(week) && Array.isArray(week.days)) count += week.days.length;
+		}
+	}
+	return count;
+}
+
 /** The problems with a program file; empty when it can be imported. */
 function findProblems(file: Json): string[] {
 	const problems = new Problems();
 	if (!checkEnvelope(file, problems)) return problems.messages;
 	problems.unknownKeys("", file, PROGRAM_KEYS);
-	if (!isText(file.programId)) {
+	if (isText(file.programId)) {
+		problems.length("programId", file.programId, PROGRAM_LIMITS.maxIdLength);
+	} else {
 		problems.add(
 			"programId",
 			'must be a non-empty id that stays the same for every block of the program, such as "upper-lower-2026".',
 		);
 	}
-	if (!isText(file.name)) problems.add("name", "must be a non-empty name.");
-	const measures = collectMeasures(file.blocks);
-	const blocks = problems.nonEmptyList("blocks", file.blocks);
+	if (isText(file.name)) {
+		problems.length("name", file.name, PROGRAM_LIMITS.maxNameLength);
+	} else {
+		problems.add("name", "must be a non-empty name.");
+	}
+	const blocks = problems.nonEmptyList(
+		"blocks",
+		file.blocks,
+		PROGRAM_LIMITS.maxBlocks,
+	);
+	if (!blocks) return problems.messages;
+	const templates = countTemplates(blocks);
+	if (templates > PROGRAM_LIMITS.maxTemplates) {
+		problems.add(
+			"blocks",
+			`would create ${templates} templates (one per block, week and day); at most ${PROGRAM_LIMITS.maxTemplates} are allowed.`,
+		);
+		return problems.messages;
+	}
+	const measures = collectMeasures(blocks);
 	const seen = new Map<number, number>();
-	blocks?.forEach((block, b) => {
+	blocks.forEach((block, b) => {
 		const number = checkBlock(index("blocks", b), block, measures, problems);
 		if (number === undefined) return;
 		const first = seen.get(number);
@@ -473,7 +680,7 @@ function findProblems(file: Json): string[] {
 }
 
 /** Shortens a long list of problems, saying how many were left out. */
-function capProblems(problems: string[]): string[] {
+export function capProblems(problems: string[]): string[] {
 	if (problems.length <= MAX_PROGRAM_ERRORS) return problems;
 	const rest = problems.length - MAX_PROGRAM_ERRORS;
 	return [
@@ -482,13 +689,18 @@ function capProblems(problems: string[]): string[] {
 	];
 }
 
-/** Whether a checked object is a program file; findProblems decides. */
-function isProgramFile(file: Json): file is Json & ProgramFile {
-	return findProblems(file).length === 0;
+/** Whether a checked object is a program file: it has no problems. */
+function isProgramFile(
+	file: Json,
+	problems: readonly string[],
+): file is Json & ProgramFile {
+	return isObject(file) && problems.length === 0;
 }
 
 /** Parses and checks a program file's text; lists every problem found. */
 export function parseProgram(fileText: string): ProgramParseResult {
+	const tooLarge = programFileSizeProblem(fileText.length);
+	if (tooLarge) return { ok: false, errors: [tooLarge] };
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(fileText);
@@ -502,8 +714,9 @@ export function parseProgram(fileText: string): ProgramParseResult {
 			errors: ["The file must hold one JSON object, the program."],
 		};
 	}
-	if (!isProgramFile(parsed)) {
-		return { ok: false, errors: capProblems(findProblems(parsed)) };
+	const problems = findProblems(parsed);
+	if (!isProgramFile(parsed, problems)) {
+		return { ok: false, errors: capProblems(problems) };
 	}
 	return { ok: true, program: parsed };
 }

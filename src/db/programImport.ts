@@ -4,11 +4,14 @@ import {
 	tidyExerciseName,
 	type WorkoutDB,
 } from "./index";
-import type {
-	ProgramDay,
-	ProgramFile,
-	ProgramSet,
-	ProgramWeek,
+import {
+	capProblems,
+	describeUnusedField,
+	type ProgramDay,
+	type ProgramFile,
+	type ProgramSet,
+	type ProgramWeek,
+	unusedSetFields,
 } from "./programFormat";
 import { tidyTemplateName } from "./templates";
 import {
@@ -63,6 +66,12 @@ export interface ProgramImportPlan {
 	/** Library exercises whose measure differs; the library's is kept. */
 	measureMismatches: MeasureMismatch[];
 	/**
+	 * Planned set fields the exercise's measure (the library's, or the file's
+	 * or default for a new exercise) does not use, each with its JSON path.
+	 * The import refuses while any is listed: they would vanish silently.
+	 */
+	setErrors: string[];
+	/**
 	 * Blocks of this program already imported (templates carry them). The
 	 * import refuses while any is listed.
 	 */
@@ -71,7 +80,8 @@ export interface ProgramImportPlan {
 
 export type ProgramImportResult =
 	| { ok: true; templatesCreated: number; exercisesCreated: number }
-	| { ok: false; reason: "already-imported"; blocks: number[] };
+	| { ok: false; reason: "already-imported"; blocks: number[] }
+	| { ok: false; reason: "invalid-sets"; errors: string[] };
 
 /**
  * A template's name: "<Program> · W1 · A — Lower"; blocks after the first
@@ -90,6 +100,11 @@ export function nameProgramTemplate(
 	);
 }
 
+/** A program id compared ignoring case and spacing, as exercise names are. */
+function programKey(programId: string): string {
+	return normalizeExerciseName(programId);
+}
+
 /** A planned set with only the fields a template stores. */
 function copyProgramSet(set: ProgramSet): TemplateSet {
 	const copy: TemplateSet = {};
@@ -105,13 +120,54 @@ function copyProgramSet(set: ProgramSet): TemplateSet {
 	return copy;
 }
 
+/**
+ * Checks every planned set against the measure its exercise really has: the
+ * library's for a matched exercise (the file's measure is used only for a new
+ * one), else the file's or the default. A field that measure does not use
+ * would be dropped when a workout starts from the template.
+ */
+function checkSetsAgainstMeasures(
+	program: ProgramFile,
+	matched: ReadonlyMap<string, Exercise>,
+	created: ReadonlyMap<string, NewProgramExercise>,
+	fileMeasures: ReadonlyMap<string, SetMeasure>,
+): string[] {
+	const errors: string[] = [];
+	program.blocks.forEach((block, b) => {
+		block.weeks.forEach((week, w) => {
+			week.days.forEach((day, d) => {
+				day.exercises.forEach((exercise, e) => {
+					const nameKey = normalizeExerciseName(exercise.name);
+					const library = matched.get(nameKey);
+					const measure = library
+						? resolveMeasure(library)
+						: (created.get(nameKey)?.measure ?? DEFAULT_SET_MEASURE);
+					const reason = library
+						? `which "${library.name}" has in your library`
+						: fileMeasures.has(nameKey)
+							? `which the file gives "${tidyExerciseName(exercise.name)}"`
+							: `which "${tidyExerciseName(exercise.name)}" is given because the file names no measure for it`;
+					exercise.sets.forEach((set, s) => {
+						for (const field of unusedSetFields(set, measure)) {
+							errors.push(
+								`blocks[${b}].weeks[${w}].days[${d}].exercises[${e}].sets[${s}].${field}: ${describeUnusedField(measure)}, ${reason}.`,
+							);
+						}
+					});
+				});
+			});
+		});
+	});
+	return capProblems(errors);
+}
+
 /** What importing `program` would add, given what is stored. Pure. */
 export function planProgramImport(
 	program: ProgramFile,
 	storedExercises: readonly Exercise[],
 	storedTemplates: readonly Template[],
 ): ProgramImportPlan {
-	const programId = program.programId.trim();
+	const programId = tidyTemplateName(program.programId);
 	const programName = program.name.trim();
 	const stored = new Map(storedExercises.map((e) => [e.nameKey, e]));
 	const newExercises = new Map<string, NewProgramExercise>();
@@ -127,7 +183,7 @@ export function planProgramImport(
 					programName,
 					block: block.block,
 					week: week.week,
-					day: day.day.trim(),
+					day: tidyTemplateName(day.day),
 				};
 				if (week.deload) link.deload = true;
 				templates.push({
@@ -176,10 +232,20 @@ export function planProgramImport(
 		}
 	}
 
+	const setErrors = checkSetsAgainstMeasures(
+		program,
+		matched,
+		newExercises,
+		fileMeasures,
+	);
+
 	const blocks = program.blocks.map((block) => block.block);
+	const key = programKey(programId);
 	const imported = new Set(
 		storedTemplates.flatMap((template) =>
-			template.program?.programId === programId ? [template.program.block] : [],
+			template.program && programKey(template.program.programId) === key
+				? [template.program.block]
+				: [],
 		),
 	);
 	return {
@@ -190,6 +256,7 @@ export function planProgramImport(
 		newExercises: [...newExercises.values()],
 		matchedExerciseCount: matched.size,
 		measureMismatches,
+		setErrors,
 		alreadyImportedBlocks: blocks.filter((block) => imported.has(block)),
 	};
 }
@@ -232,6 +299,13 @@ export async function importProgram(
 				stored,
 				await database.templates.toArray(),
 			);
+			if (plan.setErrors.length > 0) {
+				return {
+					ok: false,
+					reason: "invalid-sets",
+					errors: plan.setErrors,
+				};
+			}
 			if (plan.alreadyImportedBlocks.length > 0) {
 				return {
 					ok: false,

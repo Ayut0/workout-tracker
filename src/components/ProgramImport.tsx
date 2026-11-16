@@ -97,7 +97,8 @@ type ProgramPreviewProps = {
 
 /** What the import would add; nothing is written until Confirm. */
 function ProgramPreview({ plan, onConfirm, onCancel }: ProgramPreviewProps) {
-	const refused = plan.alreadyImportedBlocks.length > 0;
+	const refused =
+		plan.alreadyImportedBlocks.length > 0 || plan.setErrors.length > 0;
 	return (
 		<div className="stack">
 			<p className="lead">
@@ -143,17 +144,36 @@ function ProgramPreview({ plan, onConfirm, onCancel }: ProgramPreviewProps) {
 				<summary>Templates</summary>
 				<ul className="import-list">
 					{plan.templates.map((template) => (
-						<li key={template.name}>{template.name}</li>
+						<li
+							key={`${template.program.block}-${template.program.week}-${template.program.day}`}
+						>
+							{template.name}
+						</li>
 					))}
 				</ul>
 			</details>
-			{refused ? (
+			{plan.setErrors.length > 0 && (
+				<>
+					<p className="error" role="alert">
+						Some planned sets use fields the exercise's measure in your library
+						does not, so their values would be lost. Fix these in the file and
+						try again:
+					</p>
+					<ul className="import-list program-errors">
+						{plan.setErrors.map((error) => (
+							<li key={error}>{error}</li>
+						))}
+					</ul>
+				</>
+			)}
+			{plan.alreadyImportedBlocks.length > 0 && (
 				<p className="error" role="alert">
 					Block {plan.alreadyImportedBlocks.join(", ")} of this program is
 					already imported. Delete its templates first, or give the file a new
 					block number or programId.
 				</p>
-			) : (
+			)}
+			{refused ? null : (
 				<button type="button" className="primary" onClick={onConfirm}>
 					Add {formatCount(plan.templates.length, "template", "templates")}
 				</button>
