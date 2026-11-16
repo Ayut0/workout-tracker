@@ -53,7 +53,12 @@ sets add nothing.
 
 **Week** — Monday 00:00 to the next Monday 00:00, local time. A workout
 belongs to the week it started in (its start time), even if it ends or has
-sets done after midnight into the next week.
+sets done after midnight into the next week. Weeks are counted in calendar
+days, so a week is 167 or 169 hours across a daylight-saving change. Where a
+change skips midnight (e.g. Havana, Cairo, Santiago, Beirut), the Monday's
+first instant (01:00) starts the week; weeks always tile the time line, so
+every instant is in exactly one week. The weekly-sets screen follows the
+clock: "this week" rolls over at the new week's start.
 
 **Hard sets** (weekly sets per muscle group) — How many sets each muscle group
 got in a Week, by fractional counting (Pelland et al. 2025): every complete

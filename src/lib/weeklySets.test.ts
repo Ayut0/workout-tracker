@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import {
 	addWeeks,
 	countWeeklySets,
 	formatSetCount,
+	shiftWeek,
 	startOfWeek,
 	type WeeklySetsWorkout,
 } from "./weeklySets";
@@ -51,6 +52,112 @@ describe("addWeeks", () => {
 	it("moves by whole calendar weeks, staying on Monday 00:00", () => {
 		expect(addWeeks(MONDAY, 1)).toBe(new Date(2026, 10, 16).getTime());
 		expect(addWeeks(MONDAY, -2)).toBe(new Date(2026, 9, 26).getTime());
+	});
+});
+
+// Zones whose daylight-saving change happens at midnight (00:00 does not
+// exist on the spring-forward day, or happens twice on the fall-back day),
+// plus ordinary and half-hour-shift zones. The week boundaries must tile the
+// time line: every instant is in exactly one week.
+const ZONES = [
+	"America/Havana",
+	"Africa/Cairo",
+	"America/Santiago",
+	"Asia/Beirut",
+	"America/New_York",
+	"Europe/London",
+	"Asia/Tokyo",
+	"Australia/Lord_Howe",
+];
+// Node re-reads TZ when it is assigned. The project has no Node typings, so
+// reach process.env through a minimal local type.
+const env = nodeEnv();
+function nodeEnv(): { TZ?: string } {
+	const node: unknown = Reflect.get(globalThis, "process");
+	const env = typeof node === "object" ? Reflect.get(node ?? {}, "env") : null;
+	if (typeof env !== "object" || env === null) {
+		throw new Error("These tests need Node's process.env to set TZ.");
+	}
+	return env;
+}
+const HALF_HOUR = 30 * 60 * 1000;
+const SWEEP_FROM = Date.UTC(2023, 0, 1);
+const SWEEP_TO = Date.UTC(2027, 0, 1);
+
+describe("week boundaries across time zones", () => {
+	const originalTz = env.TZ;
+	afterAll(() => {
+		if (originalTz === undefined) delete env.TZ;
+		else env.TZ = originalTz;
+	});
+
+	it.each(ZONES)("tile the time line in %s", (zone) => {
+		env.TZ = zone;
+		// Guard: the zone really applies (Node re-reads TZ on assignment).
+		expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe(zone);
+		const failures: string[] = [];
+		for (let t = SWEEP_FROM; t < SWEEP_TO; t += HALF_HOUR) {
+			const start = startOfWeek(t);
+			const end = addWeeks(start, 1);
+			const startDay = new Date(start);
+			const ok =
+				start <= t &&
+				t < end &&
+				// Contiguous: the next week starts exactly where this one ends,
+				// and this week starts exactly where the previous one ends.
+				startOfWeek(end) === end &&
+				startOfWeek(end - 1) === start &&
+				startOfWeek(start) === start &&
+				addWeeks(end, -1) === start &&
+				// A Monday, and the earliest instant of that calendar date.
+				startDay.getDay() === 1 &&
+				new Date(start - 1).getDate() !== startDay.getDate();
+			if (!ok && failures.length < 5) {
+				failures.push(new Date(t).toISOString());
+			}
+		}
+		expect(failures).toEqual([]);
+	});
+
+	it("starts the week at the first instant of Monday when 00:00 is skipped", () => {
+		// Havana 2025: clocks jump 23:59 Sat 8 Mar to 01:00 Sun 9 Mar, so a
+		// Sunday time after the jump still belongs to the week of Mon 3 Mar.
+		env.TZ = "America/Havana";
+		const sunday = new Date(2025, 2, 9, 12).getTime();
+		expect(startOfWeek(sunday)).toBe(new Date(2025, 2, 3).getTime());
+		expect(new Date(startOfWeek(sunday)).getHours()).toBe(0);
+		// Cairo 2025: the week of Mon 21 Apr starts at 00:00, and the next one
+		// (Mon 28 Apr) follows from calendar days, not from 7 * 24 hours.
+		env.TZ = "Africa/Cairo";
+		const monday = new Date(2025, 3, 21, 12).getTime();
+		const start = startOfWeek(monday);
+		expect(new Date(start).getHours()).toBe(0);
+		expect(new Date(addWeeks(start, 1)).getHours()).toBe(0);
+	});
+});
+
+describe("shiftWeek", () => {
+	const THIS_WEEK = MONDAY;
+	const LAST_WEEK = addWeeks(MONDAY, -1);
+
+	it("steps back from the current week, pinning the earlier week", () => {
+		expect(shiftWeek(undefined, THIS_WEEK, -1)).toBe(LAST_WEEK);
+		expect(shiftWeek(LAST_WEEK, THIS_WEEK, -1)).toBe(addWeeks(MONDAY, -2));
+	});
+
+	it("goes back to following the current week when stepping up to it", () => {
+		expect(shiftWeek(LAST_WEEK, THIS_WEEK, 1)).toBeUndefined();
+	});
+
+	it("never goes past the current week", () => {
+		expect(shiftWeek(undefined, THIS_WEEK, 1)).toBeUndefined();
+	});
+
+	it("keeps a pinned week pinned, and drops a pin that became current", () => {
+		const week = addWeeks(MONDAY, -3);
+		expect(shiftWeek(week, THIS_WEEK, 1)).toBe(addWeeks(MONDAY, -2));
+		// The clock rolled into the week that was pinned: it is now "this week".
+		expect(shiftWeek(THIS_WEEK, THIS_WEEK, 1)).toBeUndefined();
 	});
 });
 

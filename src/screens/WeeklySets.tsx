@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { Link } from "../components/Link";
+import { useNow } from "../hooks/useNow";
 import { useWeeklySets } from "../hooks/useWeeklySets";
 import { MUSCLE_GROUP_LABELS } from "../lib/exerciseAttributes";
 import { PROGRESS_PATH } from "../lib/routes";
-import { addWeeks, formatSetCount, startOfWeek } from "../lib/weeklySets";
+import {
+	addWeeks,
+	formatSetCount,
+	shiftWeek,
+	startOfWeek,
+} from "../lib/weeklySets";
+
+/** How often the current week is re-read from the clock. */
+const NOW_TICK_MS = 60_000;
 
 const WEEK_FORMAT = new Intl.DateTimeFormat(undefined, {
 	day: "numeric",
@@ -19,9 +28,13 @@ function formatWeek(weekStart: number): string {
 
 /** Weekly sets (Progress › Weekly sets): hard sets per muscle group by week. */
 export function WeeklySets() {
-	// "This week" is fixed when the screen opens; enough for a weekly view.
-	const [thisWeek] = useState(() => startOfWeek(Date.now()));
-	const [weekStart, setWeekStart] = useState(thisWeek);
+	// "This week" follows the clock, so a screen left open across Monday 00:00
+	// (or a PWA resumed the next week) moves on. Browsing back pins a week;
+	// undefined means following the current one.
+	const now = useNow(NOW_TICK_MS);
+	const thisWeek = startOfWeek(now);
+	const [pinnedWeek, setPinnedWeek] = useState<number>();
+	const weekStart = pinnedWeek ?? thisWeek;
 	const counts = useWeeklySets(weekStart);
 	const isThisWeek = weekStart === thisWeek;
 
@@ -43,7 +56,7 @@ export function WeeklySets() {
 					type="button"
 					className="chip"
 					aria-label="Previous week"
-					onClick={() => setWeekStart(addWeeks(weekStart, -1))}
+					onClick={() => setPinnedWeek(shiftWeek(pinnedWeek, thisWeek, -1))}
 				>
 					‹
 				</button>
@@ -56,7 +69,7 @@ export function WeeklySets() {
 					className="chip"
 					aria-label="Next week"
 					disabled={isThisWeek}
-					onClick={() => setWeekStart(addWeeks(weekStart, 1))}
+					onClick={() => setPinnedWeek(shiftWeek(pinnedWeek, thisWeek, 1))}
 				>
 					›
 				</button>
