@@ -1,7 +1,13 @@
 # 0010. Templates: whole-record edits, copy on start, plain delete
 
-- Status: accepted
+- Status: accepted; superseded in part by ADR-0018
 - Date: 2026-11-06
+
+> Superseded in part by [ADR-0018](0018-workout-program-link.md): a workout
+> started from a template now records a snapshot of the template (id, name)
+> and the program, block and week it plans. Exercises and sets are still
+> copied as below, and editing or deleting the template still never changes
+> a past workout.
 
 ## Context
 
@@ -29,8 +35,9 @@ schema does not change.
 - **Starting copies.** `startWorkoutFromTemplate` passes the template's
   exercises to `startWorkout`, which writes new workout exercise and set
   records with copies of the planned weight and reps, none marked done; the
-  workout is named after the template. Nothing links the workout back to the
-  template, so editing the workout never changes the template and editing
+  workout is named after the template. Originally nothing linked the workout
+  back to the template (ADR-0018 supersedes this in part: the workout now
+  keeps a read-only snapshot of where it came from), so editing the workout never changes the template and editing
   the template never changes a past workout. It refuses while a workout is
   active, as `startWorkout` does.
 - **Saving a workout as a template keeps only complete sets.** An incomplete

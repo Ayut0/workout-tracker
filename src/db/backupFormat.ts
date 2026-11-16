@@ -17,6 +17,7 @@ import {
 	MAX_RIR,
 	MOVEMENT_PATTERNS,
 	MUSCLE_GROUPS,
+	type ProgramLink,
 	SET_MEASURES,
 	type Template,
 	type TemplateExercise,
@@ -24,6 +25,7 @@ import {
 	type Workout,
 	type WorkoutExercise,
 	type WorkoutSet,
+	type WorkoutSource,
 } from "./types";
 import { tidyNotes } from "./workoutLog";
 
@@ -111,6 +113,11 @@ const boundedCount =
 			? undefined
 			: `must be a whole number, ${min} to ${max}`;
 
+const positive: Check = (value) =>
+	Number.isInteger(value) && Number(value) >= 1
+		? undefined
+		: "must be a whole number, 1 or more";
+
 function optional(check: Check): Check {
 	return (value) => (value === undefined ? undefined : check(value));
 }
@@ -131,7 +138,11 @@ function findProblem<T>(
 	if (!isObject(value)) return "must be an object";
 	for (const [field, check] of Object.entries<Check>(spec)) {
 		const problem = check(value[field]);
-		if (problem !== undefined) return `${field} ${problem}`;
+		if (problem !== undefined) {
+			return problem.startsWith(":")
+				? `${field}${problem}`
+				: `${field} ${problem}`;
+		}
 	}
 	return rule?.(value);
 }
@@ -160,6 +171,17 @@ function listOfValues(check: Check): Check {
 			if (problem !== undefined) return `item ${i + 1} ${problem}`;
 		}
 		return undefined;
+	};
+}
+
+/**
+ * An object nested in a record, checked field by field. Its problem starts
+ * with ":" so findProblem reports it as "source: program: week must be…".
+ */
+function objectOf<T>(spec: Spec<T>): Check {
+	return (value) => {
+		const problem = findProblem(value, spec);
+		return problem === undefined ? undefined : `: ${problem}`;
 	};
 }
 
@@ -199,12 +221,30 @@ const EXERCISE: Spec<Exercise> = {
 	equipment: optional(oneOf(...EQUIPMENT)),
 };
 
+/** Where a template sits in a program (ADR-0018); absent before #74. */
+const PROGRAM_LINK: Spec<ProgramLink> = {
+	programId: id,
+	programName: text,
+	block: positive,
+	week: positive,
+	day: optional(text),
+	deload: optional(flag),
+};
+
+const WORKOUT_SOURCE: Spec<WorkoutSource> = {
+	templateId: id,
+	templateName: text,
+	program: optional(objectOf(PROGRAM_LINK)),
+};
+
 const WORKOUT: Spec<Workout> = {
 	id,
 	name: text,
 	startedAt: finite,
 	endedAt: optional(finite),
 	notes: optional(text),
+	// The template it was started from (ADR-0018); absent before #74.
+	source: optional(objectOf(WORKOUT_SOURCE)),
 };
 
 const WORKOUT_EXERCISE: Spec<WorkoutExercise> = {
@@ -273,6 +313,8 @@ const TEMPLATE: Spec<Template> = {
 	id,
 	name: text,
 	exercises: listOf(TEMPLATE_EXERCISE),
+	// Set by a program import (ADR-0018); absent before #74.
+	program: optional(objectOf(PROGRAM_LINK)),
 };
 
 const SETTINGS: Spec<SettingsRecord> = {

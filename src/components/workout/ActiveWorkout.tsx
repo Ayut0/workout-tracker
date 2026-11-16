@@ -4,6 +4,7 @@ import type { Exercise, WeightUnit, WorkoutSet } from "../../db/types";
 import { resolveMeasure, type SetChanges } from "../../db/workoutLog";
 import { useDraftField } from "../../hooks/useDraftField";
 import { useNow } from "../../hooks/useNow";
+import { describeProgramLink } from "../../lib/programLink";
 import { formatElapsed } from "../../lib/workoutLog";
 import { ExerciseCard } from "./ExerciseCard";
 
@@ -84,6 +85,9 @@ export function ActiveWorkout({
 					})}{" "}
 					· <Elapsed since={workout.startedAt} />
 				</p>
+				{workout.source?.program && (
+					<p className="lead">{describeProgramLink(workout.source.program)}</p>
+				)}
 			</header>
 
 			<div className="field">
