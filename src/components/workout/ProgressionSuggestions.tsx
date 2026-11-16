@@ -16,7 +16,7 @@ type ProgressionSuggestionsProps = {
 
 /**
  * What Progression suggests for this exercise (#71, ADR-0017), one line per
- * rep-range group, e.g. "4–6 reps · Next: 72.5 kg × 4 (3 sets)", each with a
+ * rep-range group (one per range, so the range is the key), e.g. "4–6 reps · Next: 72.5 kg × 4 (3 sets)", each with a
  * "Use" button while it has sets left to fill. Nothing without suggestions.
  */
 export function ProgressionSuggestions({
@@ -31,7 +31,7 @@ export function ProgressionSuggestions({
 			{suggestions.map((suggestion) => {
 				const text = describeSuggestion(suggestion, weightUnit);
 				return (
-					<li key={`${suggestion.repMin}-${suggestion.repMax}-${text}`}>
+					<li key={`${suggestion.repMin}-${suggestion.repMax}`}>
 						<span className="suggestion-text">{text}</span>
 						{suggestion.fills.length > 0 && (
 							<button

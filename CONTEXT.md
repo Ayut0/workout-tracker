@@ -14,8 +14,10 @@ An exercise may also have **attributes**, all optional and from fixed lists:
 lats or quads; a muscle is one or the other, never both), a **movement
 pattern** (squat, hinge, horizontal push, vertical pull…), a **category**
 (strength, power, agility, mobility, core) and **equipment** (barbell,
-dumbbell, machine, cable, bodyweight, other). Equipment decides the
-progression increment when set; otherwise the name's suffix does.
+dumbbell, machine, cable, bodyweight, other). Equipment is meant to
+decide the progression increment when set, otherwise the name's suffix does;
+that takes effect once the progression suggestions use `deriveIncrementKg`
+(a later change), not yet.
 
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active
@@ -28,7 +30,9 @@ measure hides values already logged but keeps them. A set is complete once
 marked done. A set may be marked by hand as a **warm-up** ("W"); a set that is
 not is a working set. Only complete working sets count towards Volume,
 Estimated 1RM, personal records and progression, which use weight × reps
-alone, so a warm-up, or a reps, seconds or distance set, adds nothing.
+alone, so a warm-up, or a reps, seconds or distance set, adds nothing. Only
+`true` is stored for the mark. The Previous column keeps a past warm-up but
+shows it as "W 40 kg × 10", since tapping it fills a working set.
 
 **Template** — A reusable plan for a workout: exercises in order, each with
 planned sets (weight and reps, or reps, seconds or distance, following the
@@ -40,7 +44,8 @@ a target RIR, the reps to leave in reserve. Starting a workout from a template
 copies its exercises, sets, targets and notes into the workout, so the notes
 and targets show read-only while logging, and Progression reads a set's rep
 range from the set itself. The workout also records which template it came
-from, as a snapshot: editing or deleting the template never changes it.
+from, as a snapshot: editing or deleting the template never changes it. A set added during a
+workout has no targets: only the template plans them.
 
 **Program** — A plan of several weeks, made outside the app and imported as
 templates: **blocks** (from 1) of **weeks** (from 1 within the block), each
@@ -60,7 +65,12 @@ sets add nothing.
 
 **Week** — Monday 00:00 to the next Monday 00:00, local time. A workout
 belongs to the week it started in (its start time), even if it ends or has
-sets done after midnight into the next week.
+sets done after midnight into the next week. Weeks are counted in calendar
+days, so a week is 167 or 169 hours across a daylight-saving change. Where a
+change skips midnight (e.g. Havana, Cairo, Santiago, Beirut), the Monday's
+first instant (01:00) starts the week; weeks always tile the time line, so
+every instant is in exactly one week. The weekly-sets screen follows the
+clock: "this week" rolls over at the new week's start.
 
 **Hard sets** (weekly sets per muscle group) — How many sets each muscle group
 got in a Week, by fractional counting (Pelland et al. 2025): every complete
@@ -76,10 +86,11 @@ one. Its complete working sets (warm-ups never count) are judged in groups
 sharing a rep range: when every set of a group reached the top of the range,
 add the increment (2.5 kg barbell or machine, 2 kg per dumbbell); when any
 fell below the bottom, keep the weight; otherwise keep the weight and aim for
-one more rep. A deload keeps two thirds of the sets at the same weights.
+one more rep. Bodyweight sets (0 kg) get no suggestion. A deload keeps two
+thirds of the exercise's sets at the same weights.
 While logging, an exercise whose working sets carry a planned rep range
-shows its suggestion; "Use" fills today's working sets with it, never the
-warm-ups.
+shows its suggestion; "Use" fills today's not-done working sets of the same
+rep range with it, never the warm-ups.
 
 **Rest** — The pause after a set before the next one, timed by the rest timer.
 The default rest is a setting; an exercise may set its own rest, which wins

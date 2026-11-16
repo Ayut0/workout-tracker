@@ -6,13 +6,15 @@ import {
 	type BackupData,
 	type BackupStore,
 } from "./backup";
-import { isLocalDay } from "./bodyLog";
+import { isLocalDay, MAX_BODY_WEIGHT_KG, MAX_WAIST_CM } from "./bodyLog";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
 import {
 	type BodyEntry,
 	EQUIPMENT,
 	EXERCISE_CATEGORIES,
 	type Exercise,
+	MAX_REPS,
+	MAX_RIR,
 	MOVEMENT_PATTERNS,
 	MUSCLE_GROUPS,
 	type ProgramLink,
@@ -25,6 +27,7 @@ import {
 	type WorkoutSet,
 	type WorkoutSource,
 } from "./types";
+import { tidyNotes } from "./workoutLog";
 
 /**
  * Reading a backup file (ADR-0011): checks the envelope and versions,
@@ -103,10 +106,12 @@ const flag: Check = (value) =>
 const integer: Check = (value) =>
 	Number.isInteger(value) ? undefined : "must be a whole number";
 
-const count: Check = (value) =>
-	Number.isInteger(value) && Number(value) >= 0
-		? undefined
-		: "must be a whole number, 0 or more";
+const boundedCount =
+	(min: number, max: number): Check =>
+	(value) =>
+		Number.isInteger(value) && Number(value) >= min && Number(value) <= max
+			? undefined
+			: `must be a whole number, ${min} to ${max}`;
 
 const positive: Check = (value) =>
 	Number.isInteger(value) && Number(value) >= 1
@@ -180,7 +185,25 @@ function objectOf<T>(spec: Spec<T>): Check {
 	};
 }
 
-const muscles = optional(listOfValues(oneOf(...MUSCLE_GROUPS)));
+/**
+ * A muscle list as the app writes it (ADR-0016): known groups, none twice,
+ * and never empty (an empty list is stored as no field).
+ */
+const knownMuscles = listOfValues(oneOf(...MUSCLE_GROUPS));
+const muscles = optional((value) => {
+	const problem = knownMuscles(value);
+	if (problem !== undefined) return problem;
+	if (!Array.isArray(value)) return "must be a list";
+	const list: unknown[] = value;
+	if (list.length === 0) return "must not be empty";
+	const seen = new Set<unknown>();
+	for (const muscle of list) {
+		if (seen.has(muscle))
+			return `lists ${JSON.stringify(muscle)} more than once`;
+		seen.add(muscle);
+	}
+	return undefined;
+});
 
 const EXERCISE: Spec<Exercise> = {
 	id,
@@ -235,7 +258,7 @@ const WORKOUT_EXERCISE: Spec<WorkoutExercise> = {
 
 /**
  * A planned rep range (ADR-0014) has both ends or neither, and its bottom is
- * not above its top. Each end is already known to be a count.
+ * not above its top. Each end is already known to be 1 to MAX_REPS.
  */
 const repRange: Rule = ({ repMin, repMax }) => {
 	if ((repMin === undefined) !== (repMax === undefined)) {
@@ -246,6 +269,9 @@ const repRange: Rule = ({ repMin, repMax }) => {
 	}
 	return undefined;
 };
+
+const repsBound = boundedCount(1, MAX_REPS);
+const rirBound = boundedCount(0, MAX_RIR);
 
 const SET: Spec<WorkoutSet> = {
 	id,
@@ -261,9 +287,9 @@ const SET: Spec<WorkoutSet> = {
 	warmup: optional(flag),
 	completedAt: optional(finite),
 	// Planned targets copied from a template (ADR-0014); absent before #69.
-	repMin: optional(count),
-	repMax: optional(count),
-	targetRir: optional(count),
+	repMin: optional(repsBound),
+	repMax: optional(repsBound),
+	targetRir: optional(rirBound),
 };
 
 const TEMPLATE_SET: Spec<TemplateSet> = {
@@ -272,9 +298,9 @@ const TEMPLATE_SET: Spec<TemplateSet> = {
 	seconds: optional(finite),
 	distanceM: optional(finite),
 	warmup: optional(flag),
-	repMin: optional(count),
-	repMax: optional(count),
-	targetRir: optional(count),
+	repMin: optional(repsBound),
+	repMax: optional(repsBound),
+	targetRir: optional(rirBound),
 };
 
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {
@@ -301,11 +327,22 @@ const SETTINGS: Spec<SettingsRecord> = {
 const localDay: Check = (value) =>
 	isLocalDay(value) ? undefined : "must be a day (YYYY-MM-DD)";
 
+/** A number above zero and at most `max`, as the body log form requires. */
+function positiveUpTo(max: number): Check {
+	return (value) =>
+		typeof value === "number" &&
+		Number.isFinite(value) &&
+		value > 0 &&
+		value <= max
+			? undefined
+			: `must be a number above 0 and at most ${max}`;
+}
+
 const BODY_ENTRY: Spec<BodyEntry> = {
 	id,
 	date: localDay,
-	bodyWeightKg: optional(finite),
-	waistCm: optional(finite),
+	bodyWeightKg: optional(positiveUpTo(MAX_BODY_WEIGHT_KG)),
+	waistCm: optional(positiveUpTo(MAX_WAIST_CM)),
 };
 
 /** Reads one store's records, or says which record is wrong and how. */
@@ -333,6 +370,19 @@ function readRows<T extends { id: string }>(
 	return read;
 }
 
+/**
+ * Keeps the "notes are never blank" invariant (ADR-0014) on restore: trims
+ * the notes and drops them when nothing is left.
+ */
+function withTidyNotes<T extends { notes?: string }>(record: T): T {
+	if (record.notes === undefined) return record;
+	const tidy = tidyNotes(record.notes);
+	const copy = { ...record };
+	if (tidy === undefined) delete copy.notes;
+	else Object.assign(copy, { notes: tidy });
+	return copy;
+}
+
 /** Checks the records of every store; the first problem found wins. */
 function readData(data: RawData): BackupData | string {
 	const exercises = readRows(data, "exercises", EXERCISE);
@@ -350,9 +400,27 @@ function readData(data: RawData): BackupData | string {
 	const bodyEntries = readRows(data, "bodyEntries", BODY_ENTRY);
 	if (typeof bodyEntries === "string") return bodyEntries;
 
+	// Only `true` is stored (ADR-0012): `warmup: false` from a hand-edited or
+	// foreign backup restores as a working set.
+	const normalisedSets = sets.map(dropFalseWarmup);
+	const normalisedTemplates = templates.map((template) => ({
+		...template,
+		exercises: template.exercises.map((exercise) => ({
+			...exercise,
+			sets: exercise.sets.map(dropFalseWarmup),
+		})),
+	}));
+
 	// Exercise names are unique (the &nameKey index); a clash would fail the write.
 	const nameKeys = new Set<string>();
-	for (const exercise of exercises) {
+	for (const [i, exercise] of exercises.entries()) {
+		// A muscle is primary or secondary, never both (ADR-0016).
+		const overlap = exercise.primaryMuscles?.find((muscle) =>
+			exercise.secondaryMuscles?.includes(muscle),
+		);
+		if (overlap !== undefined) {
+			return `Exercise record ${i + 1}: ${JSON.stringify(overlap)} is in both primaryMuscles and secondaryMuscles.`;
+		}
 		if (nameKeys.has(exercise.nameKey)) {
 			return `Two exercises have the same name ("${exercise.name}").`;
 		}
@@ -360,7 +428,11 @@ function readData(data: RawData): BackupData | string {
 	}
 	// One body log entry per day (the &date index); a clash would fail the write.
 	const days = new Set<string>();
-	for (const entry of bodyEntries) {
+	for (const [i, entry] of bodyEntries.entries()) {
+		// An entry holds at least one measurement (ADR-0015).
+		if (entry.bodyWeightKg === undefined && entry.waistCm === undefined) {
+			return `${STORE_LABELS.bodyEntries} record ${i + 1}: needs at least one measurement (bodyWeightKg or waistCm).`;
+		}
 		if (days.has(entry.date)) {
 			return `Two body log entries are for the same day (${entry.date}).`;
 		}
@@ -369,12 +441,23 @@ function readData(data: RawData): BackupData | string {
 	return {
 		exercises,
 		workouts,
-		workoutExercises,
-		sets,
-		templates,
+		workoutExercises: workoutExercises.map(withTidyNotes),
+		sets: normalisedSets,
+		templates: normalisedTemplates.map((template) => ({
+			...template,
+			exercises: template.exercises.map(withTidyNotes),
+		})),
 		settings,
 		bodyEntries,
 	};
+}
+
+/** The record without a `warmup: false`; anything else is returned as it is. */
+function dropFalseWarmup<T extends { warmup?: boolean }>(record: T): T {
+	if (record.warmup !== false) return record;
+	const copy = { ...record };
+	delete copy.warmup;
+	return copy;
 }
 
 /** Brings data written at `from` up to BACKUP_SCHEMA_VERSION, or says why not. */

@@ -9,7 +9,7 @@ import {
 	type SuggestedSet,
 	suggestProgression,
 } from "./progression";
-import { formatWeight } from "./units";
+import { convertFromKg, formatWeight, roundForDisplay } from "./units";
 
 /**
  * Progression suggestions while logging (#71, ADR-0017): what the rule
@@ -45,24 +45,28 @@ export interface ExerciseSuggestion {
 	/** The suggested sets, one per working set the group did last time. */
 	sets: SuggestedSet[];
 	/**
-	 * What "Use" writes: the suggested weight and reps for today's matching
-	 * working sets that are not done yet and do not already hold it. Never a
+	 * What "Use" writes: the suggested weight and reps for today's working
+	 * sets of the same rep range that are not done yet and do not already
+	 * show it (planned or typed values are overwritten). Never a
 	 * warm-up. Empty once used, which hides the button.
 	 */
 	fills: SetUpdate[];
 }
 
 /**
- * The suggestions for one exercise, group by group; empty without history,
+ * The suggestions for one exercise, one per rep range; empty without history,
  * or when today's working sets plan no rep range (the exercise was not
  * started from a template), or for a measure without weight and reps.
  *
- * Last workout's working sets are judged with their own rep range; one that
- * has none takes the range of today's working set in the same position, so
- * history logged before ranges existed (or imported) can still be judged
- * against today's plan. Suggested set N of the exercise lines up with today's
- * working set N. Deload is never applied here yet (no block to tell which
- * week is a deload).
+ * Last workout's working sets are judged with their own rep range, all sets
+ * sharing a range together (as progression.ts groups them). One without a
+ * range takes the range of today's working set in the same position only
+ * when last time and today have the same number of working sets, so history
+ * logged before ranges existed (or imported) can be judged against today's
+ * plan; with different counts positions do not line up and such a set gets no
+ * suggestion. A suggestion fills only today's working sets with the same rep
+ * range, the N-th suggested set into the N-th such set. Deload is never
+ * applied here yet (no block to tell which week is a deload).
  */
 export function suggestForExercise(
 	input: SuggestionInput,
@@ -73,31 +77,41 @@ export function suggestForExercise(
 	const lastWorking = input.previous.filter(
 		(set) => set.completedAt !== undefined && !set.warmup,
 	);
-	const judged = lastWorking.map((set, index): ProgressionSet => {
+	const sameShape = lastWorking.length === todayWorking.length;
+	const byRange = new Map<string, ProgressionSet[]>();
+	for (const [index, set] of lastWorking.entries()) {
 		const planned = todayWorking[index];
-		if (hasRange(set) || !planned || !hasRange(planned)) return set;
-		return { ...set, repMin: planned.repMin, repMax: planned.repMax };
-	});
-	const groups = suggestProgression({
-		sets: judged,
-		incrementKg: deriveIncrementKg(input.exercise, input.unit),
-		unit: input.unit,
-		deload: false,
-	});
+		const judged: ProgressionSet =
+			!hasRange(set) && sameShape && planned && hasRange(planned)
+				? { ...set, repMin: planned.repMin, repMax: planned.repMax }
+				: set;
+		if (!hasRange(judged)) continue;
+		const key = rangeKey(judged);
+		byRange.set(key, [...(byRange.get(key) ?? []), judged]);
+	}
 
+	const incrementKg = deriveIncrementKg(input.exercise, input.unit);
 	const suggestions: ExerciseSuggestion[] = [];
-	let start = 0;
-	for (const { repMin, repMax, sets, suggestion } of groups) {
-		if (suggestion && repMin !== undefined && repMax !== undefined) {
-			suggestions.push({
-				action: suggestion.action,
-				repMin,
-				repMax,
-				sets: suggestion.sets,
-				fills: planFills(suggestion.sets, todayWorking.slice(start)),
-			});
-		}
-		start += sets.length;
+	for (const [key, sets] of byRange) {
+		const [group] = suggestProgression({
+			sets,
+			incrementKg,
+			unit: input.unit,
+			deload: false,
+		});
+		if (!group?.suggestion) continue;
+		const { repMin, repMax, suggestion } = group;
+		if (repMin === undefined || repMax === undefined) continue;
+		const todaySameRange = todayWorking.filter(
+			(set) => hasRange(set) && rangeKey(set) === key,
+		);
+		suggestions.push({
+			action: suggestion.action,
+			repMin,
+			repMax,
+			sets: suggestion.sets,
+			fills: planFills(suggestion.sets, todaySameRange, input.unit),
+		});
 	}
 	return suggestions;
 }
@@ -108,18 +122,50 @@ function hasRange<T extends { repMin?: number; repMax?: number }>(
 	return set.repMin !== undefined && set.repMax !== undefined;
 }
 
+function rangeKey(set: { repMin: number; repMax: number }): string {
+	return `${set.repMin}-${set.repMax}`;
+}
+
+/**
+ * Today's not-done sets of the group's range (never a warm-up: callers pass
+ * working sets only) are overwritten with the suggestion: tapping Use is an
+ * explicit overwrite, planned or typed values included. A set already
+ * showing the suggestion is skipped, compared as displayed in the user's
+ * unit, so a pound weight typed as 220.5 (stored 100.0187 kg) counts.
+ */
 function planFills(
 	suggested: readonly SuggestedSet[],
 	today: readonly TodaySet[],
+	unit: WeightUnit,
 ): SetUpdate[] {
+	const shown = (kg: number | undefined) =>
+		kg === undefined ? undefined : roundForDisplay(convertFromKg(kg, unit));
 	const fills: SetUpdate[] = [];
 	for (const [index, { weightKg, reps }] of suggested.entries()) {
 		const set = today[index];
 		if (!set || set.completedAt !== undefined) continue;
-		if (set.weightKg === weightKg && set.reps === reps) continue;
+		if (shown(set.weightKg) === shown(weightKg) && set.reps === reps) continue;
 		fills.push({ setId: set.id, changes: { weightKg, reps } });
 	}
 	return fills;
+}
+
+/**
+ * The workout exercises that get a suggestion: the first card of each
+ * exercise. Last time's sets are joined across an exercise's appearances, so
+ * a second card of the same exercise would be lined up from the first set.
+ */
+export function firstOccurrenceIds(
+	entries: readonly { id: string; exerciseId: string }[],
+): Set<string> {
+	const seen = new Set<string>();
+	const first = new Set<string>();
+	for (const { id, exerciseId } of entries) {
+		if (seen.has(exerciseId)) continue;
+		seen.add(exerciseId);
+		first.add(id);
+	}
+	return first;
 }
 
 const ACTION_LABELS: Record<ProgressionAction, string> = {

@@ -11,7 +11,15 @@ describe("readRepRangeInput", () => {
 	it.each([
 		["8", 8, 8],
 		[" 8 ", 8, 8],
-		["0", 0, 0],
+		["999", 999, 999],
+		["6-999", 6, 999],
+		["６", 6, 6],
+		["６-８", 6, 8],
+		["６－８", 6, 8],
+		["6−8", 6, 8],
+		["6~8", 6, 8],
+		["6〜8", 6, 8],
+		["6～8", 6, 8],
 		["6-8", 6, 8],
 		["6–8", 6, 8],
 		["6—8", 6, 8],
@@ -30,12 +38,26 @@ describe("readRepRangeInput", () => {
 		});
 	});
 
-	it.each(["8-6", "6-", "-8", "6.5", "6-8.5", "-3", "six", "6-8-10"])(
-		"refuses %j",
-		(text) => {
-			expect(readRepRangeInput(text)).toEqual({ ok: false });
-		},
-	);
+	it.each([
+		"8-6",
+		"6-",
+		"-8",
+		"6.5",
+		"6-8.5",
+		"-3",
+		"six",
+		"6-8-10",
+		"1e3",
+		"0",
+		"0-0",
+		"0-6",
+		"1000",
+		"6-1000",
+		"9".repeat(400),
+		"1".repeat(20),
+	])("refuses %j", (text) => {
+		expect(readRepRangeInput(text)).toEqual({ ok: false });
+	});
 });
 
 describe("readRirInput", () => {
@@ -45,9 +67,17 @@ describe("readRirInput", () => {
 		expect(readRirInput("")).toEqual({ ok: true, value: undefined });
 	});
 
-	it.each(["-1", "1.5", "two"])("refuses %j", (text) => {
-		expect(readRirInput(text)).toEqual({ ok: false });
+	it("reads 99 and full-width digits", () => {
+		expect(readRirInput("99")).toEqual({ ok: true, value: 99 });
+		expect(readRirInput("２")).toEqual({ ok: true, value: 2 });
 	});
+
+	it.each(["-1", "1.5", "two", "100", "9".repeat(400), "1".repeat(20)])(
+		"refuses %j",
+		(text) => {
+			expect(readRirInput(text)).toEqual({ ok: false });
+		},
+	);
 });
 
 describe("formatting targets for their fields", () => {

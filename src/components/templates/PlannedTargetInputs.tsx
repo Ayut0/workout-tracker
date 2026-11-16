@@ -20,7 +20,8 @@ type PlannedTargetInputsProps = {
 /**
  * A planned set's rep range and target RIR (ADR-0014), under its
  * measurements. The range takes "8" (exactly 8) or "6-8"; a value that does
- * not read is not saved and is marked invalid until the field loses focus.
+ * not read is not saved: the last good value stays stored and the field stays
+ * marked invalid, also after it loses focus, until it reads or is cleared.
  */
 export function PlannedTargetInputs({
 	targets,
@@ -33,11 +34,16 @@ export function PlannedTargetInputs({
 			const read = readRepRangeInput(text);
 			if (read.ok) onChange({ repMin: read.repMin, repMax: read.repMax });
 		},
+		(text) => readRepRangeInput(text).ok,
 	);
-	const rir = useDraftField(formatRir(targets.targetRir), (text) => {
-		const read = readRirInput(text);
-		if (read.ok) onChange({ targetRir: read.value });
-	});
+	const rir = useDraftField(
+		formatRir(targets.targetRir),
+		(text) => {
+			const read = readRirInput(text);
+			if (read.ok) onChange({ targetRir: read.value });
+		},
+		(text) => readRirInput(text).ok,
+	);
 	return (
 		<div className="set-targets">
 			<label className="set-target-field">
