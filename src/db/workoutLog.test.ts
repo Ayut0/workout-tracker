@@ -438,6 +438,23 @@ describe("planNextSet", () => {
 		expect(planNextSet(last, "weight-reps")).toEqual({});
 	});
 
+	it("does not copy planned targets (a set added mid-workout is not planned)", () => {
+		const last: WorkoutSet = {
+			id: "s",
+			workoutExerciseId: "we",
+			order: 0,
+			weightKg: 100,
+			reps: 6,
+			repMin: 4,
+			repMax: 6,
+			targetRir: 2,
+		};
+		expect(planNextSet(last, "weight-reps")).toEqual({
+			weightKg: 100,
+			reps: 6,
+		});
+	});
+
 	it("starts empty when there is no previous set", () => {
 		expect(planNextSet(undefined, "seconds")).toEqual({});
 	});
