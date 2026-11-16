@@ -1,8 +1,13 @@
-import type { TemplateExercise, TemplateSet, WeightUnit } from "../../db/types";
-import { useDraftField } from "../../hooks/useDraftField";
+import {
+	MEASURE_FIELDS,
+	type SetMeasure,
+	type TemplateExercise,
+	type TemplateSet,
+	type WeightUnit,
+} from "../../db/types";
+import { describeFieldColumn } from "../../lib/setMeasure";
 import type { PlannedSetChanges } from "../../lib/templates";
-import { formatWeightValue } from "../../lib/units";
-import { readRepsField, readWeightField } from "../../lib/workoutLog";
+import { MeasureInputs } from "../workout/MeasureInputs";
 
 type TemplateExerciseCardProps = {
 	exercise: TemplateExercise;
@@ -10,6 +15,8 @@ type TemplateExerciseCardProps = {
 	/** Position in the template, from 0, and how many exercises it has. */
 	index: number;
 	count: number;
+	/** What the exercise's sets record; picks the planned set columns (ADR-0012). */
+	measure: SetMeasure;
 	weightUnit: WeightUnit;
 	onMove: (toIndex: number) => void;
 	onRemove: () => void;
@@ -24,6 +31,7 @@ export function TemplateExerciseCard({
 	name,
 	index,
 	count,
+	measure,
 	weightUnit,
 	onMove,
 	onRemove,
@@ -32,6 +40,7 @@ export function TemplateExerciseCard({
 	onRemoveSet,
 }: TemplateExerciseCardProps) {
 	const headingId = `template-exercise-${index}`;
+	const fields = MEASURE_FIELDS[measure];
 	return (
 		<section className="exercise-card" aria-labelledby={headingId}>
 			<div className="exercise-card-head">
@@ -65,11 +74,18 @@ export function TemplateExerciseCard({
 					</button>
 				</div>
 			</div>
-			<div className="set-grid planned">
+			<div
+				className={
+					fields.length === 1
+						? "set-grid planned single-measure"
+						: "set-grid planned"
+				}
+			>
 				<div className="set-head" aria-hidden="true">
 					<span>Set</span>
-					<span>{weightUnit}</span>
-					<span>Reps</span>
+					{fields.map((field) => (
+						<span key={field}>{describeFieldColumn(field, weightUnit)}</span>
+					))}
 					<span />
 				</div>
 				<ol className="set-list">
@@ -82,6 +98,7 @@ export function TemplateExerciseCard({
 							set={set}
 							label={`${name} set ${setIndex + 1}`}
 							number={setIndex + 1}
+							measure={measure}
 							weightUnit={weightUnit}
 							onChange={(changes) => onSetChange(setIndex, changes)}
 							onRemove={() => onRemoveSet(setIndex)}
@@ -100,59 +117,31 @@ type PlannedSetRowProps = {
 	set: TemplateSet;
 	label: string;
 	number: number;
+	measure: SetMeasure;
 	weightUnit: WeightUnit;
 	onChange: (changes: PlannedSetChanges) => void;
 	onRemove: () => void;
 };
 
-/** One planned set: optional weight (in the user's unit) and reps. */
+/** One planned set: the inputs for the exercise's measure (weight in the user's unit). */
 function PlannedSetRow({
 	set,
 	label,
 	number,
+	measure,
 	weightUnit,
 	onChange,
 	onRemove,
 }: PlannedSetRowProps) {
-	const weight = useDraftField(
-		set.weightKg === undefined
-			? ""
-			: formatWeightValue(set.weightKg, weightUnit),
-		(text) => {
-			const input = readWeightField(text, weightUnit);
-			if (input.ok) onChange({ weightKg: input.value });
-		},
-	);
-	const reps = useDraftField(
-		set.reps === undefined ? "" : String(set.reps),
-		(text) => {
-			const input = readRepsField(text);
-			if (input.ok) onChange({ reps: input.value });
-		},
-	);
 	return (
 		<li className="set-row">
 			<span className="set-number">{number}</span>
-			<input
-				className="set-input"
-				type="text"
-				inputMode="decimal"
-				enterKeyHint="next"
-				autoComplete="off"
-				placeholder="–"
-				aria-label={`${label} weight (${weightUnit})`}
-				{...weight}
-			/>
-			<input
-				className="set-input"
-				type="text"
-				inputMode="numeric"
-				pattern="[0-9]*"
-				enterKeyHint="done"
-				autoComplete="off"
-				placeholder="–"
-				aria-label={`${label} reps`}
-				{...reps}
+			<MeasureInputs
+				measure={measure}
+				values={set}
+				label={label}
+				weightUnit={weightUnit}
+				onChange={onChange}
 			/>
 			<button
 				type="button"

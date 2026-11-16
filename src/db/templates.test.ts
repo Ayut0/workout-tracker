@@ -311,3 +311,70 @@ describe("templateFromWorkout", () => {
 		});
 	});
 });
+
+describe("planned sets measured by time or distance (ADR-0012)", () => {
+	beforeEach(async () => {
+		await database.exercises.bulkAdd([
+			{ id: "plank", name: "Plank", nameKey: "plank", measure: "seconds" },
+			{ id: "carry", name: "Carry", nameKey: "carry", measure: "distance" },
+		]);
+	});
+
+	it("carry seconds and distance from template to workout and back", async () => {
+		const created = await createTemplate(
+			{
+				name: "Core",
+				exercises: [
+					{ exerciseId: "plank", sets: [{ seconds: 60 }] },
+					{ exerciseId: "carry", sets: [{ distanceM: 40 }] },
+				],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+
+		const started = await startWorkoutFromTemplate(
+			created.template.id,
+			5_000,
+			database,
+		);
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		const sets = detail?.exercises.flatMap((entry) => entry.sets) ?? [];
+		expect(sets).toMatchObject([{ seconds: 60 }, { distanceM: 40 }]);
+
+		for (const set of sets) await completeSet(set.id, 6_000, database);
+		await finishWorkout(started.workout.id, 7_000, database);
+		const saved = await templateFromWorkout(started.workout.id, database);
+		if (!saved.ok) throw new Error("expected a template");
+		expect(saved.template.exercises).toEqual([
+			{ exerciseId: "plank", sets: [{ seconds: 60 }] },
+			{ exerciseId: "carry", sets: [{ distanceM: 40 }] },
+		]);
+	});
+
+	it("start sets with only what the exercise's measure shows", async () => {
+		// Weight and reps kept hidden after the plank's measure changed.
+		const created = await createTemplate(
+			{
+				name: "Core",
+				exercises: [
+					{ exerciseId: "plank", sets: [{ weightKg: 10, seconds: 60 }] },
+				],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+
+		const started = await startWorkoutFromTemplate(
+			created.template.id,
+			5_000,
+			database,
+		);
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		const [set] = detail?.exercises[0]?.sets ?? [];
+		expect(set?.seconds).toBe(60);
+		expect(set && "weightKg" in set).toBe(false);
+	});
+});

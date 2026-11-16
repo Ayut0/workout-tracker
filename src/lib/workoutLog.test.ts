@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import { KG_PER_LB } from "./units";
 import {
 	formatElapsed,
+	MAX_DISTANCE_M,
+	MAX_REPS,
+	MAX_SECONDS,
 	nameWorkoutFor,
+	readDistanceField,
 	readRepsField,
+	readSecondsField,
 	readWeightField,
 } from "./workoutLog";
 
@@ -67,5 +72,72 @@ describe("readRepsField", () => {
 		expect(readRepsField("")).toEqual({ ok: true, value: undefined });
 		expect(readRepsField("8.5")).toEqual({ ok: false });
 		expect(readRepsField("x")).toEqual({ ok: false });
+	});
+
+	it("caps reps at MAX_REPS and rejects values that overflow", () => {
+		expect(readRepsField(String(MAX_REPS))).toEqual({
+			ok: true,
+			value: MAX_REPS,
+		});
+		expect(readRepsField(String(MAX_REPS + 1))).toEqual({ ok: false });
+		expect(readRepsField("9".repeat(20))).toEqual({ ok: false });
+		expect(readRepsField("9".repeat(400))).toEqual({ ok: false });
+	});
+});
+
+describe("readSecondsField", () => {
+	it("reads whole seconds, or minutes and seconds", () => {
+		expect(readSecondsField("45")).toEqual({ ok: true, value: 45 });
+		expect(readSecondsField(" 0 ")).toEqual({ ok: true, value: 0 });
+		expect(readSecondsField("1:30")).toEqual({ ok: true, value: 90 });
+		expect(readSecondsField("10:05")).toEqual({ ok: true, value: 605 });
+	});
+
+	it("clears on blank text and rejects anything else", () => {
+		expect(readSecondsField("")).toEqual({ ok: true, value: undefined });
+		expect(readSecondsField("1:")).toEqual({ ok: false });
+		expect(readSecondsField("1:75")).toEqual({ ok: false });
+		expect(readSecondsField("4.5")).toEqual({ ok: false });
+		expect(readSecondsField("-3")).toEqual({ ok: false });
+		expect(readSecondsField("1:30:00")).toEqual({ ok: false });
+		expect(readSecondsField("1:5")).toEqual({ ok: false });
+	});
+
+	it("caps time at MAX_SECONDS and rejects values that overflow", () => {
+		expect(readSecondsField(String(MAX_SECONDS))).toEqual({
+			ok: true,
+			value: MAX_SECONDS,
+		});
+		expect(readSecondsField(String(MAX_SECONDS + 1))).toEqual({ ok: false });
+		expect(readSecondsField("1440:01")).toEqual({ ok: false });
+		expect(readSecondsField("1440:00")).toEqual({ ok: true, value: 86400 });
+		expect(readSecondsField("9".repeat(20))).toEqual({ ok: false });
+		expect(readSecondsField("9".repeat(400))).toEqual({ ok: false });
+	});
+});
+
+describe("readDistanceField", () => {
+	it("reads metres, with a decimal point or comma", () => {
+		expect(readDistanceField("400")).toEqual({ ok: true, value: 400 });
+		expect(readDistanceField("20.5")).toEqual({ ok: true, value: 20.5 });
+		expect(readDistanceField("20,5")).toEqual({ ok: true, value: 20.5 });
+		expect(readDistanceField("0")).toEqual({ ok: true, value: 0 });
+	});
+
+	it("clears on blank text and rejects anything else", () => {
+		expect(readDistanceField(" ")).toEqual({ ok: true, value: undefined });
+		expect(readDistanceField("-5")).toEqual({ ok: false });
+		expect(readDistanceField("5 km")).toEqual({ ok: false });
+	});
+
+	it("caps distance at MAX_DISTANCE_M and rejects values that overflow", () => {
+		expect(readDistanceField(String(MAX_DISTANCE_M))).toEqual({
+			ok: true,
+			value: MAX_DISTANCE_M,
+		});
+		expect(readDistanceField(`${MAX_DISTANCE_M + 1}`)).toEqual({ ok: false });
+		expect(readDistanceField("9".repeat(20))).toEqual({ ok: false });
+		expect(readDistanceField("9".repeat(400))).toEqual({ ok: false });
+		expect(readDistanceField(`${"9".repeat(400)},5`)).toEqual({ ok: false });
 	});
 });

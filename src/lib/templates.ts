@@ -1,5 +1,5 @@
 import type { TemplateFromWorkoutResult } from "../db/templates";
-import type { TemplateExercise, TemplateSet } from "../db/types";
+import type { SetMeasure, TemplateExercise, TemplateSet } from "../db/types";
 import { moveItem, planNextSet } from "../db/workoutLog";
 
 /**
@@ -34,16 +34,18 @@ export function moveTemplateExercise(
 }
 
 /**
- * Adds a planned set at the end of an exercise, starting with the weight and
- * reps of the set before it, as logging a workout does.
+ * Adds a planned set at the end of an exercise, starting with the
+ * measurements of the set before it that the exercise's measure shows, as
+ * logging a workout does.
  */
 export function appendPlannedSet(
 	exercises: readonly TemplateExercise[],
 	exerciseIndex: number,
+	measure: SetMeasure,
 ): TemplateExercise[] {
 	return updateExerciseSets(exercises, exerciseIndex, (sets) => [
 		...sets,
-		planNextSet(sets.at(-1)),
+		planNextSet(sets.at(-1), measure),
 	]);
 }
 
@@ -63,7 +65,17 @@ export type PlannedSetChanges = {
 	[K in keyof TemplateSet]?: TemplateSet[K] | undefined;
 };
 
-/** Changes a planned set's weight or reps. Keys present with `undefined` are cleared. */
+const PLANNED_SET_FIELDS = [
+	"weightKg",
+	"reps",
+	"seconds",
+	"distanceM",
+] as const satisfies readonly (keyof TemplateSet)[];
+
+/**
+ * Changes a planned set's weight, reps, seconds or distance. Keys present
+ * with `undefined` are cleared.
+ */
 export function updatePlannedSet(
 	exercises: readonly TemplateExercise[],
 	exerciseIndex: number,
@@ -74,13 +86,11 @@ export function updatePlannedSet(
 		sets.map((set, i) => {
 			if (i !== setIndex) return set;
 			const next: TemplateSet = { ...set };
-			if ("weightKg" in changes) {
-				if (changes.weightKg === undefined) delete next.weightKg;
-				else next.weightKg = changes.weightKg;
-			}
-			if ("reps" in changes) {
-				if (changes.reps === undefined) delete next.reps;
-				else next.reps = changes.reps;
+			for (const field of PLANNED_SET_FIELDS) {
+				if (!(field in changes)) continue;
+				const value = changes[field];
+				if (value === undefined) delete next[field];
+				else next[field] = value;
 			}
 			return next;
 		}),
