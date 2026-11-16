@@ -400,6 +400,25 @@ describe("warm-up sets (#65)", () => {
 		]);
 	});
 
+	it("store a planned set's warmup: false as no mark", async () => {
+		const created = await createTemplate(
+			{
+				name: "Push",
+				exercises: [
+					{
+						exerciseId: "bench",
+						sets: [{ weightKg: 40, warmup: false }],
+					},
+				],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+		const set = created.template.exercises[0]?.sets[0];
+		expect(set).toEqual({ weightKg: 40 });
+		expect(set && "warmup" in set).toBe(false);
+	});
+
 	it("carry the mark from template to workout and back", async () => {
 		const created = await createTemplate(
 			{
@@ -603,7 +622,7 @@ describe("planned rep range and target RIR (ADR-0014)", () => {
 		]);
 	});
 
-	it("carry into a set added during the workout, and back into a template", async () => {
+	it("do not carry into a set added during the workout, but do carry back into a template", async () => {
 		const started = await startWorkout(
 			{ name: "Push", startedAt: 1_000, exercises: TARGETED },
 			database,
@@ -615,7 +634,10 @@ describe("planned rep range and target RIR (ADR-0014)", () => {
 
 		const added = await addSet(entry.workoutExercise.id, database);
 
-		expect(added).toMatchObject({ repMin: 8, repMax: 10 });
+		expect(added).toMatchObject({ weightKg: 60, reps: 10 });
+		expect(added && "repMin" in added).toBe(false);
+		expect(added && "repMax" in added).toBe(false);
+		expect(added && "targetRir" in added).toBe(false);
 		for (const set of entry.sets) await completeSet(set.id, 2_000, database);
 		const result = await templateFromWorkout(started.workout.id, database);
 		if (!result.ok) throw new Error("expected a template");

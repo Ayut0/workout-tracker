@@ -1,5 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { exportBackup } from "./backup";
+import { parseBackup } from "./backupFormat";
 import type { WorkoutExerciseDetail } from "./index";
 import { findActiveWorkout, findWorkoutDetail, WorkoutDB } from "./index";
 import type { Workout, WorkoutSet } from "./types";
@@ -237,6 +239,15 @@ describe("sets", () => {
 		await updateSet(firstSetId, { warmup: undefined }, database);
 		const set = await database.sets.get(firstSetId);
 		expect(set && "warmup" in set).toBe(false);
+
+		// `false` is normalised away: only `true` is ever stored.
+		await updateSet(firstSetId, { warmup: true }, database);
+		await updateSet(firstSetId, { warmup: false }, database);
+		const unmarked = await database.sets.get(firstSetId);
+		expect(unmarked && "warmup" in unmarked).toBe(false);
+		await updateSet(firstSetId, { warmup: false }, database);
+		const stillUnmarked = await database.sets.get(firstSetId);
+		expect(stillUnmarked && "warmup" in stillUnmarked).toBe(false);
 	});
 
 	it("adds a set after a warm-up that is not a warm-up (#65)", async () => {
@@ -407,6 +418,54 @@ describe("resuming", () => {
 	});
 });
 
+describe("RPE on a set (#64)", () => {
+	async function startWithSet() {
+		const workout = await startEmpty();
+		const bench = await addWorkoutExercise(workout.id, "bench", database);
+		if (!bench) throw new Error("expected bench");
+		return firstSet(bench).id;
+	}
+
+	it("clears the RPE by deleting the field, and the backup still parses", async () => {
+		const setId = await startWithSet();
+		await updateSet(setId, { rpe: 8 }, database);
+		await updateSet(setId, { rpe: undefined }, database);
+
+		const stored = await database.sets.get(setId);
+		expect(stored && "rpe" in stored).toBe(false);
+		const backup = await exportBackup(1, database);
+		expect(parseBackup(JSON.stringify(backup)).ok).toBe(true);
+	});
+
+	it("toggles against the stored RPE: set, clear, replace", async () => {
+		const setId = await startWithSet();
+		await updateSet(setId, { toggleRpe: 8 }, database);
+		expect((await database.sets.get(setId))?.rpe).toBe(8);
+		await updateSet(setId, { toggleRpe: 9 }, database);
+		expect((await database.sets.get(setId))?.rpe).toBe(9);
+		await updateSet(setId, { toggleRpe: 9 }, database);
+		const stored = await database.sets.get(setId);
+		expect(stored && "rpe" in stored).toBe(false);
+	});
+
+	it("makes two quick taps on the same chip set then clear", async () => {
+		const setId = await startWithSet();
+		await Promise.all([
+			updateSet(setId, { toggleRpe: 8 }, database),
+			updateSet(setId, { toggleRpe: 8 }, database),
+		]);
+		const stored = await database.sets.get(setId);
+		expect(stored && "rpe" in stored).toBe(false);
+	});
+
+	it("replaces an imported decimal RPE when a chip is tapped", async () => {
+		const setId = await startWithSet();
+		await updateSet(setId, { rpe: 8.5 }, database);
+		await updateSet(setId, { toggleRpe: 8 }, database);
+		expect((await database.sets.get(setId))?.rpe).toBe(8);
+	});
+});
+
 describe("planNextSet", () => {
 	it("copies only weight and reps", () => {
 		const last: WorkoutSet = {
@@ -436,6 +495,23 @@ describe("planNextSet", () => {
 		expect(planNextSet(last, "seconds")).toEqual({ seconds: 45 });
 		expect(planNextSet(last, "distance")).toEqual({ distanceM: 40 });
 		expect(planNextSet(last, "weight-reps")).toEqual({});
+	});
+
+	it("does not copy planned targets (a set added mid-workout is not planned)", () => {
+		const last: WorkoutSet = {
+			id: "s",
+			workoutExerciseId: "we",
+			order: 0,
+			weightKg: 100,
+			reps: 6,
+			repMin: 4,
+			repMax: 6,
+			targetRir: 2,
+		};
+		expect(planNextSet(last, "weight-reps")).toEqual({
+			weightKg: 100,
+			reps: 6,
+		});
 	});
 
 	it("starts empty when there is no previous set", () => {

@@ -5,12 +5,13 @@ import { parseLocalDay } from "../db/bodyLog";
 import type { BodyEntry, WeightUnit } from "../db/types";
 import { bodyLogActions, useBodyEntries } from "../hooks/useBodyLog";
 import { useSettings } from "../hooks/useSettings";
+import { useToday } from "../hooks/useToday";
 import {
 	type BodyEntryForm,
 	type BodyMeasure,
 	buildBodySeries,
+	chartEndForDay,
 	formatBodyValue,
-	formatLocalDay,
 	parseBodyEntryForm,
 	toBodyEntryForm,
 	WAIST_UNIT,
@@ -48,8 +49,10 @@ function formatDay(day: string): string {
 export function BodyLog() {
 	const entries = useBodyEntries();
 	const { settings, loaded } = useSettings();
-	// "Today" and chart ranges are fixed when the screen opens; enough for a log.
-	const [now] = useState(() => Date.now());
+	// Follows the clock when the page is shown again, so a screen left open
+	// past midnight does not keep offering yesterday.
+	const today = useToday();
+	const now = chartEndForDay(today);
 	const unit = settings.weightUnit;
 
 	return (
@@ -67,11 +70,12 @@ export function BodyLog() {
 			{entries !== undefined && loaded && (
 				<>
 					<EntryForm
-						// A new unit starts the form over, so typed text is never misread.
-						key={unit}
+						// A new unit or a new day starts the form over, so typed text is
+						// never misread and the day defaults to the new today.
+						key={`${unit}-${today}`}
 						entries={entries}
 						unit={unit}
-						today={formatLocalDay(now)}
+						today={today}
 					/>
 					{entries.length === 0 ? (
 						<p className="empty">
@@ -217,7 +221,12 @@ function BodyCharts({ entries, unit, now }: BodyChartsProps) {
 			CHARTS.map(({ measure, title }) => ({
 				measure,
 				title,
-				...selectChartData(buildBodySeries(entries, measure, unit), range, now),
+				...selectChartData(
+					buildBodySeries(entries, measure, unit),
+					range,
+					now,
+					"last",
+				),
 			})),
 		[entries, unit, range, now],
 	);
@@ -257,7 +266,7 @@ function BodyCharts({ entries, unit, now }: BodyChartsProps) {
 						/>
 					)}
 					{sampled && (
-						<p className="lead">Each point is the highest of several days.</p>
+						<p className="lead">Each point is the last of several days.</p>
 					)}
 				</section>
 			))}

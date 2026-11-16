@@ -14,8 +14,10 @@ An exercise may also have **attributes**, all optional and from fixed lists:
 lats or quads; a muscle is one or the other, never both), a **movement
 pattern** (squat, hinge, horizontal push, vertical pull…), a **category**
 (strength, power, agility, mobility, core) and **equipment** (barbell,
-dumbbell, machine, cable, bodyweight, other). Equipment decides the
-progression increment when set; otherwise the name's suffix does.
+dumbbell, machine, cable, bodyweight, other). Equipment is meant to
+decide the progression increment when set, otherwise the name's suffix does;
+that takes effect once the progression suggestions use `deriveIncrementKg`
+(a later change), not yet.
 
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active
@@ -28,7 +30,9 @@ measure hides values already logged but keeps them. A set is complete once
 marked done. A set may be marked by hand as a **warm-up** ("W"); a set that is
 not is a working set. Only complete working sets count towards Volume,
 Estimated 1RM, personal records and progression, which use weight × reps
-alone, so a warm-up, or a reps, seconds or distance set, adds nothing.
+alone, so a warm-up, or a reps, seconds or distance set, adds nothing. Only
+`true` is stored for the mark. The Previous column keeps a past warm-up but
+shows it as "W 40 kg × 10", since tapping it fills a working set.
 
 **Template** — A reusable plan for a workout: exercises in order, each with
 planned sets (weight and reps, or reps, seconds or distance, following the
@@ -39,7 +43,8 @@ have **targets**: a rep range (such as 4–6, or a single number such as 8) and
 a target RIR, the reps to leave in reserve. Starting a workout from a template
 copies its exercises, sets, targets and notes into the workout; nothing links
 them afterwards, so the notes and targets show read-only while logging, and
-Progression reads a set's rep range from the set itself.
+Progression reads a set's rep range from the set itself. A set added during a
+workout has no targets: only the template plans them.
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
 computed from its weight and reps by Epley: weight × (1 + reps / 30). A single
@@ -74,7 +79,8 @@ one. Its complete working sets (warm-ups never count) are judged in groups
 sharing a rep range: when every set of a group reached the top of the range,
 add the increment (2.5 kg barbell or machine, 2 kg per dumbbell); when any
 fell below the bottom, keep the weight; otherwise keep the weight and aim for
-one more rep. A deload keeps two thirds of the sets at the same weights.
+one more rep. Bodyweight sets (0 kg) get no suggestion. A deload keeps two
+thirds of the exercise's sets at the same weights.
 
 **Rest** — The pause after a set before the next one, timed by the rest timer.
 The default rest is a setting; an exercise may set its own rest, which wins

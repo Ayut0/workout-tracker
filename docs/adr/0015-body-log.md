@@ -51,12 +51,17 @@ writes through restore).
   `BACKUP_SCHEMA_VERSION` is 3. A migration step `2 → 3` adds an empty
   `bodyEntries` list, so version-2 (and, through both steps, version-1)
   backups still restore; restoring one empties the body log, as a restore
-  replaces everything. `parseBackup` checks each entry (`date` a real
-  `YYYY-MM-DD` day, measurements finite numbers) and rejects two entries for
-  the same day, which the unique index would refuse mid-write.
+  replaces everything. `parseBackup` checks each entry like the form does (`date` a real
+  `YYYY-MM-DD` day; each measurement a finite number above 0 and at most
+  1000, kg or cm; at least one measurement) and rejects two entries for the
+  same day, which the unique index would refuse mid-write. The form refuses
+  the same upper limit (`MAX_BODY_WEIGHT_KG`, `MAX_WAIST_CM`), so a restore
+  accepts everything the app can save; the cap is far above any real body and
+  only stops typos and damaged or hand-edited files.
 - **Where it lives.** Not a new tab: the tab bar already has five. The body
   log is a screen at `/progress/body` under the Progress tab, linked from the
-  top of Progress. It has the form (day, defaulting to today, body weight,
+  top of Progress. It has the form (day, defaulting to today, re-read when the
+  page is shown again so a screen left open past midnight moves to the new day, body weight,
   waist; picking a day with an entry fills it in), the two charts with the
   3M / 1Y / All ranges, reusing `LineChart` and `src/lib/chart.ts`, and the
   list of days, newest first, each deletable after a confirm.
@@ -73,6 +78,8 @@ writes through restore).
 - Body weight and waist are personal data that stay on the phone and in the
   backup file, like the training log; the notification worker never sees
   them.
-- Downsampled body charts keep the highest value of each run of days (the
-  shared `downsampleSeries` rule, which favours peaks). That suits records
-  more than body weight; it only applies above 120 points in a range.
+- Downsampled body charts (above 120 points in a range) keep the **last**
+  value of each run of days: `downsampleSeries` takes a `keep` option, and the
+  body log passes `"last"`. The workout charts keep the default `"max"` (peaks
+  such as records survive); for body weight and waist that rule would bias the
+  line upward.
