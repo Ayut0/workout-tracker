@@ -35,10 +35,11 @@ schema does not change.
 - **Starting copies.** `startWorkoutFromTemplate` passes the template's
   exercises to `startWorkout`, which writes new workout exercise and set
   records with copies of the planned weight and reps, none marked done; the
-  workout is named after the template. Nothing links the workout back to the
-  template, so editing the workout never changes the template and editing
-  the template never changes a past workout. It refuses while a workout is
-  active, as `startWorkout` does.
+  workout is named after the template. Originally nothing linked the workout
+  back to the template (ADR-0018 supersedes this in part: the workout now
+  keeps a read-only snapshot of where it came from), so editing the workout
+  never changes the template and editing the template never changes a past
+  workout. It refuses while a workout is active, as `startWorkout` does.
 - **Saving a workout as a template keeps only complete sets.** An incomplete
   set in a finished workout is one that was skipped, and only complete sets
   count anywhere else (Volume, Estimated 1RM). An exercise with no complete
