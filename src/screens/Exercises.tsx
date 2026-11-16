@@ -52,6 +52,18 @@ export function Exercises() {
 		return toFormMessage(result);
 	}
 
+	async function changeMeasure(exercise: Exercise, measure: SetMeasure) {
+		let saved = false;
+		try {
+			saved = await exerciseLibraryActions.setMeasure(exercise.id, measure);
+		} catch {
+			saved = false;
+		}
+		setNotice(
+			saved ? null : `Could not change what “${exercise.name}” records.`,
+		);
+	}
+
 	async function remove(exercise: Exercise) {
 		if (!window.confirm(`Remove “${exercise.name}” from your library?`)) {
 			return;
@@ -128,9 +140,7 @@ export function Exercises() {
 								/>
 								<ExerciseMeasureField
 									measure={resolveMeasure(exercise)}
-									onChange={(measure) =>
-										void exerciseLibraryActions.setMeasure(exercise.id, measure)
-									}
+									onChange={(measure) => void changeMeasure(exercise, measure)}
 									hint="Sets already logged keep their values; this changes which are shown."
 								/>
 								<ExerciseRestField
