@@ -321,8 +321,9 @@ export interface SetUpdate {
 
 /**
  * Changes several sets in one transaction, all or none: e.g. using a
- * Progression suggestion (#71) fills a group's sets together. Returns how many
- * sets were found and changed; a missing set is skipped.
+ * Progression suggestion (#71) fills a group's sets together. A missing set
+ * aborts the whole transaction (nothing is changed) and rejects. Returns how
+ * many sets were changed.
  */
 export async function updateSets(
 	updates: readonly SetUpdate[],
@@ -331,7 +332,10 @@ export async function updateSets(
 	return database.transaction("rw", database.sets, async () => {
 		let updated = 0;
 		for (const { setId, changes } of updates) {
-			if (await updateSet(setId, changes, database)) updated += 1;
+			if (!(await updateSet(setId, changes, database))) {
+				throw new Error(`Set not found: ${setId}`);
+			}
+			updated += 1;
 		}
 		return updated;
 	});

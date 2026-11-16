@@ -287,7 +287,6 @@ describe("sets", () => {
 			[
 				{ setId: firstSetId, changes: { weightKg: 102.5, reps: 4 } },
 				{ setId: second.id, changes: { weightKg: 102.5, reps: 4 } },
-				{ setId: "missing", changes: { reps: 1 } },
 			],
 			database,
 		);
@@ -302,6 +301,24 @@ describe("sets", () => {
 			weightKg: 102.5,
 			reps: 4,
 		});
+	});
+
+	it("changes nothing when one of the sets is missing", async () => {
+		const { firstSetId } = await startWithBench();
+
+		await expect(
+			updateSets(
+				[
+					{ setId: firstSetId, changes: { weightKg: 102.5, reps: 4 } },
+					{ setId: "missing", changes: { reps: 1 } },
+				],
+				database,
+			),
+		).rejects.toThrow("Set not found: missing");
+
+		const set = await database.sets.get(firstSetId);
+		expect(set?.weightKg).toBeUndefined();
+		expect(set?.reps).toBeUndefined();
 	});
 
 	it("removes a set and closes up the order", async () => {
