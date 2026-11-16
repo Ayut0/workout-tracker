@@ -10,6 +10,7 @@ import {
 	DEFAULT_SET_MEASURE,
 	type Exercise,
 	MEASURE_FIELDS,
+	PLANNED_TARGET_FIELDS,
 	type SetMeasure,
 	type TemplateExercise,
 	type Workout,
@@ -443,10 +444,20 @@ function renumber<T extends { order: number }>(records: readonly T[]): T[] {
 	);
 }
 
-/** The measurements a new set starts with; the exercise's measure picks which show. */
+/**
+ * What a new set starts with: the measurements (the exercise's measure picks
+ * which show) and the planned targets (ADR-0014).
+ */
 export type PlannedSet = Pick<
 	WorkoutSet,
-	"weightKg" | "reps" | "seconds" | "distanceM" | "warmup"
+	| "weightKg"
+	| "reps"
+	| "seconds"
+	| "distanceM"
+	| "warmup"
+	| "repMin"
+	| "repMax"
+	| "targetRir"
 >;
 
 /**
@@ -454,8 +465,10 @@ export type PlannedSet = Pick<
  * measure shows (ADR-0012): weight and reps, reps, seconds or distance, and
  * nothing else (no RPE or notes), so a straight set is one tap to confirm.
  * Values kept hidden after a measure change are not carried into new sets.
- * The first set starts empty. A warm-up mark is not carried either: the set
- * after a warm-up is usually a working set (#65).
+ * Planned targets are not carried (ADR-0014): a set added mid-workout was not
+ * planned, and a back-off set must not be judged against the working range.
+ * The first set starts empty. A warm-up mark is not carried: the set after a
+ * warm-up is usually a working set (#65).
  */
 export function planNextSet(
 	last: PlannedSet | undefined,
@@ -470,17 +483,45 @@ export function planNextSet(
 }
 
 /**
+ * A planned set added after `last` in a template (ADR-0014): the measurements
+ * (planNextSet) plus the rep range and target RIR of the set before, for
+ * measures that count reps. Planning, unlike logging, keeps the aim.
+ */
+export function planNextTemplateSet(
+	last: PlannedSet | undefined,
+	measure: SetMeasure,
+): PlannedSet {
+	const planned = planNextSet(last, measure);
+	if (plansTargets(measure)) {
+		for (const field of PLANNED_TARGET_FIELDS) {
+			const value = last?.[field];
+			if (value !== undefined) planned[field] = value;
+		}
+	}
+	return planned;
+}
+
+/**
  * Copies a planned set (from a template) into a new set record, or a complete
- * set into a template: what the measure shows (planNextSet) and the warm-up
- * mark (#65), so warm-ups stay warm-ups from template to workout and back.
+ * set into a template: what the measure shows, the planned targets
+ * (ADR-0014) and the warm-up mark (#65), so warm-ups and targets stay with
+ * the set from template to workout and back.
  */
 export function copyPlannedSet(
 	set: PlannedSet,
 	measure: SetMeasure,
 ): PlannedSet {
-	const planned = planNextSet(set, measure);
+	const planned = planNextTemplateSet(set, measure);
 	if (set.warmup) planned.warmup = true;
 	return planned;
+}
+
+/**
+ * Whether sets of a measure plan a rep range and target RIR (ADR-0014): only
+ * measures that count reps do.
+ */
+export function plansTargets(measure: SetMeasure): boolean {
+	return MEASURE_FIELDS[measure].includes("reps");
 }
 
 /**

@@ -569,3 +569,103 @@ describe("template exercise notes (ADR-0014)", () => {
 		]);
 	});
 });
+
+describe("planned rep range and target RIR (ADR-0014)", () => {
+	const TARGETED: TemplateExercise[] = [
+		{
+			exerciseId: "bench",
+			sets: [
+				{ weightKg: 80, reps: 5, repMin: 4, repMax: 6, targetRir: 2 },
+				{ weightKg: 60, reps: 10, repMin: 8, repMax: 10 },
+			],
+		},
+	];
+
+	it("are stored on template sets", async () => {
+		const result = await createTemplate(
+			{ name: "Push", exercises: TARGETED },
+			database,
+		);
+
+		if (!result.ok) throw new Error("expected a template");
+		expect(result.template.exercises).toEqual(TARGETED);
+	});
+
+	it("are copied into the workout's sets, like weight and reps", async () => {
+		const created = await createTemplate(
+			{ name: "Push", exercises: TARGETED },
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+
+		const started = await startWorkoutFromTemplate(
+			created.template.id,
+			1_000,
+			database,
+		);
+
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		expect(
+			detail?.exercises[0]?.sets.map(
+				({ weightKg, reps, repMin, repMax, targetRir }) => ({
+					weightKg,
+					reps,
+					repMin,
+					repMax,
+					targetRir,
+				}),
+			),
+		).toEqual([
+			{ weightKg: 80, reps: 5, repMin: 4, repMax: 6, targetRir: 2 },
+			{ weightKg: 60, reps: 10, repMin: 8, repMax: 10, targetRir: undefined },
+		]);
+	});
+
+	it("do not carry into a set added during the workout, but do carry back into a template", async () => {
+		const started = await startWorkout(
+			{ name: "Push", startedAt: 1_000, exercises: TARGETED },
+			database,
+		);
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		const entry = detail?.exercises[0];
+		if (!entry) throw new Error("expected an exercise");
+
+		const added = await addSet(entry.workoutExercise.id, database);
+
+		expect(added).toMatchObject({ weightKg: 60, reps: 10 });
+		expect(added && "repMin" in added).toBe(false);
+		expect(added && "repMax" in added).toBe(false);
+		expect(added && "targetRir" in added).toBe(false);
+		for (const set of entry.sets) await completeSet(set.id, 2_000, database);
+		const result = await templateFromWorkout(started.workout.id, database);
+		if (!result.ok) throw new Error("expected a template");
+		expect(result.template.exercises[0]?.sets).toEqual(TARGETED[0]?.sets);
+	});
+
+	it("are not planned for a measure without reps", async () => {
+		await database.exercises.update("squat", { measure: "seconds" });
+
+		const started = await startWorkout(
+			{
+				name: "Core",
+				startedAt: 1_000,
+				exercises: [
+					{
+						exerciseId: "squat",
+						sets: [{ seconds: 60, repMin: 4, repMax: 6, targetRir: 1 }],
+					},
+				],
+			},
+			database,
+		);
+
+		if (!started.ok) throw new Error("expected a workout");
+		const detail = await findWorkoutDetail(started.workout.id, database);
+		const set = detail?.exercises[0]?.sets[0];
+		expect(set?.seconds).toBe(60);
+		expect(set && "repMin" in set).toBe(false);
+		expect(set && "targetRir" in set).toBe(false);
+	});
+});

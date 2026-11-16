@@ -5,10 +5,12 @@ import {
 	type TemplateSet,
 	type WeightUnit,
 } from "../../db/types";
+import { plansTargets } from "../../db/workoutLog";
 import { describeFieldColumn } from "../../lib/setMeasure";
 import type { PlannedSetChanges } from "../../lib/templates";
 import { MeasureInputs } from "../workout/MeasureInputs";
 import { WarmupToggle } from "../workout/WarmupToggle";
+import { PlannedTargetInputs } from "./PlannedTargetInputs";
 import { TemplateExerciseNotes } from "./TemplateExerciseNotes";
 
 type TemplateExerciseCardProps = {
@@ -134,7 +136,8 @@ type PlannedSetRowProps = {
 
 /**
  * One planned set: the inputs for the exercise's measure (weight in the
- * user's unit), with the warm-up toggle (#65) beneath.
+ * user's unit), its rep range and target RIR when the measure counts reps
+ * (ADR-0014), and the warm-up toggle (#65) beneath.
  */
 function PlannedSetRow({
 	set,
@@ -163,6 +166,9 @@ function PlannedSetRow({
 			>
 				×
 			</button>
+			{plansTargets(measure) && (
+				<PlannedTargetInputs targets={set} label={label} onChange={onChange} />
+			)}
 			<div className="set-extras">
 				<WarmupToggle
 					warmup={set.warmup}
