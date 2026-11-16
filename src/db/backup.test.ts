@@ -747,6 +747,83 @@ describe("parseBackup rejects", () => {
 			/Body log entry record 1: waistCm must be a number/,
 		],
 		[
+			"a body log entry with no measurement",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01" }],
+				},
+			}),
+			/Body log entry record 1: .*at least one measurement/,
+		],
+		[
+			"a negative body weight",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", bodyWeightKg: -5 }],
+				},
+			}),
+			/Body log entry record 1: bodyWeightKg must be/,
+		],
+		[
+			"a zero waist",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [
+						{ id: "b", date: "2026-10-01", waistCm: 0, bodyWeightKg: 70 },
+					],
+				},
+			}),
+			/Body log entry record 1: waistCm must be/,
+		],
+		[
+			"an absurd body weight",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", bodyWeightKg: 1001 }],
+				},
+			}),
+			/Body log entry record 1: bodyWeightKg must be/,
+		],
+		[
+			"an absurd waist",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", waistCm: 5000 }],
+				},
+			}),
+			/Body log entry record 1: waistCm must be/,
+		],
+		[
 			"two body log entries for the same day",
 			makeFile({
 				data: {
