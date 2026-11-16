@@ -14,8 +14,10 @@ An exercise may also have **attributes**, all optional and from fixed lists:
 lats or quads; a muscle is one or the other, never both), a **movement
 pattern** (squat, hinge, horizontal push, vertical pull…), a **category**
 (strength, power, agility, mobility, core) and **equipment** (barbell,
-dumbbell, machine, cable, bodyweight, other). Equipment decides the
-progression increment when set; otherwise the name's suffix does.
+dumbbell, machine, cable, bodyweight, other). Equipment is meant to
+decide the progression increment when set, otherwise the name's suffix does;
+that takes effect once the progression suggestions use `deriveIncrementKg`
+(a later change), not yet.
 
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active
