@@ -1,5 +1,3 @@
-import { roundForDisplay } from "./units";
-
 /**
  * RPE on a set (#64, ADR-0012): a row of chips 6 to 10 under every set. One
  * tap sets the RPE; tapping the selected chip again clears it. Whole numbers
@@ -9,17 +7,6 @@ import { roundForDisplay } from "./units";
 
 /** The RPEs the chip row offers, in order. */
 export const RPE_CHOICES = [6, 7, 8, 9, 10] as const;
-
-/**
- * The RPE after a chip is tapped: the tapped value, or undefined (cleared)
- * when it is the RPE already stored.
- */
-export function toggleRpe(
-	current: number | undefined,
-	tapped: number,
-): number | undefined {
-	return current === tapped ? undefined : tapped;
-}
 
 export interface RpeChip {
 	value: number;
@@ -36,11 +23,17 @@ export interface RpeChipsView {
 	other: string | undefined;
 }
 
+/** The accessible name of the dashed "other" chip, so "8.5" has its context. */
+export function rpeOtherLabel(other: string): string {
+	return `RPE ${other}`;
+}
+
 export function describeRpeChips(rpe: number | undefined): RpeChipsView {
 	const onRow = RPE_CHOICES.some((choice) => choice === rpe);
 	return {
 		chips: RPE_CHOICES.map((value) => ({ value, selected: value === rpe })),
-		other:
-			rpe === undefined || onRow ? undefined : String(roundForDisplay(rpe)),
+		// Shown as stored, never rounded: a stored 8.04 must not look like the
+		// (unselected) chip 8 beside it.
+		other: rpe === undefined || onRow ? undefined : String(rpe),
 	};
 }
