@@ -47,20 +47,29 @@ export function formatWeight(kg: number, unit: WeightUnit): string {
 	return `${formatWeightValue(kg, unit)} ${unit}`;
 }
 
-const WEIGHT_INPUT = /^\d+(?:[.,]\d*)?$|^[.,]\d+$/;
+const DECIMAL_INPUT = /^\d+(?:[.,]\d*)?$|^[.,]\d+$/;
+
+/**
+ * Reads a non-negative number the user typed, or undefined when the text is
+ * not one. A decimal comma is accepted, as phone keypads in many locales
+ * offer one.
+ */
+export function parseDecimalInput(text: string): number | undefined {
+	const trimmed = text.trim();
+	if (!DECIMAL_INPUT.test(trimmed)) return undefined;
+	return Number(trimmed.replace(",", "."));
+}
 
 /**
  * Reads a weight the user typed in the given unit and returns kilograms, or
- * undefined when the text is not a non-negative number. A decimal comma is
- * accepted, as phone keypads in many locales offer one.
+ * undefined when the text is not a non-negative number (see parseDecimalInput).
  */
 export function parseWeightInput(
 	text: string,
 	unit: WeightUnit,
 ): number | undefined {
-	const trimmed = text.trim();
-	if (!WEIGHT_INPUT.test(trimmed)) return undefined;
-	return convertToKg(Number(trimmed.replace(",", ".")), unit);
+	const value = parseDecimalInput(text);
+	return value === undefined ? undefined : convertToKg(value, unit);
 }
 
 /**

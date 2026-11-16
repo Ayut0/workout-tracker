@@ -6,8 +6,10 @@ import {
 	type BackupData,
 	type BackupStore,
 } from "./backup";
+import { isLocalDay, MAX_BODY_WEIGHT_KG, MAX_WAIST_CM } from "./bodyLog";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
 import {
+	type BodyEntry,
 	type Exercise,
 	SET_MEASURES,
 	type Template,
@@ -57,6 +59,8 @@ const MIGRATIONS: Partial<Record<number, Migration>> = {
 		templates: [],
 		settings: [],
 	}),
+	// Version 3 added the body log (ADR-0015); older backups have none.
+	2: (data) => ({ ...data, bodyEntries: [] }),
 };
 
 const STORE_LABELS: Record<BackupStore, string> = {
@@ -66,6 +70,7 @@ const STORE_LABELS: Record<BackupStore, string> = {
 	sets: "Set",
 	templates: "Template",
 	settings: "Settings",
+	bodyEntries: "Body log entry",
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -185,6 +190,27 @@ const SETTINGS: Spec<SettingsRecord> = {
 	lastBackupAt: optional(finite),
 };
 
+const localDay: Check = (value) =>
+	isLocalDay(value) ? undefined : "must be a day (YYYY-MM-DD)";
+
+/** A number above zero and at most `max`, as the body log form requires. */
+function positiveUpTo(max: number): Check {
+	return (value) =>
+		typeof value === "number" &&
+		Number.isFinite(value) &&
+		value > 0 &&
+		value <= max
+			? undefined
+			: `must be a number above 0 and at most ${max}`;
+}
+
+const BODY_ENTRY: Spec<BodyEntry> = {
+	id,
+	date: localDay,
+	bodyWeightKg: optional(positiveUpTo(MAX_BODY_WEIGHT_KG)),
+	waistCm: optional(positiveUpTo(MAX_WAIST_CM)),
+};
+
 /** Reads one store's records, or says which record is wrong and how. */
 function readRows<T extends { id: string }>(
 	data: RawData,
@@ -223,6 +249,8 @@ function readData(data: RawData): BackupData | string {
 	if (typeof templates === "string") return templates;
 	const settings = readRows(data, "settings", SETTINGS);
 	if (typeof settings === "string") return settings;
+	const bodyEntries = readRows(data, "bodyEntries", BODY_ENTRY);
+	if (typeof bodyEntries === "string") return bodyEntries;
 
 	// Exercise names are unique (the &nameKey index); a clash would fail the write.
 	const nameKeys = new Set<string>();
@@ -232,7 +260,27 @@ function readData(data: RawData): BackupData | string {
 		}
 		nameKeys.add(exercise.nameKey);
 	}
-	return { exercises, workouts, workoutExercises, sets, templates, settings };
+	// One body log entry per day (the &date index); a clash would fail the write.
+	const days = new Set<string>();
+	for (const [i, entry] of bodyEntries.entries()) {
+		// An entry holds at least one measurement (ADR-0015).
+		if (entry.bodyWeightKg === undefined && entry.waistCm === undefined) {
+			return `${STORE_LABELS.bodyEntries} record ${i + 1}: needs at least one measurement (bodyWeightKg or waistCm).`;
+		}
+		if (days.has(entry.date)) {
+			return `Two body log entries are for the same day (${entry.date}).`;
+		}
+		days.add(entry.date);
+	}
+	return {
+		exercises,
+		workouts,
+		workoutExercises,
+		sets,
+		templates,
+		settings,
+		bodyEntries,
+	};
 }
 
 /** Brings data written at `from` up to BACKUP_SCHEMA_VERSION, or says why not. */
