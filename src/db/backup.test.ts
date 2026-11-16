@@ -282,6 +282,59 @@ describe("restore", () => {
 	});
 });
 
+describe("restoring blank notes (ADR-0014)", () => {
+	it("drops blank notes so stored data never holds them", () => {
+		const parsed = parseBackup(
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [
+						{ id: "a", workoutId: "w", exerciseId: "e", order: 0, notes: "" },
+						{ id: "b", workoutId: "w", exerciseId: "e", order: 1, notes: "  " },
+						{
+							id: "c",
+							workoutId: "w",
+							exerciseId: "e",
+							order: 2,
+							notes: " hi ",
+						},
+					],
+					sets: [],
+					templates: [
+						{
+							id: "t",
+							name: "A",
+							exercises: [
+								{ exerciseId: "e", sets: [], notes: " \n" },
+								{ exerciseId: "f", sets: [], notes: " seat 4 " },
+							],
+						},
+					],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+		);
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		const { workoutExercises, templates } = parsed.backup.data;
+		expect(workoutExercises.map((w) => w.notes)).toEqual([
+			undefined,
+			undefined,
+			"hi",
+		]);
+		expect(Object.hasOwn(workoutExercises[0] ?? {}, "notes")).toBe(false);
+		expect(templates[0]?.exercises.map((e) => e.notes)).toEqual([
+			undefined,
+			"seat 4",
+		]);
+		expect(Object.hasOwn(templates[0]?.exercises[0] ?? {}, "notes")).toBe(
+			false,
+		);
+	});
+});
+
 describe("restoring an older schema version", () => {
 	it("migrates a version-1 backup, which held no training records", async () => {
 		await seedEveryStore(database);
@@ -303,6 +356,48 @@ describe("restoring an older schema version", () => {
 		await restoreBackup(parsed.backup, database);
 		const after = await exportBackup(T0, database);
 		for (const store of BACKUP_STORES) expect(after.data[store]).toEqual([]);
+	});
+
+	it("restores a hand-edited warmup: false as a working set (#65)", async () => {
+		const parsed = parseBackup(
+			makeFile({
+				data: {
+					exercises: [{ id: "e", name: "Row", nameKey: "row" }],
+					workouts: [{ id: "w", name: "Pull", startedAt: T0 }],
+					workoutExercises: [
+						{ id: "we", workoutId: "w", exerciseId: "e", order: 0 },
+					],
+					sets: [
+						{ id: "s1", workoutExerciseId: "we", order: 0, warmup: false },
+						{ id: "s2", workoutExerciseId: "we", order: 1, warmup: true },
+					],
+					templates: [
+						{
+							id: "t",
+							name: "Pull",
+							exercises: [
+								{
+									exerciseId: "e",
+									sets: [{ weightKg: 60, warmup: false }, { warmup: true }],
+								},
+							],
+						},
+					],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+		);
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		const [first, second] = parsed.backup.data.sets;
+		expect(first && "warmup" in first).toBe(false);
+		expect(second?.warmup).toBe(true);
+		const plan = parsed.backup.data.templates[0]?.exercises[0]?.sets;
+		expect(plan).toEqual([{ weightKg: 60 }, { warmup: true }]);
+		await restoreBackup(parsed.backup, database);
+		const stored = await database.sets.get("s1");
+		expect(stored && "warmup" in stored).toBe(false);
 	});
 
 	it("restores exercises and planned sets from before measures (ADR-0012)", () => {
@@ -333,6 +428,29 @@ describe("restoring an older schema version", () => {
 		expect(parsed.backup.data.exercises).toEqual([
 			{ id: "e", name: "Row", nameKey: "row" },
 		]);
+	});
+
+	it("restores a pre-#72 backup unchanged, with no attributes added", async () => {
+		const exercise = { id: "e", name: "Row", nameKey: "row", restSeconds: 90 };
+		const parsed = parseBackup(
+			makeFile({
+				schemaVersion: 3,
+				data: {
+					exercises: [exercise],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+		);
+
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		await restoreBackup(parsed.backup, database);
+		expect(await database.exercises.toArray()).toStrictEqual([exercise]);
 	});
 
 	it("migrates a version-2 backup, keeping every record and adding an empty body log", async () => {
@@ -618,6 +736,107 @@ describe("parseBackup rejects", () => {
 			/Exercise record 1: secondaryMuscles must be a list/,
 		],
 		[
+			"a muscle repeated in one list",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							primaryMuscles: ["lats", "chest", "lats"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: primaryMuscles lists "lats" more than once/,
+		],
+		[
+			"a muscle repeated in the secondary list",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							secondaryMuscles: ["biceps", "biceps"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: secondaryMuscles lists "biceps" more than once/,
+		],
+		[
+			"a muscle in both the primary and secondary lists",
+			makeFile({
+				data: {
+					exercises: [
+						{
+							id: "e",
+							name: "Row",
+							nameKey: "row",
+							primaryMuscles: ["lats"],
+							secondaryMuscles: ["biceps", "lats"],
+						},
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: "lats" is in both primaryMuscles and secondaryMuscles/,
+		],
+		[
+			"an empty primary muscle list",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", primaryMuscles: [] },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: primaryMuscles must not be empty/,
+		],
+		[
+			"an empty secondary muscle list",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", secondaryMuscles: [] },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+			/Exercise record 1: secondaryMuscles must not be empty/,
+		],
+		[
 			"an unknown movement pattern",
 			makeFile({
 				data: {
@@ -826,6 +1045,83 @@ describe("parseBackup rejects", () => {
 				},
 			}),
 			/Body log entry record 1: waistCm must be a number/,
+		],
+		[
+			"a body log entry with no measurement",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01" }],
+				},
+			}),
+			/Body log entry record 1: .*at least one measurement/,
+		],
+		[
+			"a negative body weight",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", bodyWeightKg: -5 }],
+				},
+			}),
+			/Body log entry record 1: bodyWeightKg must be/,
+		],
+		[
+			"a zero waist",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [
+						{ id: "b", date: "2026-10-01", waistCm: 0, bodyWeightKg: 70 },
+					],
+				},
+			}),
+			/Body log entry record 1: waistCm must be/,
+		],
+		[
+			"an absurd body weight",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", bodyWeightKg: 1001 }],
+				},
+			}),
+			/Body log entry record 1: bodyWeightKg must be/,
+		],
+		[
+			"an absurd waist",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", waistCm: 5000 }],
+				},
+			}),
+			/Body log entry record 1: waistCm must be/,
 		],
 		[
 			"two body log entries for the same day",
