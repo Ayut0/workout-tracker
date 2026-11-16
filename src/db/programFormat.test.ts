@@ -4,6 +4,7 @@ import {
 	MAX_PROGRAM_ERRORS,
 	PROGRAM_FORMAT,
 	PROGRAM_FORMAT_VERSION,
+	PROGRAM_LIMITS,
 	parseProgram,
 } from "./programFormat";
 
@@ -270,6 +271,251 @@ describe("parseProgram rejects", () => {
 		const errors = errorsOf(withExercise({ name: "Row", sets }));
 		expect(errors).toHaveLength(MAX_PROGRAM_ERRORS + 1);
 		expect(errors.at(-1)).toBe("…and 10 more problems.");
+	});
+});
+
+describe("parseProgram leaves the library's measure to the import", () => {
+	it("accepts a timed exercise that omits its measure", () => {
+		expect(
+			errorsOf(withExercise({ name: "Plank", sets: [{ seconds: 30 }] })),
+		).toEqual([]);
+	});
+
+	it("still rejects a set field the stated measure does not use", () => {
+		expect(
+			errorsOf(
+				withExercise({
+					name: "Plank",
+					measure: "seconds",
+					sets: [{ weightKg: 20 }],
+				}),
+			),
+		).toHaveLength(1);
+	});
+});
+
+describe("parseProgram rejects a set with reps and a rep range", () => {
+	it("naming both", () => {
+		expect(
+			errorsOf(
+				withExercise({
+					name: "Row",
+					sets: [{ reps: 3, repMin: 5, repMax: 8 }],
+				}),
+			),
+		).toEqual([
+			`${EXERCISE_PATH}.sets[0]: give either reps or a repMin and repMax range, not both.`,
+		]);
+	});
+});
+
+describe("parseProgram limits", () => {
+	const day = { day: "A", exercises: [{ name: "Row", sets: [{}] }] };
+	const L = PROGRAM_LIMITS;
+	const repeat = <T>(count: number, item: T) =>
+		Array.from({ length: count }, () => item);
+	/** Distinct day ids, so only the count is wrong. */
+	const days = (count: number) =>
+		Array.from({ length: count }, (_, i) => ({ ...day, day: `D${i}` }));
+	const weekList = (count: number, dayCount = 1) =>
+		Array.from({ length: count }, (_, i) => ({
+			week: i + 1,
+			days: days(dayCount),
+		}));
+	const blockList = (count: number, weekCount = 1, dayCount = 1) =>
+		Array.from({ length: count }, (_, i) => ({
+			block: i + 1,
+			weeks: weekList(weekCount, dayCount),
+		}));
+	const withDays = (dayItems: unknown[]) =>
+		makeProgram({
+			blocks: [{ block: 1, weeks: [{ week: 1, days: dayItems }] }],
+		});
+
+	it.each([
+		[
+			"too many blocks",
+			makeProgram({ blocks: blockList(L.maxBlocks + 1) }),
+			/^blocks: has \d+ items; at most \d+ are allowed/,
+		],
+		[
+			"too many weeks in a block",
+			makeProgram({ blocks: blockList(1, L.maxWeeksPerBlock + 1) }),
+			/blocks\[0\]\.weeks: has \d+ items; at most \d+ are allowed/,
+		],
+		[
+			"too many days in a week",
+			withDays(days(L.maxDaysPerWeek + 1)),
+			/days: has \d+ items; at most \d+ are allowed/,
+		],
+		[
+			"too many exercises in a day",
+			withDays([
+				{
+					day: "A",
+					exercises: repeat(L.maxExercisesPerDay + 1, {
+						name: "Row",
+						sets: [{}],
+					}),
+				},
+			]),
+			/exercises: has \d+ items; at most \d+ are allowed/,
+		],
+		[
+			"too many sets",
+			withExercise({
+				name: "Row",
+				sets: repeat(L.maxSetsPerExercise + 1, {}),
+			}),
+			/sets: has \d+ items; at most \d+ are allowed/,
+		],
+		[
+			"too many templates in all",
+			makeProgram({
+				blocks: blockList(L.maxBlocks, L.maxWeeksPerBlock, L.maxDaysPerWeek),
+			}),
+			/^blocks: would create \d+ templates .*at most \d+ are allowed/,
+		],
+		[
+			"a very long program name",
+			makeProgram({ name: "x".repeat(L.maxNameLength + 1) }),
+			/^name: must be at most \d+ characters/,
+		],
+		[
+			"a very long programId",
+			makeProgram({ programId: "x".repeat(L.maxIdLength + 1) }),
+			/^programId: must be at most \d+ characters/,
+		],
+		[
+			"a very long exercise name",
+			withExercise({ name: "x".repeat(L.maxNameLength + 1), sets: [{}] }),
+			/exercises\[0\]\.name: must be at most \d+ characters/,
+		],
+		[
+			"very long notes",
+			withExercise({
+				name: "Row",
+				notes: "x".repeat(L.maxNotesLength + 1),
+				sets: [{}],
+			}),
+			/exercises\[0\]\.notes: must be at most \d+ characters/,
+		],
+		[
+			"a very long day id",
+			withDays([{ ...day, day: "x".repeat(L.maxIdLength + 1) }]),
+			/days\[0\]\.day: must be at most \d+ characters/,
+		],
+		[
+			"a very long day name",
+			withDays([{ ...day, name: "x".repeat(L.maxNameLength + 1) }]),
+			/days\[0\]\.name: must be at most \d+ characters/,
+		],
+		[
+			"huge reps",
+			withExercise({ name: "Row", sets: [{ reps: 1e300 }] }),
+			/sets\[0\]\.reps: must be at most 999/,
+		],
+		[
+			"a huge weight",
+			withExercise({ name: "Row", sets: [{ weightKg: 1e308 }] }),
+			/sets\[0\]\.weightKg: must be at most \d+/,
+		],
+		[
+			"a huge time",
+			withExercise({
+				name: "Plank",
+				measure: "seconds",
+				sets: [{ seconds: 1e9 }],
+			}),
+			/sets\[0\]\.seconds: must be at most \d+/,
+		],
+		[
+			"a huge distance",
+			withExercise({
+				name: "Run",
+				measure: "distance",
+				sets: [{ distanceM: 1e9 }],
+			}),
+			/sets\[0\]\.distanceM: must be at most \d+/,
+		],
+		[
+			"a huge targetRir",
+			withExercise({ name: "Row", sets: [{ targetRir: 1e20 }] }),
+			/sets\[0\]\.targetRir: must be at most \d+/,
+		],
+		[
+			"a huge rep range",
+			withExercise({ name: "Row", sets: [{ repMin: 1, repMax: 1e6 }] }),
+			/sets\[0\]\.repMax: must be at most 999/,
+		],
+		[
+			"a huge block number",
+			makeProgram({ blocks: [{ ...blockList(1)[0], block: 1e300 }] }),
+			/blocks\[0\]\.block: must be at most \d+/,
+		],
+		[
+			"an unsafe week number",
+			makeProgram({
+				blocks: [
+					{
+						block: 1,
+						weeks: [{ week: Number.MAX_SAFE_INTEGER + 2, days: days(1) }],
+					},
+				],
+			}),
+			/weeks\[0\]\.week: must be at most \d+/,
+		],
+		[
+			"a name of only zero-width characters",
+			withExercise({ name: "​‍﻿", sets: [{}] }),
+			/exercises\[0\]\.name: must be a non-empty exercise name/,
+		],
+		[
+			"a programId of only zero-width characters",
+			makeProgram({ programId: "​" }),
+			/^programId: must be a non-empty id/,
+		],
+		[
+			"a day id that differs only in inner spacing",
+			withDays([
+				{ ...day, day: "A  B" },
+				{ ...day, day: "A B" },
+			]),
+			/days\[1\]\.day: "A B" is used twice in this week/,
+		],
+	])("%s", (_name, value, expected) => {
+		const errors = errorsOf(value);
+		expect(errors.some((error) => expected.test(error))).toBe(true);
+	});
+
+	it("accepts values at the limits", () => {
+		expect(
+			errorsOf(
+				withExercise({
+					name: "x".repeat(L.maxNameLength),
+					sets: [
+						{
+							weightKg: L.maxWeightKg,
+							reps: L.maxReps,
+							targetRir: L.maxTargetRir,
+						},
+					],
+				}),
+			),
+		).toEqual([]);
+	});
+
+	it("does not walk a list that is over its limit", () => {
+		const errors = errorsOf(
+			makeProgram({ blocks: blockList(L.maxBlocks + 1) }),
+		);
+		expect(errors).toHaveLength(1);
+	});
+
+	it("refuses text over the file size limit", () => {
+		expect(errorsOf(" ".repeat(L.maxFileBytes + 1))).toEqual([
+			expect.stringMatching(/^The file is larger than 2 MB/),
+		]);
 	});
 });
 

@@ -84,6 +84,159 @@ describe("previewProgramImport", () => {
 	});
 });
 
+type DayExercises =
+	ProgramFile["blocks"][number]["weeks"][number]["days"][number]["exercises"];
+
+/** A program whose one day has the given exercises. */
+function programWith(
+	exercises: DayExercises,
+	changes: Partial<ProgramFile> = {},
+): ProgramFile {
+	return {
+		format: "workout-tracker-program",
+		formatVersion: 1,
+		programId: "p",
+		name: "P",
+		blocks: [
+			{ block: 1, weeks: [{ week: 1, days: [{ day: "A", exercises }] }] },
+		],
+		...changes,
+	};
+}
+
+describe("sets are checked against the library measure", () => {
+	const libraryPlank = {
+		id: "plank",
+		name: "Plank",
+		nameKey: "plank",
+		measure: "seconds" as const,
+	};
+	const weighted = programWith([
+		{ name: "plank", sets: [{ weightKg: 20, reps: 10 }] },
+	]);
+	const setPath = "blocks[0].weeks[0].days[0].exercises[0].sets[0]";
+
+	it("reports sets a matched exercise's library measure does not use, when the file omits the measure", async () => {
+		await database.exercises.add(libraryPlank);
+		const plan = await previewProgramImport(weighted, database);
+
+		expect(plan.setErrors).toEqual([
+			`${setPath}.weightKg: is not used by the measure "seconds" (it uses seconds), which "Plank" has in your library.`,
+			`${setPath}.reps: is not used by the measure "seconds" (it uses seconds), which "Plank" has in your library.`,
+		]);
+	});
+
+	it("refuses to import them, writing nothing", async () => {
+		await database.exercises.add(libraryPlank);
+		const result = await importProgram(weighted, database);
+
+		expect(result).toMatchObject({ ok: false, reason: "invalid-sets" });
+		expect(await database.templates.count()).toBe(0);
+	});
+
+	it("accepts a timed set for a library exercise whose measure the file omits", async () => {
+		await database.exercises.add(libraryPlank);
+		const program = programWith([{ name: "Plank", sets: [{ seconds: 30 }] }]);
+		const parsed = parseProgram(JSON.stringify(program));
+		if (!parsed.ok) throw new Error(parsed.errors.join("\n"));
+
+		expect((await previewProgramImport(program, database)).setErrors).toEqual(
+			[],
+		);
+		expect((await importProgram(program, database)).ok).toBe(true);
+		const [template] = await database.templates.toArray();
+		expect(template?.exercises[0]?.sets).toEqual([{ seconds: 30 }]);
+	});
+
+	it("reports a mismatch warning and the sets the library measure cannot hold", async () => {
+		await database.exercises.add(libraryPlank);
+		const program = programWith([
+			{ name: "Plank", measure: "weight-reps", sets: [{ weightKg: 20 }] },
+		]);
+		const plan = await previewProgramImport(program, database);
+
+		expect(plan.measureMismatches).toEqual([
+			{ name: "Plank", fileMeasure: "weight-reps", libraryMeasure: "seconds" },
+		]);
+		expect(plan.setErrors).toHaveLength(1);
+	});
+
+	it("keeps only the warning when the sets fit both measures", async () => {
+		await database.exercises.add({
+			id: "pull",
+			name: "Pull Up",
+			nameKey: "pull up",
+		});
+		const program = programWith([
+			{ name: "Pull Up", measure: "reps", sets: [{ reps: 8 }] },
+		]);
+		const plan = await previewProgramImport(program, database);
+
+		expect(plan.measureMismatches).toHaveLength(1);
+		expect(plan.setErrors).toEqual([]);
+	});
+
+	it("checks a new exercise that omits its measure against the default", async () => {
+		const plan = await previewProgramImport(
+			programWith([{ name: "Wall Sit", sets: [{ seconds: 30 }] }]),
+			database,
+		);
+
+		expect(plan.setErrors).toEqual([
+			`${setPath}.seconds: is not used by the measure "weight-reps" (it uses weightKg, reps), which "Wall Sit" is given because the file names no measure for it.`,
+		]);
+	});
+
+	it("starting a workout from an imported template keeps the planned values", async () => {
+		await database.exercises.add(libraryPlank);
+		await importProgram(
+			programWith([{ name: "Plank", sets: [{ seconds: 45 }] }]),
+			database,
+		);
+		const [template] = await listTemplates(database);
+		if (!template) throw new Error("expected a template");
+		const started = await startWorkoutFromTemplate(template.id, 1, database);
+		if (!started.ok) throw new Error("expected a workout");
+
+		expect((await database.sets.toArray()).map((set) => set.seconds)).toEqual([
+			45,
+		]);
+	});
+});
+
+describe("programId and day ids", () => {
+	const row: DayExercises = [{ name: "Row", sets: [{}] }];
+
+	it("refuses a programId that differs only in case or spacing", async () => {
+		const first = await importProgram(
+			programWith(row, { programId: "up  down" }),
+			database,
+		);
+		expect(first.ok).toBe(true);
+
+		const again = await importProgram(
+			programWith(row, { programId: " UP down " }),
+			database,
+		);
+		expect(again).toEqual({
+			ok: false,
+			reason: "already-imported",
+			blocks: [1],
+		});
+		expect(await database.templates.count()).toBe(1);
+	});
+
+	it("stores a day id with its inner spacing collapsed", async () => {
+		const program = programWith(row);
+		const day = program.blocks[0]?.weeks[0]?.days[0];
+		if (!day) throw new Error("expected a day");
+		day.day = " Upper   A ";
+		const plan = await previewProgramImport(program, database);
+
+		expect(plan.templates[0]?.program.day).toBe("Upper A");
+	});
+});
+
 describe("importProgram", () => {
 	it("adds a template per week and day with the program link, and the missing exercises", async () => {
 		await database.exercises.add({

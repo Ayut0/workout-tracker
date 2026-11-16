@@ -43,14 +43,54 @@ One JSON object; every field not listed is rejected.
 | `…sets[].reps` | whole number ≥ 0 | Planned reps (weight-reps, reps). |
 | `…sets[].seconds` | number ≥ 0 | Time (seconds only). |
 | `…sets[].distanceM` | number ≥ 0 | Metres (distance only). |
-| `…sets[].repMin`, `repMax` | whole numbers ≥ 0 | Rep range, both or neither, `repMin` ≤ `repMax` (weight-reps, reps). |
+| `…sets[].repMin`, `repMax` | whole numbers ≥ 0 | Rep range, both or neither, `repMin` ≤ `repMax` (weight-reps, reps). A set gives `reps` or a range, never both. |
 | `…sets[].targetRir` | whole number ≥ 0 | Reps in reserve aimed for (weight-reps, reps). |
 | `…sets[].warmup` | `true`/`false` | A planned warm-up (ADR-0012). |
 
 Weights are always kilograms, distance metres and time seconds, as stored
 (ADR-0002); there is no unit field. A set field the exercise's measure does
 not use is an error, so a generator that confuses a plank with a press is
-caught instead of silently hiding values.
+caught instead of silently hiding values. Which measure counts:
+
+- The file's `measure` is only used for an exercise the library does **not**
+  have (it is created with it). An exercise already in the library keeps its
+  library measure, whatever the file says.
+- `parseProgram` (no library) checks set fields against a measure the file
+  **states** (on any mention of the exercise). An exercise that states none
+  is not checked there, so a timed exercise may omit `measure` when the
+  library knows it.
+- `planProgramImport` (which sees the library) checks every set against the
+  measure the exercise really gets: the library's for a matched exercise,
+  the file's for a new one, else the default weight-reps. Fields that
+  measure does not use become **preview errors** (with their JSON paths) and
+  block the import, which also refuses them inside its transaction
+  (`reason: "invalid-sets"`). A matched exercise whose stated measure
+  differs from the library's keeps only a preview warning, unless its sets
+  also hold fields the library measure cannot hold, which is an error.
+
+### Limits
+
+The file is untrusted and imported in bulk, so `PROGRAM_LIMITS` in
+`src/db/programFormat.ts` caps it; each cap has its own error message and a
+list over its cap is not looked into further.
+
+| Limit | Value |
+| --- | --- |
+| File size (checked before the file is read) | 2 MB |
+| Blocks in a file / weeks per block / days per week | 12 / 12 / 7 |
+| Templates in all (blocks × weeks × days) | 300 |
+| Exercises per day / sets per exercise | 30 / 30 |
+| Program, day and exercise name length | 100 characters |
+| `programId` and day id length | 40 characters |
+| Notes length | 500 characters |
+| `block`, `week` numbers | at most 99 |
+| `weightKg` / `seconds` / `distanceM` | at most 1000 / 86,400 / 100,000 |
+| `reps`, `repMin`, `repMax` / `targetRir` | at most 999 / 20 |
+
+Text made only of zero-width characters (zero-width space, joiner,
+non-joiner, word joiner, BOM, soft hyphen) counts as empty. The file is
+validated once. Day ids are compared, and stored in `program.day`, with runs
+of whitespace collapsed (`"A  B"` and `"A B"` are the same day).
 
 Example (one block, one week, two days; `fixtures/program-sample.json` is a
 full four-week block with a deload week, made-up loads):
@@ -142,7 +182,9 @@ full four-week block with a deload week, made-up loads):
   exercise keeps its library measure; the preview warns when the file says
   another one. Attributes (ADR-0016) are not part of the format.
 - **Re-importing: refuse per block.** A block whose `programId` and `block`
-  are already carried by a stored template is refused, with the block
+  are already carried by a stored template is refused (`programId` is
+  compared ignoring case and spacing, so `"p"` and `"P"` are one program),
+  with the block
   named; the lifter deletes that block's templates first, or uses a new
   block number. A new block of the same program (same `programId`,
   `block: 2`) imports alongside the first, so a program grows block by block
@@ -170,4 +212,5 @@ full four-week block with a deload week, made-up loads):
 - Supersets, per-set rest, RPE targets and exercise attributes are not in
   version 1; adding optional fields is a compatible change, renaming one
   needs `formatVersion` 2.
-- The file is read whole into memory; programs are small.
+- The file is read whole into memory, which is why it is capped at 2 MB
+  before reading; programs are small.
