@@ -81,6 +81,9 @@ add the increment (2.5 kg barbell or machine, 2 kg per dumbbell); when any
 fell below the bottom, keep the weight; otherwise keep the weight and aim for
 one more rep. Bodyweight sets (0 kg) get no suggestion. A deload keeps two
 thirds of the exercise's sets at the same weights.
+While logging, an exercise whose working sets carry a planned rep range
+shows its suggestion; "Use" fills today's not-done working sets of the same
+rep range with it, never the warm-ups.
 
 **Rest** — The pause after a set before the next one, timed by the rest timer.
 The default rest is a setting; an exercise may set its own rest, which wins
