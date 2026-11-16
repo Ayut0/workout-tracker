@@ -37,13 +37,21 @@ export function filterByRange(
 }
 
 /**
+ * Which point of a run downsampling keeps: the highest ("max", so peaks such
+ * as records survive) or the latest ("last", which does not lean up or down,
+ * for measurements like body weight).
+ */
+export type DownsampleKeep = "max" | "last";
+
+/**
  * At most `maxPoints` points, in order. The first and last points are kept;
- * the rest are split into equal runs and each run keeps its highest value, so
- * peaks (records) survive. Short series are returned as they are.
+ * the rest are split into equal runs and each run keeps one point, by `keep`
+ * (the highest by default). Short series are returned as they are.
  */
 export function downsampleSeries(
 	data: readonly ChartDatum[],
 	maxPoints: number,
+	keep: DownsampleKeep = "max",
 ): readonly ChartDatum[] {
 	if (data.length <= maxPoints) return data;
 	const first = data[0];
@@ -58,7 +66,10 @@ export function downsampleSeries(
 		let best: ChartDatum | undefined;
 		for (let i = from; i < to; i++) {
 			const datum = middle[i];
-			if (datum && (best === undefined || datum.value > best.value)) {
+			if (
+				datum &&
+				(best === undefined || keep === "last" || datum.value > best.value)
+			) {
 				best = datum;
 			}
 		}
@@ -79,9 +90,10 @@ export function selectChartData(
 	series: readonly ChartDatum[],
 	range: ChartRangeId,
 	now: number,
+	keep: DownsampleKeep = "max",
 ): { data: readonly ChartDatum[]; sampled: boolean } {
 	const inRange = filterByRange(series, range, now);
-	const data = downsampleSeries(inRange, MAX_CHART_POINTS);
+	const data = downsampleSeries(inRange, MAX_CHART_POINTS, keep);
 	return { data, sampled: data.length < inRange.length };
 }
 

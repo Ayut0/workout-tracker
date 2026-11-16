@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { parseLocalDay } from "../db/bodyLog";
 import type { BodyEntry } from "../db/types";
 import {
 	buildBodySeries,
+	chartEndForDay,
 	formatBodyValue,
 	formatLocalDay,
 	parseBodyEntryForm,
@@ -35,6 +37,34 @@ describe("parseBodyEntryForm", () => {
 				waistCm: 80.5,
 			},
 		});
+	});
+
+	it("rejects a value beyond what a backup would accept", () => {
+		expect(
+			parseBodyEntryForm(
+				{ date: "2026-01-02", bodyWeight: "1001", waist: "" },
+				"kg",
+			),
+		).toMatchObject({ ok: false, field: "bodyWeight" });
+		// 2300 lb is about 1043 kg.
+		expect(
+			parseBodyEntryForm(
+				{ date: "2026-01-02", bodyWeight: "2300", waist: "" },
+				"lb",
+			),
+		).toMatchObject({ ok: false, field: "bodyWeight" });
+		expect(
+			parseBodyEntryForm(
+				{ date: "2026-01-02", bodyWeight: "", waist: "1001" },
+				"kg",
+			),
+		).toMatchObject({ ok: false, field: "waist" });
+		expect(
+			parseBodyEntryForm(
+				{ date: "2026-01-02", bodyWeight: "1000", waist: "1000" },
+				"kg",
+			),
+		).toMatchObject({ ok: true });
 	});
 
 	it("leaves out a measurement left blank", () => {
@@ -111,6 +141,15 @@ describe("parseBodyEntryForm", () => {
 		["waist", { date: "2026-01-02", bodyWeight: "70", waist: "-80" }],
 	] as const)("points at the %s field when it is not valid", (field, form) => {
 		expect(parseBodyEntryForm(form, "kg")).toMatchObject({ ok: false, field });
+	});
+});
+
+describe("chartEndForDay", () => {
+	it("is local midnight of the day, so that day's own entry is in range", () => {
+		const end = chartEndForDay("2026-11-16");
+
+		expect(end).toBe(new Date(2026, 10, 16).getTime());
+		expect(end).toBeGreaterThanOrEqual(parseLocalDay("2026-11-16") ?? 0);
 	});
 });
 

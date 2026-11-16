@@ -3,7 +3,12 @@
  * and body weight and waist over time. Body weight follows the weight unit
  * setting; waist is always in centimetres.
  */
-import { type BodyEntryInput, parseLocalDay } from "../db/bodyLog";
+import {
+	type BodyEntryInput,
+	MAX_BODY_WEIGHT_KG,
+	MAX_WAIST_CM,
+	parseLocalDay,
+} from "../db/bodyLog";
 import type { BodyEntry, WeightUnit } from "../db/types";
 import type { ChartDatum } from "./progress";
 import {
@@ -28,6 +33,14 @@ function pad(n: number): string {
 export function formatLocalDay(epochMs: number): string {
 	const d = new Date(epochMs);
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * The end of the chart ranges for a given "today": its local midnight, so the
+ * ranges follow the day shown rather than the moment the screen opened.
+ */
+export function chartEndForDay(today: string): number {
+	return parseLocalDay(today) ?? Date.now();
 }
 
 /** The body log form as typed: a day and two number fields. */
@@ -74,7 +87,10 @@ export function parseBodyEntryForm(
 	const typedWeight = weightText === "" ? undefined : parsePositive(weightText);
 	const bodyWeightKg =
 		typedWeight === undefined ? undefined : convertToKg(typedWeight, unit);
-	if (weightText !== "" && bodyWeightKg === undefined) {
+	if (
+		weightText !== "" &&
+		(bodyWeightKg === undefined || bodyWeightKg > MAX_BODY_WEIGHT_KG)
+	) {
 		return {
 			ok: false,
 			field: "bodyWeight",
@@ -82,7 +98,7 @@ export function parseBodyEntryForm(
 		};
 	}
 	const waistCm = waistText === "" ? undefined : parsePositive(waistText);
-	if (waistText !== "" && waistCm === undefined) {
+	if (waistText !== "" && (waistCm === undefined || waistCm > MAX_WAIST_CM)) {
 		return {
 			ok: false,
 			field: "waist",

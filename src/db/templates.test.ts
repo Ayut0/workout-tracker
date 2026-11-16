@@ -400,6 +400,25 @@ describe("warm-up sets (#65)", () => {
 		]);
 	});
 
+	it("store a planned set's warmup: false as no mark", async () => {
+		const created = await createTemplate(
+			{
+				name: "Push",
+				exercises: [
+					{
+						exerciseId: "bench",
+						sets: [{ weightKg: 40, warmup: false }],
+					},
+				],
+			},
+			database,
+		);
+		if (!created.ok) throw new Error("expected a template");
+		const set = created.template.exercises[0]?.sets[0];
+		expect(set).toEqual({ weightKg: 40 });
+		expect(set && "warmup" in set).toBe(false);
+	});
+
 	it("carry the mark from template to workout and back", async () => {
 		const created = await createTemplate(
 			{

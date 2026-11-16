@@ -40,6 +40,30 @@ describe("formatPreviousSet", () => {
 	});
 });
 
+describe("formatPreviousSet for a warm-up (#65)", () => {
+	it("is prefixed with W so it is not mistaken for a working set", () => {
+		expect(
+			formatPreviousSet({ weightKg: 40, reps: 10, warmup: true }, "kg"),
+		).toBe("W 40 kg × 10");
+		expect(formatPreviousSet({ reps: 12, warmup: true }, "kg", "reps")).toBe(
+			"W 12 reps",
+		);
+	});
+
+	it("is unchanged for a working set and stays undefined with nothing to show", () => {
+		expect(formatPreviousSet({ weightKg: 40, reps: 10 }, "kg")).toBe(
+			"40 kg × 10",
+		);
+		expect(formatPreviousSet({ warmup: true }, "kg")).toBeUndefined();
+	});
+
+	it("does not fill the mark into today's set", () => {
+		expect(
+			planFillFromPrevious({ weightKg: 40, reps: 10, warmup: true }),
+		).toEqual({ weightKg: 40, reps: 10 });
+	});
+});
+
 describe("planFillFromPrevious", () => {
 	it("copies the stored kilograms and reps unrounded", () => {
 		expect(planFillFromPrevious({ weightKg: 99.790321, reps: 5 })).toEqual({

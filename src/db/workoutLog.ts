@@ -268,28 +268,46 @@ export async function removeSet(
 }
 
 /** The set fields a user edits; `undefined` clears a field. */
+type SetField =
+	| "weightKg"
+	| "reps"
+	| "distanceM"
+	| "seconds"
+	| "rpe"
+	| "notes"
+	| "warmup";
+
 export type SetChanges = {
-	[K in
-		| "weightKg"
-		| "reps"
-		| "distanceM"
-		| "seconds"
-		| "rpe"
-		| "notes"
-		| "warmup"]?: WorkoutSet[K] | undefined;
+	[K in SetField]?: WorkoutSet[K] | undefined;
+} & {
+	/**
+	 * An RPE chip tap (#64): sets this RPE, or clears it when it is already the
+	 * stored one. Decided inside the write against the stored value, so two
+	 * quick taps cannot both read the same stale RPE from the screen.
+	 */
+	toggleRpe?: number;
 };
 
-/** Changes a set's measurements. Keys present with `undefined` are cleared. */
+/**
+ * Changes a set's measurements. Keys present with `undefined` are cleared;
+ * `toggleRpe` sets or clears the RPE against the stored value.
+ */
 export async function updateSet(
 	setId: string,
 	changes: SetChanges,
 	database: WorkoutDB = db,
 ): Promise<boolean> {
 	const updated = await database.sets.update(setId, (set) => {
+		if (changes.toggleRpe !== undefined) {
+			if (set.rpe === changes.toggleRpe) delete set.rpe;
+			else set.rpe = changes.toggleRpe;
+		}
 		for (const [key, value] of Object.entries(changes)) {
 			if (!isSetChangeKey(key)) continue;
-			if (value === undefined) delete set[key];
-			else Object.assign(set, { [key]: value });
+			// Only `true` is stored for a warm-up (ADR-0012): `false` clears it.
+			if (value === undefined || (key === "warmup" && value === false)) {
+				delete set[key];
+			} else Object.assign(set, { [key]: value });
 		}
 	});
 	return updated > 0;
@@ -303,9 +321,9 @@ const SET_CHANGE_KEYS = [
 	"rpe",
 	"notes",
 	"warmup",
-] as const satisfies readonly (keyof SetChanges)[];
+] as const satisfies readonly SetField[];
 
-function isSetChangeKey(key: string): key is keyof SetChanges {
+function isSetChangeKey(key: string): key is SetField {
 	return SET_CHANGE_KEYS.some((k) => k === key);
 }
 
