@@ -9,6 +9,14 @@ import type { BodyEntry } from "./types";
 /** What is saved for a day: the BodyEntry without its id. */
 export type BodyEntryInput = Omit<BodyEntry, "id">;
 
+/**
+ * The most a body log measurement may be: far above any real body, so it only
+ * stops typos and damaged or hand-edited backups. The form and the backup
+ * check use the same limits, so a restore accepts whatever the app can save.
+ */
+export const MAX_BODY_WEIGHT_KG = 1000;
+export const MAX_WAIST_CM = 1000;
+
 const LOCAL_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /**

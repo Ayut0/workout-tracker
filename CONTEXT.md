@@ -14,8 +14,10 @@ An exercise may also have **attributes**, all optional and from fixed lists:
 lats or quads; a muscle is one or the other, never both), a **movement
 pattern** (squat, hinge, horizontal push, vertical pull…), a **category**
 (strength, power, agility, mobility, core) and **equipment** (barbell,
-dumbbell, machine, cable, bodyweight, other). Equipment decides the
-progression increment when set; otherwise the name's suffix does.
+dumbbell, machine, cable, bodyweight, other). Equipment is meant to
+decide the progression increment when set, otherwise the name's suffix does;
+that takes effect once the progression suggestions use `deriveIncrementKg`
+(a later change), not yet.
 
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active
@@ -46,7 +48,8 @@ one. Its complete working sets (warm-ups never count) are judged in groups
 sharing a rep range: when every set of a group reached the top of the range,
 add the increment (2.5 kg barbell or machine, 2 kg per dumbbell); when any
 fell below the bottom, keep the weight; otherwise keep the weight and aim for
-one more rep. A deload keeps two thirds of the sets at the same weights.
+one more rep. Bodyweight sets (0 kg) get no suggestion. A deload keeps two
+thirds of the exercise's sets at the same weights.
 
 **Rest** — The pause after a set before the next one, timed by the rest timer.
 The default rest is a setting; an exercise may set its own rest, which wins
