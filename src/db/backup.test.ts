@@ -530,6 +530,19 @@ describe("workout sources and program links in a backup (ADR-0018)", () => {
 		expect(parseBackup(makeTemplateFile({ program: LINK })).ok).toBe(true);
 	});
 
+	it("keeps unknown keys inside a source and its program as stored", () => {
+		const source = {
+			templateId: "t",
+			templateName: "A",
+			extra: 1,
+			program: { ...LINK, note: "x" },
+		};
+		const parsed = parseBackup(makeWorkoutFile({ source }));
+		expect(parsed.ok).toBe(true);
+		if (parsed.ok)
+			expect(parsed.backup.data.workouts[0]?.source).toEqual(source);
+	});
+
 	it.each([
 		[
 			"a source that is not an object",
@@ -551,6 +564,49 @@ describe("workout sources and program links in a backup (ADR-0018)", () => {
 				},
 			}),
 			/Workout record 1: source: program: week must be a whole number, 1 or more/,
+		],
+		[
+			"a source that is null",
+			makeWorkoutFile({ source: null }),
+			/Workout record 1: source: must be an object/,
+		],
+		[
+			"a source's program with no program name",
+			makeWorkoutFile({
+				source: {
+					templateId: "t",
+					templateName: "A",
+					program: { programId: "p", block: 1, week: 2 },
+				},
+			}),
+			/Workout record 1: source: program: programName must be/,
+		],
+		[
+			"a source's program with a fractional block",
+			makeWorkoutFile({
+				source: {
+					templateId: "t",
+					templateName: "A",
+					program: { ...LINK, block: 1.5 },
+				},
+			}),
+			/Workout record 1: source: program: block must be a whole number, 1 or more/,
+		],
+		[
+			"a source's program with block 0",
+			makeWorkoutFile({
+				source: {
+					templateId: "t",
+					templateName: "A",
+					program: { ...LINK, block: 0 },
+				},
+			}),
+			/Workout record 1: source: program: block must be a whole number, 1 or more/,
+		],
+		[
+			"a template's program with no program name",
+			makeTemplateFile({ program: { programId: "p", block: 1, week: 2 } }),
+			/Template record 1: program: programName must be/,
 		],
 		[
 			"a template's program with a fractional block",

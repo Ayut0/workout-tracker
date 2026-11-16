@@ -702,6 +702,54 @@ describe("the program a workout came from (ADR-0018)", () => {
 		).toMatchObject({ templateName: "Generic block · W2 · A", program: LINK });
 	});
 
+	it("keeps its own copy of the program when the template's program changes", async () => {
+		const template = await createProgramTemplate();
+		const result = await startWorkoutFromTemplate(template.id, 1, database);
+		if (!result.ok) throw new Error("expected a workout");
+
+		// Change the template's program in memory and in the store.
+		const stored = await findTemplate(template.id, database);
+		if (!stored?.program) throw new Error("expected a program");
+		stored.program.week = 9;
+		stored.program.deload = true;
+		await database.templates.update(template.id, {
+			program: { ...LINK, week: 8, block: 3 },
+		});
+		await updateTemplate(
+			template.id,
+			{ name: "Renamed", exercises: PUSH },
+			database,
+		);
+
+		expect(result.workout.source?.program).toEqual(LINK);
+		expect(
+			(await database.workouts.get(result.workout.id))?.source?.program,
+		).toEqual(LINK);
+	});
+
+	it("does not share the source object it was started with", async () => {
+		const program = { ...LINK };
+		const source = { templateId: "t", templateName: "A", program };
+		const result = await startWorkout(
+			{ name: "A", startedAt: 1, source },
+			database,
+		);
+		if (!result.ok) throw new Error("expected a workout");
+		program.week = 9;
+		source.templateName = "Changed";
+
+		expect(result.workout.source).toEqual({
+			templateId: "t",
+			templateName: "A",
+			program: LINK,
+		});
+		expect((await database.workouts.get(result.workout.id))?.source).toEqual({
+			templateId: "t",
+			templateName: "A",
+			program: LINK,
+		});
+	});
+
 	it("keeps a template's program when the template is edited", async () => {
 		const template = await createProgramTemplate();
 		await updateTemplate(

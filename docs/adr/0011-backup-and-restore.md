@@ -35,7 +35,12 @@ changes no store or index.
   must be whole numbers; newer ones than the app reads are rejected with
   "made by a newer version of the app … update the app"; every store must be a
   list and every record must have the fields its type requires (ids non-empty
-  strings, numbers finite, settings unit `kg`/`lb`, template sets nested), with
+  strings, numbers finite, settings unit `kg`/`lb`, template sets nested, a
+  workout's optional `source` `{ templateId, templateName, program? }` and a
+  template's optional `program` `{ programId, programName, block, week, day?,
+  deload? }` with `block` and `week` whole numbers from 1; ADR-0018's Backup
+  section has the detail, including that the schema version was deliberately
+  not bumped for these optional fields), with
   no repeated id in a store and no two exercises sharing a `nameKey` (the
   unique index). The first problem is reported as "Workout record 3:
   startedAt must be a number." Unknown extra fields are kept as stored.

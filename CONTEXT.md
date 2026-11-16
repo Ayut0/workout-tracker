@@ -46,7 +46,7 @@ from, as a snapshot: editing or deleting the template never changes it.
 templates: **blocks** (from 1) of **weeks** (from 1 within the block), each
 week of **days** ("A", "B"). A template made from a program knows its
 program, block, week and day, and whether the week is a **deload**; a workout
-started from it records the same, shown as "Week 2 · Block 1".
+started from it records the same, shown as "Week 2 · Block 1 · Day A" (the day only when it has one).
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
 computed from its weight and reps by Epley: weight × (1 + reps / 30). A single
