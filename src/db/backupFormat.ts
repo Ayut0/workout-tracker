@@ -6,7 +6,7 @@ import {
 	type BackupData,
 	type BackupStore,
 } from "./backup";
-import { isLocalDay } from "./bodyLog";
+import { isLocalDay, MAX_BODY_WEIGHT_KG, MAX_WAIST_CM } from "./bodyLog";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
 import {
 	type BodyEntry,
@@ -193,11 +193,22 @@ const SETTINGS: Spec<SettingsRecord> = {
 const localDay: Check = (value) =>
 	isLocalDay(value) ? undefined : "must be a day (YYYY-MM-DD)";
 
+/** A number above zero and at most `max`, as the body log form requires. */
+function positiveUpTo(max: number): Check {
+	return (value) =>
+		typeof value === "number" &&
+		Number.isFinite(value) &&
+		value > 0 &&
+		value <= max
+			? undefined
+			: `must be a number above 0 and at most ${max}`;
+}
+
 const BODY_ENTRY: Spec<BodyEntry> = {
 	id,
 	date: localDay,
-	bodyWeightKg: optional(finite),
-	waistCm: optional(finite),
+	bodyWeightKg: optional(positiveUpTo(MAX_BODY_WEIGHT_KG)),
+	waistCm: optional(positiveUpTo(MAX_WAIST_CM)),
 };
 
 /** Reads one store's records, or says which record is wrong and how. */
@@ -251,7 +262,11 @@ function readData(data: RawData): BackupData | string {
 	}
 	// One body log entry per day (the &date index); a clash would fail the write.
 	const days = new Set<string>();
-	for (const entry of bodyEntries) {
+	for (const [i, entry] of bodyEntries.entries()) {
+		// An entry holds at least one measurement (ADR-0015).
+		if (entry.bodyWeightKg === undefined && entry.waistCm === undefined) {
+			return `${STORE_LABELS.bodyEntries} record ${i + 1}: needs at least one measurement (bodyWeightKg or waistCm).`;
+		}
 		if (days.has(entry.date)) {
 			return `Two body log entries are for the same day (${entry.date}).`;
 		}
