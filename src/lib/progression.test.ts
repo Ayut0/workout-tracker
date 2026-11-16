@@ -192,7 +192,7 @@ describe("suggestProgression", () => {
 		).toEqual([]);
 	});
 
-	it("on a deload keeps two thirds of each group's sets at the same weights and reps", () => {
+	it("on a deload keeps two thirds of the exercise's sets at their own weights and reps", () => {
 		const heavy = { repMin: 4, repMax: 6 };
 		const backOff = { repMin: 8, repMax: 10 };
 		const groups = suggestProgression({
@@ -204,11 +204,14 @@ describe("suggestProgression", () => {
 				{ ...done(100, 6), ...heavy },
 				{ ...done(80, 10), ...backOff },
 				{ ...done(80, 9), ...backOff },
+				{ ...done(80, 8), ...backOff },
 			],
 		});
+		// 6 working sets: the first 4 stay.
 		expect(groups[0]?.suggestion).toEqual({
 			action: "deload",
 			sets: [
+				{ weightKg: 100, reps: 6 },
 				{ weightKg: 100, reps: 6 },
 				{ weightKg: 100, reps: 6 },
 			],
@@ -216,6 +219,36 @@ describe("suggestProgression", () => {
 		expect(groups[1]?.suggestion).toEqual({
 			action: "deload",
 			sets: [{ weightKg: 80, reps: 10 }],
+		});
+	});
+
+	it("deloads a pyramid of three ranges across the exercise, group by group", () => {
+		const groups = suggestProgression({
+			...barbell,
+			deload: true,
+			sets: [
+				{ ...done(60, 12), repMin: 10, repMax: 12 },
+				{ ...done(80, 8), repMin: 6, repMax: 8 },
+				{ ...done(100, 5), repMin: 4, repMax: 6 },
+			],
+		});
+		// 3 sets: two stay; the last group keeps none.
+		expect(groups.map((g) => g.suggestion?.sets.length)).toEqual([1, 1, 0]);
+		expect(groups.every((g) => g.suggestion?.action === "deload")).toBe(true);
+	});
+
+	it("deloads without a rep range", () => {
+		const group = suggestOnlyGroup({
+			...barbell,
+			deload: true,
+			sets: [done(100, 6), done(100, 6), done(100, 6)],
+		});
+		expect(group.suggestion).toEqual({
+			action: "deload",
+			sets: [
+				{ weightKg: 100, reps: 6 },
+				{ weightKg: 100, reps: 6 },
+			],
 		});
 	});
 
@@ -283,6 +316,126 @@ describe("suggestProgression", () => {
 	});
 });
 
+describe("suggestProgression edge cases", () => {
+	const dumbbell = { repMin: 8, repMax: 12, incrementKg: 2 };
+
+	it("adds 2 kg to odd and half-kilo dumbbell weights without snapping", () => {
+		for (const [from, to] of [
+			[5, 7],
+			[7, 9],
+			[9, 11],
+			[12.5, 14.5],
+			[22.5, 24.5],
+		] as const) {
+			const group = suggestOnlyGroup({
+				...dumbbell,
+				sets: [done(from, 12), done(from, 12)],
+			});
+			expect(group.suggestion?.sets[0]?.weightKg).toBe(to);
+		}
+	});
+
+	it("still rounds a barbell raise to the plate grid, and lb to 5 lb", () => {
+		const barbellGroup = suggestOnlyGroup({
+			...range,
+			...barbell,
+			sets: [done(100, 6)],
+		});
+		expect(barbellGroup.suggestion?.sets[0]?.weightKg).toBe(102.5);
+		const lbGroup = suggestOnlyGroup({
+			...range,
+			incrementKg: 2.5,
+			unit: "lb",
+			sets: [done(100, 6)],
+		});
+		// The grid follows the unit, not incrementKg: 225 lb, loadable.
+		expect(lbGroup.suggestion?.sets[0]?.weightKg).toBeCloseTo(
+			225 * KG_PER_LB,
+			9,
+		);
+	});
+
+	it("judges mixed weights in a group together", () => {
+		const group = suggestOnlyGroup({
+			...range,
+			...barbell,
+			sets: [done(100, 6), done(95, 6), done(90, 6)],
+		});
+		expect(group.suggestion).toEqual({
+			action: "increase",
+			sets: [
+				{ weightKg: 102.5, reps: 4 },
+				{ weightKg: 97.5, reps: 4 },
+				{ weightKg: 92.5, reps: 4 },
+			],
+		});
+	});
+
+	it("groups sets by range across the exercise, not only consecutive ones", () => {
+		const heavy = { repMin: 4, repMax: 6 };
+		const backOff = { repMin: 8, repMax: 10 };
+		const groups = suggestProgression({
+			...barbell,
+			sets: [
+				{ ...done(100, 6), ...heavy },
+				{ ...done(80, 9), ...backOff },
+				{ ...done(100, 4), ...heavy },
+			],
+		});
+		expect(groups).toHaveLength(2);
+		expect(groups[0]).toMatchObject({ repMin: 4, repMax: 6 });
+		expect(groups[0]?.sets).toHaveLength(2);
+		// 6 and 4 reps: not all at repMax, so no raise.
+		expect(groups[0]?.suggestion?.action).toBe("addRep");
+		expect(groups[1]).toMatchObject({ repMin: 8, repMax: 10 });
+	});
+
+	it("gives no raise for a zero, negative or non-finite increment", () => {
+		for (const incrementKg of [0, -2.5, Number.NaN, Infinity]) {
+			const group = suggestOnlyGroup({
+				...range,
+				incrementKg,
+				sets: [done(100, 6), done(100, 6)],
+			});
+			expect(group.suggestion).toEqual({
+				action: "keep",
+				sets: [
+					{ weightKg: 100, reps: 6 },
+					{ weightKg: 100, reps: 6 },
+				],
+			});
+		}
+	});
+
+	it("takes a set's own range only when it has both ends", () => {
+		const group = suggestOnlyGroup({
+			...range,
+			...barbell,
+			sets: [{ ...done(100, 6), repMin: 8 }],
+		});
+		expect(group).toMatchObject({ repMin: 4, repMax: 6 });
+		expect(group.suggestion?.action).toBe("increase");
+	});
+
+	it("treats 0 kg (bodyweight) like no weight: no suggestion", () => {
+		const group = suggestOnlyGroup({
+			...range,
+			...barbell,
+			sets: [done(0, 6), done(0, 6)],
+		});
+		expect(group.suggestion).toBeUndefined();
+	});
+
+	it("still raises an exercise after sets were abandoned (incomplete sets are dropped)", () => {
+		const group = suggestOnlyGroup({
+			...range,
+			...barbell,
+			sets: [done(100, 6), { weightKg: 100, reps: 0 }, { weightKg: 100 }],
+		});
+		expect(group.suggestion?.action).toBe("increase");
+	});
+});
+
 describe("deriveIncrementKg", () => {
 	it("is 2.5 kg for a barbell, 2 kg per dumbbell, 2.5 kg for a machine", () => {
 		expect(deriveIncrementKg("Bench Press (Barbell)")).toBe(2.5);
@@ -295,8 +448,9 @@ describe("deriveIncrementKg", () => {
 		expect(deriveIncrementKg("Row (Cable)")).toBe(2.5);
 	});
 
-	it("matches the suffix ignoring case and trailing space", () => {
+	it("matches the mark ignoring case, anywhere in the name", () => {
 		expect(deriveIncrementKg("curl (dumbbell) ")).toBe(2);
+		expect(deriveIncrementKg("Curl (Dumbbell) - incline")).toBe(2);
 	});
 
 	it("uses the exercise's equipment when it has one", () => {

@@ -88,6 +88,7 @@ function MeasureInput({
 			autoComplete="off"
 			placeholder="–"
 			aria-label={`${label} ${describeFieldInput(field, weightUnit)}`}
+			aria-invalid={!readFieldInput(field, input.value, weightUnit).ok}
 			{...input}
 		/>
 	);

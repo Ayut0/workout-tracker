@@ -84,7 +84,7 @@ export function SetRow({
 				<RpeChips
 					rpe={set.rpe}
 					label={label}
-					onChange={(rpe) => onChange({ rpe })}
+					onToggle={(tapped) => onChange({ toggleRpe: tapped })}
 				/>
 			</div>
 		</li>

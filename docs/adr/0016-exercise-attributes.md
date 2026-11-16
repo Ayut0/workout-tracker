@@ -52,15 +52,19 @@ which a lifter cannot set on an exercise named without one.
   overwriting the first with attributes read before it. Not offered when adding an exercise, to keep
   that form short; the Strong import and the exercise picker create
   exercises without attributes.
-- **Equipment decides the progression increment when set.**
+- **Equipment will decide the progression increment when set.**
   `deriveIncrementKg` now takes an exercise (`{ name, equipment? }`) or, as
   before, a name. Dumbbell equipment gives 2 kg per dumbbell; any other
   equipment gives one plate step (2.5 kg), even if the name says
   "(Dumbbell)". With no equipment it falls back to the name's suffix
   (ADR-0013). In pounds every step is still 5 lb. This refines ADR-0013's
-  increment, not its rule.
+  increment, not its rule. Nothing calls it with an exercise yet: the
+  equipment takes effect once the progression suggestions UI uses
+  `deriveIncrementKg`, in a later PR of this stack, not with this change.
 - **Backup** (ADR-0011): `parseBackup` checks each muscle list is a list of
-  known muscle groups and the other three are known values, when present.
+  known muscle groups, none twice in a list, none in both lists and neither
+  list empty (the app never writes those, and a restore would otherwise break
+  "primary or secondary, never both"), and the other three are known values, when present.
   Backups made before #72 have none of them and restore unchanged; the
   backup schema version is not bumped, as the stored shape only gains
   optional fields.
