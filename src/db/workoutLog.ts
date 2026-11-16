@@ -287,8 +287,10 @@ export async function updateSet(
 	const updated = await database.sets.update(setId, (set) => {
 		for (const [key, value] of Object.entries(changes)) {
 			if (!isSetChangeKey(key)) continue;
-			if (value === undefined) delete set[key];
-			else Object.assign(set, { [key]: value });
+			// Only `true` is stored for a warm-up (ADR-0012): `false` clears it.
+			if (value === undefined || (key === "warmup" && value === false)) {
+				delete set[key];
+			} else Object.assign(set, { [key]: value });
 		}
 	});
 	return updated > 0;

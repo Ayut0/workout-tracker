@@ -28,7 +28,9 @@ measure hides values already logged but keeps them. A set is complete once
 marked done. A set may be marked by hand as a **warm-up** ("W"); a set that is
 not is a working set. Only complete working sets count towards Volume,
 Estimated 1RM, personal records and progression, which use weight × reps
-alone, so a warm-up, or a reps, seconds or distance set, adds nothing.
+alone, so a warm-up, or a reps, seconds or distance set, adds nothing. Only
+`true` is stored for the mark. The Previous column keeps a past warm-up but
+shows it as "W 40 kg × 10", since tapping it fills a working set.
 
 **Template** — A reusable plan for a workout: exercises in order, each with
 planned sets (weight and reps, or reps, seconds or distance, following the
