@@ -58,17 +58,23 @@ decisions; each section belongs to one issue:
 
 - **Fields.** `repMin?`, `repMax?` and `targetRir?` on both `TemplateSet` and
   `WorkoutSet` (the shared `PlannedTargets` type). Optional and not indexed:
-  no Dexie version (ADR-0002). Whole numbers, 0 or more; a range has both
-  ends or neither, and `repMin` is not above `repMax`.
+  no Dexie version (ADR-0002). Whole numbers: `repMin` and `repMax` 1 to 999,
+  `targetRir` 0 to 99 (`MAX_REPS`, `MAX_RIR`); a range has both ends or
+  neither, and `repMin` is not above `repMax`. The caps keep a typo from
+  becoming a value JSON cannot hold (a huge number is written as null).
 - **Stored on the workout's sets, copied like weight and reps** (ADR-0010).
   Starting from a template copies a planned set's targets into the new set,
   so the Progression rule (ADR-0013, `src/lib/progression.ts`) reads the range
-  from the last workout's sets without a link to the template. Copying goes
-  through `planNextSet`, which therefore also carries the targets into a set
-  added during a workout, into a planned set added in the editor, and back
-  into a template saved from a workout: an extra set aims for what the set
-  before it aimed for. Filling a set from the Previous column copies
-  measurements only, never targets.
+  from the last workout's sets without a link to the template. Targets are
+  copied only from a template: `copyPlannedSet` (start a workout, and a
+  completed set back into a template saved from a workout) and
+  `planNextTemplateSet` (a planned set added in the editor, which is
+  planning, so it aims for what the set before it aimed for). `planNextSet`,
+  used by `addSet` while logging, copies measurements only: a set added
+  mid-workout was not planned, and a back-off set (say 60 kg for 3 reps after
+  2 x 100 kg for 4-6) must not join the working sets' group and be judged
+  against their range by Progression. Filling a set from the Previous column
+  copies measurements only, never targets.
 - **Only for measures that count reps** (`plansTargets`: weight-reps and
   reps). A rep range means nothing to a plank or a carry, so seconds and
   distance sets neither show nor copy targets; values already stored are
@@ -76,16 +82,18 @@ decisions; each section belongs to one issue:
 - **Entry.** Each planned set in the template editor has a "Rep range" field
   and an "RIR" field under its measurements. A single number plans exactly
   that many reps (`8` is stored as 8–8, shown as "8"); `6-8`, `6–8` or
-  `6 to 8` plans a range; blank clears it. A range with its ends swapped, a
-  fraction or a negative number is not saved, and the field is marked
-  invalid until it loses focus, when it shows the stored value again. Parsing
-  and formatting live in `src/lib/plannedTargets.ts`.
+  `6 to 8` plans a range (also `6~8`, a minus sign, and full-width digits
+  from a Japanese keyboard); blank clears it. A range with its ends swapped,
+  a fraction, a negative number, 0 reps or a value over the cap is not
+  saved: the field keeps its last good stored value and stays marked invalid,
+  also after it loses focus, until the text reads or is cleared. Parsing and
+  formatting live in `src/lib/plannedTargets.ts`.
 - **Shown read-only while logging**, as a line under the set's inputs:
   "Target 4–6 reps · RIR 2" (`SetTargets`). History shows the same. The
   targets are edited in the template, not in the workout, for the MVP.
 - **Backup** (ADR-0011): `parseBackup` checks the three fields on template
-  sets and workout sets (whole numbers, 0 or more) and checks the range
-  across fields (both ends, bottom not above top) with a per-record rule.
+  sets and workout sets (whole numbers within the caps above, so a backup the app writes always
+  passes) and checks the range across fields (both ends, bottom not above top) with a per-record rule.
   Older backups have none and restore unchanged; the schema version does not
   change.
 
@@ -97,4 +105,4 @@ decisions; each section belongs to one issue:
   not stored anywhere yet; until it is, Progression only judges sets planned
   with a range.
 - A workout not started from a template has no targets, so Progression has
-  nothing to judge for it unless its sets were added after a targeted set.
+  nothing to judge for it, and neither do sets added during a workout.

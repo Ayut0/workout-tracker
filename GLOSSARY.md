@@ -43,7 +43,8 @@ have **targets**: a rep range (such as 4–6, or a single number such as 8) and
 a target RIR, the reps to leave in reserve. Starting a workout from a template
 copies its exercises, sets, targets and notes into the workout; nothing links
 them afterwards, so the notes and targets show read-only while logging, and
-Progression reads a set's rep range from the set itself.
+Progression reads a set's rep range from the set itself. A set added during a
+workout has no targets: only the template plans them.
 
 **Estimated 1RM** — The heaviest single rep a set suggests the lifter could do,
 computed from its weight and reps by Epley: weight × (1 + reps / 30). A single

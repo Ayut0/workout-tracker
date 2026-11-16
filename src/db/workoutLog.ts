@@ -464,8 +464,8 @@ export type PlannedSet = Pick<
  * measure shows (ADR-0012): weight and reps, reps, seconds or distance, and
  * nothing else (no RPE or notes), so a straight set is one tap to confirm.
  * Values kept hidden after a measure change are not carried into new sets.
- * A measure with reps also carries the planned rep range and target RIR
- * (ADR-0014): an added set aims for what the set before it aimed for.
+ * Planned targets are not carried (ADR-0014): a set added mid-workout was not
+ * planned, and a back-off set must not be judged against the working range.
  * The first set starts empty. A warm-up mark is not carried: the set after a
  * warm-up is usually a working set (#65).
  */
@@ -478,6 +478,19 @@ export function planNextSet(
 		const value = last?.[field];
 		if (value !== undefined) planned[field] = value;
 	}
+	return planned;
+}
+
+/**
+ * A planned set added after `last` in a template (ADR-0014): the measurements
+ * (planNextSet) plus the rep range and target RIR of the set before, for
+ * measures that count reps. Planning, unlike logging, keeps the aim.
+ */
+export function planNextTemplateSet(
+	last: PlannedSet | undefined,
+	measure: SetMeasure,
+): PlannedSet {
+	const planned = planNextSet(last, measure);
 	if (plansTargets(measure)) {
 		for (const field of PLANNED_TARGET_FIELDS) {
 			const value = last?.[field];
@@ -489,14 +502,15 @@ export function planNextSet(
 
 /**
  * Copies a planned set (from a template) into a new set record, or a complete
- * set into a template: what the measure shows (planNextSet) and the warm-up
- * mark (#65), so warm-ups stay warm-ups from template to workout and back.
+ * set into a template: what the measure shows, the planned targets
+ * (ADR-0014) and the warm-up mark (#65), so warm-ups and targets stay with
+ * the set from template to workout and back.
  */
 export function copyPlannedSet(
 	set: PlannedSet,
 	measure: SetMeasure,
 ): PlannedSet {
-	const planned = planNextSet(set, measure);
+	const planned = planNextTemplateSet(set, measure);
 	if (set.warmup) planned.warmup = true;
 	return planned;
 }

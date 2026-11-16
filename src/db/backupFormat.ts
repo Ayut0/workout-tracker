@@ -15,15 +15,17 @@ import {
 	SET_MEASURES,
 } from "./constants";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
-import type {
-	BodyEntry,
-	Exercise,
-	Template,
-	TemplateExercise,
-	TemplateSet,
-	Workout,
-	WorkoutExercise,
-	WorkoutSet,
+import {
+	MAX_REPS,
+	MAX_RIR,
+	type BodyEntry,
+	type Exercise,
+	type Template,
+	type TemplateExercise,
+	type TemplateSet,
+	type Workout,
+	type WorkoutExercise,
+	type WorkoutSet,
 } from "./types";
 import { tidyNotes } from "./workoutLog";
 
@@ -104,10 +106,12 @@ const flag: Check = (value) =>
 const integer: Check = (value) =>
 	Number.isInteger(value) ? undefined : "must be a whole number";
 
-const count: Check = (value) =>
-	Number.isInteger(value) && Number(value) >= 0
-		? undefined
-		: "must be a whole number, 0 or more";
+const boundedCount =
+	(min: number, max: number): Check =>
+	(value) =>
+		Number.isInteger(value) && Number(value) >= min && Number(value) <= max
+			? undefined
+			: `must be a whole number, ${min} to ${max}`;
 
 function optional(check: Check): Check {
 	return (value) => (value === undefined ? undefined : check(value));
@@ -216,7 +220,7 @@ const WORKOUT_EXERCISE: Spec<WorkoutExercise> = {
 
 /**
  * A planned rep range (ADR-0014) has both ends or neither, and its bottom is
- * not above its top. Each end is already known to be a count.
+ * not above its top. Each end is already known to be 1 to MAX_REPS.
  */
 const repRange: Rule = ({ repMin, repMax }) => {
 	if ((repMin === undefined) !== (repMax === undefined)) {
@@ -227,6 +231,9 @@ const repRange: Rule = ({ repMin, repMax }) => {
 	}
 	return undefined;
 };
+
+const repsBound = boundedCount(1, MAX_REPS);
+const rirBound = boundedCount(0, MAX_RIR);
 
 const SET: Spec<WorkoutSet> = {
 	id,
@@ -242,9 +249,9 @@ const SET: Spec<WorkoutSet> = {
 	warmup: optional(flag),
 	completedAt: optional(finite),
 	// Planned targets copied from a template (ADR-0014); absent before #69.
-	repMin: optional(count),
-	repMax: optional(count),
-	targetRir: optional(count),
+	repMin: optional(repsBound),
+	repMax: optional(repsBound),
+	targetRir: optional(rirBound),
 };
 
 const TEMPLATE_SET: Spec<TemplateSet> = {
@@ -253,9 +260,9 @@ const TEMPLATE_SET: Spec<TemplateSet> = {
 	seconds: optional(finite),
 	distanceM: optional(finite),
 	warmup: optional(flag),
-	repMin: optional(count),
-	repMax: optional(count),
-	targetRir: optional(count),
+	repMin: optional(repsBound),
+	repMax: optional(repsBound),
+	targetRir: optional(rirBound),
 };
 
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {

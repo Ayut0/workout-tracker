@@ -526,6 +526,13 @@ describe("planned targets in a backup (ADR-0014)", () => {
 		expect(parsed.ok).toBe(true);
 	});
 
+	it("accept the largest range and RIR the app can write", () => {
+		expect(
+			parseBackup(makeWorkoutSetFile({ repMin: 1, repMax: 999, targetRir: 99 }))
+				.ok,
+		).toBe(true);
+	});
+
 	it("accept a single-number range and a target RIR of 0", () => {
 		expect(
 			parseBackup(makeWorkoutSetFile({ repMin: 8, repMax: 8, targetRir: 0 }))
@@ -547,7 +554,7 @@ describe("planned targets in a backup (ADR-0014)", () => {
 		[
 			"a template set's negative target RIR",
 			makeTemplateSetFile({ targetRir: -1 }),
-			/sets item 1: targetRir must be a whole number, 0 or more/,
+			/sets item 1: targetRir must be a whole number, 0 to 99/,
 		],
 		[
 			"a workout set's range with its ends swapped",
@@ -557,7 +564,7 @@ describe("planned targets in a backup (ADR-0014)", () => {
 		[
 			"a workout set's fractional rep range",
 			makeWorkoutSetFile({ repMin: 6.5, repMax: 8 }),
-			/Set record 1: repMin must be a whole number, 0 or more/,
+			/Set record 1: repMin must be a whole number, 1 to 999/,
 		],
 		[
 			"a workout set's range with one end",
@@ -567,7 +574,22 @@ describe("planned targets in a backup (ADR-0014)", () => {
 		[
 			"a workout set's target RIR that is not a number",
 			makeWorkoutSetFile({ targetRir: "2" }),
-			/Set record 1: targetRir must be a whole number, 0 or more/,
+			/Set record 1: targetRir must be a whole number, 0 to 99/,
+		],
+		[
+			"a workout set's range of 0",
+			makeWorkoutSetFile({ repMin: 0, repMax: 0 }),
+			/Set record 1: repMin must be a whole number, 1 to 999/,
+		],
+		[
+			"a template set's rep range above the cap",
+			makeTemplateSetFile({ repMin: 6, repMax: 1000 }),
+			/sets item 1: repMax must be a whole number, 1 to 999/,
+		],
+		[
+			"a workout set's target RIR above the cap",
+			makeWorkoutSetFile({ targetRir: 100 }),
+			/Set record 1: targetRir must be a whole number, 0 to 99/,
 		],
 	])("reject %s", (_name, text, reason) => {
 		const parsed = parseBackup(text);

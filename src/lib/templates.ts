@@ -1,6 +1,6 @@
 import type { TemplateFromWorkoutResult } from "../db/templates";
 import type { SetMeasure, TemplateExercise, TemplateSet } from "../db/types";
-import { moveItem, planNextSet } from "../db/workoutLog";
+import { moveItem, planNextTemplateSet } from "../db/workoutLog";
 
 /**
  * Pure edits to a template's planned exercises while the editor holds them
@@ -45,7 +45,7 @@ export function appendPlannedSet(
 ): TemplateExercise[] {
 	return updateExerciseSets(exercises, exerciseIndex, (sets) => [
 		...sets,
-		planNextSet(sets.at(-1), measure),
+		planNextTemplateSet(sets.at(-1), measure),
 	]);
 }
 
