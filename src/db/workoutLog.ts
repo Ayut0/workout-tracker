@@ -79,6 +79,7 @@ export async function startWorkout(
 					order,
 					exercise.sets.map((set) => copyPlannedSet(set, measure)),
 					database,
+					tidyNotes(exercise.notes),
 				);
 			}
 			return { ok: true, workout };
@@ -392,12 +393,14 @@ async function insertWorkoutExercise(
 	order: number,
 	sets: PlannedSet[],
 	database: WorkoutDB,
+	notes?: string,
 ): Promise<WorkoutExerciseDetail> {
 	const workoutExercise: WorkoutExercise = {
 		id: crypto.randomUUID(),
 		workoutId,
 		exerciseId,
 		order,
+		...(notes === undefined ? {} : { notes }),
 	};
 	await database.workoutExercises.add(workoutExercise);
 	const records: WorkoutSet[] = sets.map((planned, setOrder) => ({
@@ -478,6 +481,15 @@ export function copyPlannedSet(
 	const planned = planNextSet(set, measure);
 	if (set.warmup) planned.warmup = true;
 	return planned;
+}
+
+/**
+ * Exercise notes as stored (ADR-0014): trimmed, and none at all when blank,
+ * so a cleared note leaves no empty field behind.
+ */
+export function tidyNotes(notes: string | undefined): string | undefined {
+	const trimmed = notes?.trim();
+	return trimmed ? trimmed : undefined;
 }
 
 /** An exercise's measure; a missing exercise or measure logs weight and reps. */

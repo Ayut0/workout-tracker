@@ -8,6 +8,7 @@ import {
 } from "../../db/types";
 import type { SetChanges } from "../../db/workoutLog";
 import { describeFieldColumn } from "../../lib/setMeasure";
+import { ExerciseNotes } from "./ExerciseNotes";
 import { SetRow } from "./SetRow";
 
 type ExerciseCardProps = {
@@ -94,6 +95,7 @@ export function ExerciseCard({
 					</button>
 				</div>
 			</div>
+			<ExerciseNotes notes={entry.workoutExercise.notes} />
 			<div className={gridClass}>
 				<div className="set-head" aria-hidden="true">
 					<span>Set</span>

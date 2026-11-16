@@ -8,6 +8,8 @@ import {
 	moveTemplateExercise,
 	removePlannedSet,
 	removeTemplateExercise,
+	setTemplateExerciseNotes,
+	templateNotesRows,
 	updatePlannedSet,
 } from "./templates";
 
@@ -127,5 +129,42 @@ describe("describeTemplateFromWorkout", () => {
 		expect(
 			describeTemplateFromWorkout({ ok: false, reason: "not-found" }),
 		).toMatch(/no longer exists/);
+	});
+});
+
+describe("template exercise notes (ADR-0014)", () => {
+	it("sets, keeps as typed and clears an exercise's notes", () => {
+		const noted = setTemplateExerciseNotes(DRAFT, 0, "seat 4 ");
+		expect(noted[0]).toEqual({ ...DRAFT[0], notes: "seat 4 " });
+		expect(noted[1]).toBe(DRAFT[1]);
+
+		const cleared = setTemplateExerciseNotes(noted, 0, "");
+		expect(cleared[0]).toEqual(DRAFT[0]);
+		expect(Object.hasOwn(cleared[0] ?? {}, "notes")).toBe(false);
+	});
+
+	it("keeps whitespace-only text while typing; blanks drop at save", () => {
+		for (const typed of [" ", "\n", "  \n "]) {
+			const draft = setTemplateExerciseNotes(DRAFT, 0, typed);
+			expect(draft[0]?.notes).toBe(typed);
+		}
+	});
+
+	it("sizes the notes field from its line count, at least two rows", () => {
+		expect(templateNotesRows(undefined)).toBe(2);
+		expect(templateNotesRows("one line")).toBe(2);
+		expect(templateNotesRows("a\nb\nc")).toBe(3);
+		expect(templateNotesRows("a\nb\nc\n")).toBe(4);
+	});
+
+	it("are kept when the exercise's sets are edited", () => {
+		const noted = setTemplateExerciseNotes(DRAFT, 0, "seat 4");
+		const edited = updatePlannedSet(
+			appendPlannedSet(removePlannedSet(noted, 0, 1), 0, "weight-reps"),
+			0,
+			0,
+			{ reps: 10 },
+		);
+		expect(edited[0]?.notes).toBe("seat 4");
 	});
 });

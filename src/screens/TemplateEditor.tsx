@@ -23,6 +23,7 @@ import {
 	moveTemplateExercise,
 	removePlannedSet,
 	removeTemplateExercise,
+	setTemplateExerciseNotes,
 	updatePlannedSet,
 } from "../lib/templates";
 
@@ -196,6 +197,11 @@ function TemplateForm({ templateId, initial }: TemplateFormProps) {
 					}
 					onRemove={() =>
 						setExercises((current) => removeTemplateExercise(current, index))
+					}
+					onNotesChange={(notes) =>
+						setExercises((current) =>
+							setTemplateExerciseNotes(current, index, notes),
+						)
 					}
 					onAddSet={() =>
 						setExercises((current) =>
