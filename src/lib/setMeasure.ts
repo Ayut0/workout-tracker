@@ -42,8 +42,12 @@ export function describeMeasure(measure: SetMeasure): string {
 	}
 }
 
-/** A set's time: "45 s" under a minute, else "1:35". */
-export function formatSetSeconds(seconds: number): string {
+/**
+ * A set's time: "45 s" under a minute, else "1:35". Fractional seconds (a
+ * Strong import can hold them) are rounded first, so 59.6 shows "1:00".
+ */
+export function formatSetSeconds(stored: number): string {
+	const seconds = Math.round(stored);
 	if (seconds < SECONDS_PER_MINUTE) return `${seconds} s`;
 	const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
 	const rest = seconds % SECONDS_PER_MINUTE;
@@ -102,8 +106,10 @@ export function formatFieldInput(
 		case "distanceM":
 			return String(roundForDisplay(value));
 		case "reps":
-		case "seconds":
 			return String(value);
+		case "seconds":
+			// Whole seconds, the only form readSecondsField takes back.
+			return String(Math.round(value));
 	}
 }
 

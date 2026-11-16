@@ -33,6 +33,15 @@ Each section below belongs to one issue; later issues add sections:
   metres (ADR-0002); time is typed as whole seconds ("45") or m:ss ("1:30")
   and stored as seconds. The set row, its column headings, the Previous
   column and a template's planned sets all follow the exercise's measure.
+- **Typed values are capped.** Digit-only input is unbounded ("9" typed 400
+  times becomes `Infinity`, which JSON writes as null and `parseBackup`
+  rejects), so the readers in `src/lib/workoutLog.ts` reject anything above
+  9,999 reps, 86,400 seconds (24 h) or 1,000,000 m, and anything not finite.
+  The time field takes whole seconds or m:ss only; "1:30:00" and "1:5" are
+  invalid (the input shows the invalid state), and a hold longer than an hour
+  is typed as plain seconds. A stored fractional time (the Strong import can
+  hold 65.5) is shown rounded to whole seconds, in the input and in the
+  Previous column ("1:06"), so what is shown can always be typed back.
 - **A carry is distance only for the MVP.** A loaded carry's weight is not
   shown under the distance measure. A `"weight-distance"` (or weighted
   seconds) measure can be added to the union later without a schema change;
@@ -64,6 +73,9 @@ Each section below belongs to one issue; later issues add sections:
 
 ### Consequences
 
+- `src/lib/progression.ts` reads `weightKg` and `reps` only; when it is wired
+  into the app it must skip exercises whose measure is not `"weight-reps"`.
+
 - Progress charts (Estimated 1RM, Volume) show nothing useful for a seconds
   or distance exercise; charting best time or distance is a follow-up.
 - The Strong import still creates every exercise as weight-reps. Its seconds
@@ -93,8 +105,19 @@ Each section below belongs to one issue; later issues add sections:
   chip (tapping 8 or 9 replaces 8.5 with that value). Half-highlighting both
   8 and 9 was rejected: it reads as two selections and does not say which
   value is stored.
-- The toggle and what the row shows are pure functions in `src/lib/rpe.ts`
-  (`toggleRpe`, `describeRpeChips`); `RpeChips` only renders them.
+- **The stored value is shown as stored.** The dashed chip prints the value
+  unrounded (8.04 shows "8.04", not "8"), so it never looks like the
+  unselected chip 8 beside it; a value that is not exactly a chip selects no
+  chip, and tapping a chip sets it.
+- **Set-or-clear is decided inside the write.** A chip tap calls
+  `updateSet(id, { toggleRpe: n })`, which compares against the RPE stored in
+  the transaction. Deciding from the rendered props would let two quick taps
+  (before the live query re-renders) both compute "set".
+- What the row shows is a pure function in `src/lib/rpe.ts`
+  (`describeRpeChips`, `rpeOtherLabel`); `RpeChips` only renders it.
+- Chips are 44px tall like the other controls of the set row and wrap
+  rather than shrink at 320px. The group is named per set (`<set> RPE`) and
+  the dashed chip reads "RPE 8.5".
 - **No schema or backup change.** `WorkoutSet.rpe` already exists
   (ADR-0002) and `parseBackup` already checks it is a number when present.
   RPE is not copied into new sets (`planNextSet`) or templates, and the
@@ -111,8 +134,10 @@ Each section below belongs to one issue; later issues add sections:
 
 - **`WorkoutSet.warmup?: boolean`, marked by hand.** Optional and not
   indexed, so no Dexie version (ADR-0002). Only `true` is stored; clearing
-  the mark deletes the field (`updateSet` with `warmup: undefined`), so a
-  working set looks as it did before #65. Nothing infers a warm-up from a
+  the mark deletes the field (`updateSet` with `warmup: undefined` or
+  `false`), so a working set looks as it did before #65. Planned sets
+  normalise the same way (`copyTemplateSet`, `copyPlannedSet`), and a
+  restore drops a `warmup: false` from a hand-edited or foreign backup. Nothing infers a warm-up from a
   lighter weight: the lifter decides.
 - **A "W" toggle on every set** — active workout, a past workout's edit view
   and a template's planned sets — on the set row's second line, before the
@@ -137,9 +162,14 @@ Each section below belongs to one issue; later issues add sections:
   N done last time; a workout started from the same template has its
   warm-ups in the same places, so leaving them out would misalign the
   working sets instead. Filling from Previous copies measurements only, never
-  the mark (#28's rule).
+  the mark (#28's rule), so a past warm-up's hint is prefixed "W" (e.g.
+  "W 40 kg × 10", `formatPreviousSet`): tapping it fills a working set with
+  warm-up numbers, and the prefix says so. A workout whose only complete sets
+  are warm-ups still counts as "last time"; skipping it would show an older
+  workout's numbers for a lift done more recently.
 - **Backup** (ADR-0011): `parseBackup` checks `warmup` is true or false
-  when present on sets and template sets. Backups made before #65 have none
+  when present on sets and template sets, and drops a `false` so only `true`
+  is stored. Backups made before #65 have none
   and restore as working sets.
 
 ### Consequences
@@ -148,5 +178,10 @@ Each section below belongs to one issue; later issues add sections:
   (ADR-0006), but the import does not read it yet: imported warm-ups count
   as working sets until marked by hand. Reading it is a follow-up, kept out
   of #65 because it changes the import's writes (an Escalation path).
+  Follow-up: in `src/db/strongImport.ts` (parser in `src/lib/strongCsv.ts`),
+  read a "W" in the Set Order column as `warmup: true` on that set, and
+  number the working sets after it from 1 as Strong does; test with a
+  Strong export that has warm-ups, and record it in an ADR as an Escalation
+  change (import writes).
 - Each planned set in the template editor gains a second line for the "W"
   toggle.

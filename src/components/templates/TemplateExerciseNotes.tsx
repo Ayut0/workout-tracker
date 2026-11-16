@@ -1,10 +1,11 @@
 import { useId } from "react";
+import { templateNotesRows } from "../../lib/templates";
 
 type TemplateExerciseNotesProps = {
 	/** The exercise's name, to label the field. */
 	name: string;
 	notes: string | undefined;
-	/** Emits the text as typed; blank text clears the notes. */
+	/** Emits the text as typed; only empty text clears the notes. */
 	onChange: (notes: string) => void;
 };
 
@@ -27,7 +28,7 @@ export function TemplateExerciseNotes({
 			<textarea
 				id={id}
 				className="text-input notes-input"
-				rows={1}
+				rows={templateNotesRows(notes)}
 				autoCapitalize="sentences"
 				placeholder="Notes, e.g. seat 4, pause at the bottom"
 				value={notes ?? ""}

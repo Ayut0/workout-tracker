@@ -15,7 +15,7 @@ import {
 } from "./workoutLog";
 
 /**
- * Templates (ADR-0010): reusable workout plans, written and read as whole
+ * Templates (ADR-0010, ADR-0018): reusable workout plans, written and read as whole
  * records. Starting a workout copies a template's exercises and planned sets
  * into new workout records, so editing the workout never changes the
  * template, and editing the template never changes past workouts.

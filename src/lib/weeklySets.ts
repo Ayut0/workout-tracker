@@ -10,7 +10,8 @@ import { countsAsWorkingSet } from "./metrics";
  * Weekly sets per muscle group (#75): how many hard sets each muscle group
  * got in a week, by fractional counting (Pelland et al. 2025). A complete,
  * non-warm-up set counts 1 for each of its exercise's primary muscles and
- * 0.5 for each secondary muscle. A week starts Monday 00:00 local time, and
+ * 0.5 for each secondary muscle. A week starts Monday 00:00 local time (the
+ * first instant of Monday where a daylight-saving change skips midnight), and
  * a workout belongs to the week it started in.
  */
 
@@ -45,25 +46,62 @@ export interface MuscleSetCount {
 	sets: number;
 }
 
-/** Monday 00:00 local time of the week `time` falls in (epoch ms). */
+/**
+ * The first instant of the local calendar date `year-month-day` (`day` may
+ * overflow the month). `new Date(y, m, d)` is 00:00 when that exists; where a
+ * daylight-saving change skips midnight (Havana, Cairo, Santiago, Beirut) the
+ * engine moves it forward to the first instant that does exist, e.g. 01:00.
+ */
+function startOfDate(year: number, month: number, day: number): number {
+	return new Date(year, month, day).getTime();
+}
+
+/**
+ * The start of the week `time` falls in: the first instant of its Monday
+ * (epoch ms), which is 00:00 local time unless a daylight-saving change
+ * skips midnight that day.
+ */
 export function startOfWeek(time: number): number {
-	const day = new Date(time);
-	day.setHours(0, 0, 0, 0);
+	const date = new Date(time);
 	// getDay() is 0 on Sunday; count days back to Monday.
-	const daysSinceMonday = (day.getDay() + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK;
-	day.setDate(day.getDate() - daysSinceMonday);
-	return day.getTime();
+	const daysSinceMonday = (date.getDay() + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK;
+	return startOfDate(
+		date.getFullYear(),
+		date.getMonth(),
+		date.getDate() - daysSinceMonday,
+	);
 }
 
 /**
  * The start of the week `weeks` after the week starting `weekStart` (before
- * it when negative). Steps calendar days, so a daylight-saving change, which
- * makes a week an hour shorter or longer, still lands on Monday 00:00.
+ * it when negative). Steps whole calendar days from the Monday's date rather
+ * than adding 24-hour days, so weeks tile the time line across daylight-saving
+ * changes, even ones that skip or repeat midnight: week n ends exactly where
+ * week n + 1 starts.
  */
 export function addWeeks(weekStart: number, weeks: number): number {
-	const day = new Date(weekStart);
-	day.setDate(day.getDate() + weeks * DAYS_PER_WEEK);
-	return day.getTime();
+	const monday = new Date(weekStart);
+	return startOfDate(
+		monday.getFullYear(),
+		monday.getMonth(),
+		monday.getDate() + weeks * DAYS_PER_WEEK,
+	);
+}
+
+/**
+ * The week to show after stepping `weeks` from `shown`, as the pinned week the
+ * screen keeps. `shown` is undefined while following the current week, which
+ * is `thisWeek`. Never goes past the current week: stepping up to it (or past
+ * it) returns undefined, meaning "follow the current week", so a screen left
+ * open across Monday 00:00 rolls over instead of staying on last week.
+ */
+export function shiftWeek(
+	shown: number | undefined,
+	thisWeek: number,
+	weeks: number,
+): number | undefined {
+	const next = addWeeks(shown ?? thisWeek, weeks);
+	return next >= thisWeek ? undefined : next;
 }
 
 /**

@@ -3,6 +3,7 @@ import type { WorkoutSet } from "../db/types";
 import {
 	describeSuggestion,
 	type ExerciseSuggestion,
+	firstOccurrenceIds,
 	type SuggestionInput,
 	suggestForExercise,
 } from "./suggestions";
@@ -188,27 +189,54 @@ describe("suggestForExercise", () => {
 		const found = suggestForExercise(
 			input({
 				sets: [today("a", heavy)],
-				previous: [last(100, 5), last(80, 10)],
+				previous: [last(100, 5, heavy), last(80, 10)],
 			}),
 		);
 
 		expect(found.map((s) => s.action)).toEqual(["addRep"]);
 	});
 
-	it("has nothing to fill once today's sets hold the suggestion", () => {
+	it("overwrites planned and typed values of not-done sets, but not sets already holding the suggestion", () => {
 		const suggestion = onlySuggestion(
 			suggestForExercise(
 				input({
 					sets: [
-						today("a", { ...heavy, weightKg: 102.5, reps: 4 }),
-						today("b", { ...heavy, weightKg: 100, reps: 4 }),
+						today("planned", { ...heavy, weightKg: 100, reps: 4 }),
+						today("typed", { ...heavy, weightKg: 105, reps: 5 }),
+						today("holds", { ...heavy, weightKg: 102.5, reps: 4 }),
+						today("empty", heavy),
 					],
-					previous: [last(100, 6, heavy), last(100, 6, heavy)],
+					previous: [
+						last(100, 6, heavy),
+						last(100, 6, heavy),
+						last(100, 6, heavy),
+						last(100, 6, heavy),
+					],
 				}),
 			),
 		);
 
-		expect(suggestion.fills.map((f) => f.setId)).toEqual(["b"]);
+		expect(suggestion.fills.map((f) => f.setId)).toEqual([
+			"planned",
+			"typed",
+			"empty",
+		]);
+	});
+
+	it("has nothing to fill once a pound set shows the suggested number", () => {
+		const typedKg = 220.5 * KG_PER_LB;
+		const suggestion = onlySuggestion(
+			suggestForExercise(
+				input({
+					unit: "lb",
+					sets: [today("a", { ...heavy, weightKg: typedKg, reps: 6 })],
+					previous: [last(100, 5, heavy)],
+				}),
+			),
+		);
+
+		expect(suggestion.sets[0]).toEqual({ weightKg: 100, reps: 6 });
+		expect(suggestion.fills).toEqual([]);
 	});
 
 	it("does not fill a set already done today, nor sets today does not have", () => {
@@ -258,6 +286,119 @@ describe("suggestForExercise", () => {
 		);
 
 		expect(suggestion.sets[0]?.weightKg).toBeCloseTo(225 * KG_PER_LB, 9);
+	});
+});
+
+describe("suggestForExercise lining groups up by rep range", () => {
+	const fillsOf = (found: ExerciseSuggestion[]) =>
+		found.map((s) => s.fills.map((f) => f.setId));
+
+	it("A: a set-count change in one group does not shift the next group", () => {
+		const found = suggestForExercise(
+			input({
+				sets: [
+					today("h1", heavy),
+					today("h2", heavy),
+					today("h3", heavy),
+					today("b1", backOff),
+					today("b2", backOff),
+				],
+				previous: [
+					last(100, 5, heavy),
+					last(100, 5, heavy),
+					last(60, 9, backOff),
+					last(60, 9, backOff),
+				],
+			}),
+		);
+
+		expect(fillsOf(found)).toEqual([
+			["h1", "h2"],
+			["b1", "b2"],
+		]);
+		expect(found[1]?.fills[0]?.changes).toEqual({ weightKg: 60, reps: 10 });
+	});
+
+	it("B: a heavy set gained in the template never receives the back-off suggestion", () => {
+		const found = suggestForExercise(
+			input({
+				sets: [today("h1", heavy), today("h2", heavy), today("h3", heavy)],
+				previous: [
+					last(100, 6, heavy),
+					last(100, 6, heavy),
+					last(60, 10, backOff),
+				],
+			}),
+		);
+
+		expect(found.map((s) => s.repMin)).toEqual([4, 8]);
+		expect(fillsOf(found)).toEqual([["h1", "h2"], []]);
+	});
+
+	it("C: a skipped set does not give last time's light set the heavy range", () => {
+		const found = suggestForExercise(
+			input({
+				sets: [today("h1", heavy), today("h2", heavy), today("b1", backOff)],
+				previous: [last(100, 6), last(60, 6)],
+			}),
+		);
+
+		expect(found).toEqual([]);
+	});
+
+	it("borrows today's ranges by position only when the set counts match", () => {
+		const found = suggestForExercise(
+			input({
+				sets: [today("h1", heavy), today("b1", backOff)],
+				previous: [last(100, 6), last(60, 8)],
+			}),
+		);
+
+		expect(found.map((s) => [s.repMin, s.action])).toEqual([
+			[4, "increase"],
+			[8, "addRep"],
+		]);
+		expect(fillsOf(found)).toEqual([["h1"], ["b1"]]);
+	});
+
+	it("H: today's sets with another range than the suggestion are not filled", () => {
+		const found = suggestForExercise(
+			input({
+				sets: [today("a", heavy), today("b", heavy)],
+				previous: [last(60, 9, backOff), last(60, 9, backOff)],
+			}),
+		);
+
+		expect(found).toHaveLength(1);
+		expect(found[0]?.repMin).toBe(8);
+		expect(found[0]?.fills).toEqual([]);
+	});
+
+	it("judges sets sharing a range together even when another range sits between them", () => {
+		const found = suggestForExercise(
+			input({
+				sets: [today("h1", heavy), today("b1", backOff), today("h2", heavy)],
+				previous: [
+					last(100, 6, heavy),
+					last(60, 9, backOff),
+					last(100, 6, heavy),
+				],
+			}),
+		);
+
+		expect(fillsOf(found)).toEqual([["h1", "h2"], ["b1"]]);
+	});
+});
+
+describe("firstOccurrenceIds", () => {
+	it("keeps only the first card of an exercise that appears twice", () => {
+		expect(
+			firstOccurrenceIds([
+				{ id: "we1", exerciseId: "bench" },
+				{ id: "we2", exerciseId: "row" },
+				{ id: "we3", exerciseId: "bench" },
+			]),
+		).toEqual(new Set(["we1", "we2"]));
 	});
 });
 

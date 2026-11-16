@@ -50,9 +50,14 @@ a Dexie version, an Escalation trigger (AGENTS.md); this ADR avoids one.
   started empty, imported from Strong or restored from an older backup has
   none. Renaming a workout does not change its `source.templateName`.
 - **Shown read-only.** The active workout and a past workout show
-  "Week 2 · Block 1" (" · Deload" in a deload week) under the name
-  (`describeProgramLink` in `src/lib/programLink.ts`). There is no way to set
-  or change the link by hand in the MVP.
+  "Week 2 · Block 1 · Day A" under the name (the day only when the link has
+  one, then " · Deload" in a deload week; `describeProgramLink` in
+  `src/lib/programLink.ts`). The day is shown so two days of one week are
+  told apart; the program's name is kept in the snapshot but not shown, to
+  keep the line short, and a workout whose source has no program shows
+  nothing about its template (it is usually named after it). Only the active
+  and past workout screens show it. There is no way to set or change the
+  link by hand in the MVP.
 - **Backup** (ADR-0011): `parseBackup` checks `Workout.source` (template id,
   name, optional program) and `Template.program` (program id, name, `block`
   and `week` whole numbers from 1, optional `day` text and `deload` flag).
