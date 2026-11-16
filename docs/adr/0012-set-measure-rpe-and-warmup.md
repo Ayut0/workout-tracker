@@ -105,8 +105,19 @@ Each section below belongs to one issue; later issues add sections:
   chip (tapping 8 or 9 replaces 8.5 with that value). Half-highlighting both
   8 and 9 was rejected: it reads as two selections and does not say which
   value is stored.
-- The toggle and what the row shows are pure functions in `src/lib/rpe.ts`
-  (`toggleRpe`, `describeRpeChips`); `RpeChips` only renders them.
+- **The stored value is shown as stored.** The dashed chip prints the value
+  unrounded (8.04 shows "8.04", not "8"), so it never looks like the
+  unselected chip 8 beside it; a value that is not exactly a chip selects no
+  chip, and tapping a chip sets it.
+- **Set-or-clear is decided inside the write.** A chip tap calls
+  `updateSet(id, { toggleRpe: n })`, which compares against the RPE stored in
+  the transaction. Deciding from the rendered props would let two quick taps
+  (before the live query re-renders) both compute "set".
+- What the row shows is a pure function in `src/lib/rpe.ts`
+  (`describeRpeChips`, `rpeOtherLabel`); `RpeChips` only renders it.
+- Chips are 44px tall like the other controls of the set row and wrap
+  rather than shrink at 320px. The group is named per set (`<set> RPE`) and
+  the dashed chip reads "RPE 8.5".
 - **No schema or backup change.** `WorkoutSet.rpe` already exists
   (ADR-0002) and `parseBackup` already checks it is a number when present.
   RPE is not copied into new sets (`planNextSet`) or templates, and the
