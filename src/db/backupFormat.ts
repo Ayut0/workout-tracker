@@ -23,6 +23,7 @@ import {
 	type WorkoutExercise,
 	type WorkoutSet,
 } from "./types";
+import { tidyNotes } from "./workoutLog";
 
 /**
  * Reading a backup file (ADR-0011): checks the envelope and versions,
@@ -257,6 +258,19 @@ function readRows<T extends { id: string }>(
 	return read;
 }
 
+/**
+ * Keeps the "notes are never blank" invariant (ADR-0014) on restore: trims
+ * the notes and drops them when nothing is left.
+ */
+function withTidyNotes<T extends { notes?: string }>(record: T): T {
+	if (record.notes === undefined) return record;
+	const tidy = tidyNotes(record.notes);
+	const copy = { ...record };
+	if (tidy === undefined) delete copy.notes;
+	else Object.assign(copy, { notes: tidy });
+	return copy;
+}
+
 /** Checks the records of every store; the first problem found wins. */
 function readData(data: RawData): BackupData | string {
 	const exercises = readRows(data, "exercises", EXERCISE);
@@ -293,9 +307,12 @@ function readData(data: RawData): BackupData | string {
 	return {
 		exercises,
 		workouts,
-		workoutExercises,
+		workoutExercises: workoutExercises.map(withTidyNotes),
 		sets,
-		templates,
+		templates: templates.map((template) => ({
+			...template,
+			exercises: template.exercises.map(withTidyNotes),
+		})),
 		settings,
 		bodyEntries,
 	};

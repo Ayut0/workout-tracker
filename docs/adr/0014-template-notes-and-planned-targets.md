@@ -30,14 +30,17 @@ decisions; each section belongs to one issue:
 - **Stored tidy.** Notes are trimmed when written (`tidyNotes` in
   `src/db/workoutLog.ts`); blank notes are not stored at all, so clearing the
   field removes it and records without notes look as they did before #66.
-  The editor keeps what is typed (line breaks included) until Save.
+  The editor keeps what is typed (line breaks and whitespace-only text
+  included) until Save, where `tidyNotes` drops blanks. Restoring a backup
+  tidies notes the same way, so a blank note in a file never reaches the
+  store, and `ExerciseNotes` also renders nothing for blank text.
 - **Edited only in the template editor.** Each exercise card in the editor
   has a notes field (add, edit, clear). While logging, and in History, the
   notes are shown read-only under the exercise name (`ExerciseNotes`); a
   lifter who wants a different cue edits the template. Editing a workout's
   copy is a possible follow-up, not needed for the MVP.
 - **Backup** (ADR-0011): `parseBackup` checks both fields are text when
-  present. Older backups have neither and restore unchanged; the schema
+  present, then tidies them. Older backups have neither and restore unchanged; the schema
   version does not change.
 
 ### Consequences

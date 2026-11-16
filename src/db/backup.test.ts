@@ -279,6 +279,59 @@ describe("restore", () => {
 	});
 });
 
+describe("restoring blank notes (ADR-0014)", () => {
+	it("drops blank notes so stored data never holds them", () => {
+		const parsed = parseBackup(
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [
+						{ id: "a", workoutId: "w", exerciseId: "e", order: 0, notes: "" },
+						{ id: "b", workoutId: "w", exerciseId: "e", order: 1, notes: "  " },
+						{
+							id: "c",
+							workoutId: "w",
+							exerciseId: "e",
+							order: 2,
+							notes: " hi ",
+						},
+					],
+					sets: [],
+					templates: [
+						{
+							id: "t",
+							name: "A",
+							exercises: [
+								{ exerciseId: "e", sets: [], notes: " \n" },
+								{ exerciseId: "f", sets: [], notes: " seat 4 " },
+							],
+						},
+					],
+					settings: [],
+					bodyEntries: [],
+				},
+			}),
+		);
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		const { workoutExercises, templates } = parsed.backup.data;
+		expect(workoutExercises.map((w) => w.notes)).toEqual([
+			undefined,
+			undefined,
+			"hi",
+		]);
+		expect(Object.hasOwn(workoutExercises[0] ?? {}, "notes")).toBe(false);
+		expect(templates[0]?.exercises.map((e) => e.notes)).toEqual([
+			undefined,
+			"seat 4",
+		]);
+		expect(Object.hasOwn(templates[0]?.exercises[0] ?? {}, "notes")).toBe(
+			false,
+		);
+	});
+});
+
 describe("restoring an older schema version", () => {
 	it("migrates a version-1 backup, which held no training records", async () => {
 		await seedEveryStore(database);
