@@ -9,6 +9,7 @@ import {
 	removePlannedSet,
 	removeTemplateExercise,
 	setTemplateExerciseNotes,
+	templateNotesRows,
 	updatePlannedSet,
 } from "./templates";
 
@@ -137,9 +138,23 @@ describe("template exercise notes (ADR-0014)", () => {
 		expect(noted[0]).toEqual({ ...DRAFT[0], notes: "seat 4 " });
 		expect(noted[1]).toBe(DRAFT[1]);
 
-		const cleared = setTemplateExerciseNotes(noted, 0, "  ");
+		const cleared = setTemplateExerciseNotes(noted, 0, "");
 		expect(cleared[0]).toEqual(DRAFT[0]);
 		expect(Object.hasOwn(cleared[0] ?? {}, "notes")).toBe(false);
+	});
+
+	it("keeps whitespace-only text while typing; blanks drop at save", () => {
+		for (const typed of [" ", "\n", "  \n "]) {
+			const draft = setTemplateExerciseNotes(DRAFT, 0, typed);
+			expect(draft[0]?.notes).toBe(typed);
+		}
+	});
+
+	it("sizes the notes field from its line count, at least two rows", () => {
+		expect(templateNotesRows(undefined)).toBe(2);
+		expect(templateNotesRows("one line")).toBe(2);
+		expect(templateNotesRows("a\nb\nc")).toBe(3);
+		expect(templateNotesRows("a\nb\nc\n")).toBe(4);
 	});
 
 	it("are kept when the exercise's sets are edited", () => {

@@ -1,10 +1,5 @@
 import type { Equipment, WeightUnit } from "../db/types";
-import {
-	convertFromKg,
-	convertToKg,
-	PLATE_INCREMENT,
-	roundToPlateIncrement,
-} from "./units";
+import { convertToKg, PLATE_INCREMENT, roundToPlateIncrement } from "./units";
 
 /**
  * Progression (#70, ADR-0013): what to lift next time for an exercise, from
@@ -21,7 +16,7 @@ export interface ProgressionSet {
 	reps?: number;
 	/** Warm-up sets never count. */
 	warmup?: boolean;
-	/** The set's own rep range; wins over the exercise's. */
+	/** The set's own rep range; wins over the exercise's when both are set. */
 	repMin?: number;
 	repMax?: number;
 	/** Only complete sets count. */
@@ -63,25 +58,25 @@ export interface Suggestion {
 }
 
 /**
- * Consecutive working sets sharing a rep range, judged together: e.g. heavy
- * sets (4–6) and back-off sets (8–10) of one exercise.
+ * Working sets sharing a rep range, judged together wherever they sit in the
+ * exercise: e.g. heavy sets (4–6) and back-off sets (8–10).
  */
 export interface ProgressionGroup {
 	repMin: number | undefined;
 	repMax: number | undefined;
 	/** The group's sets from the last workout. */
 	sets: ProgressionSet[];
-	/** None without a rep range, or when a set lacks weight or reps. */
+	/** None without a rep range, or when a set lacks weight (or is 0 kg) or reps. A deload needs no range. */
 	suggestion: Suggestion | undefined;
 }
 
-/** The share of a group's sets kept on a deload. */
+/** The share of the exercise's working sets kept on a deload. */
 const DELOAD_SET_SHARE = 2 / 3;
 
 /** Per dumbbell, in kilograms. */
 const DUMBBELL_INCREMENT_KG = 2;
 
-const DUMBBELL_SUFFIX = /\(dumbbell\)\s*$/i;
+const DUMBBELL_MARK = /\(dumbbell\)/i;
 
 /** The parts of an exercise the increment reads. */
 export interface IncrementExercise {
@@ -93,8 +88,7 @@ export interface IncrementExercise {
  * The increment for an exercise, in kilograms: 2 kg per dumbbell, otherwise
  * (barbell, machine, anything else) one plate step, 2.5 kg. In pounds every
  * step is 5 lb. The exercise's equipment decides when it has one (ADR-0016);
- * otherwise, or given only a name, the name's equipment suffix, such as
- * "(Dumbbell)", does.
+ * otherwise, or given only a name, "(Dumbbell)" anywhere in the name does.
  */
 export function deriveIncrementKg(
 	exercise: string | IncrementExercise,
@@ -108,13 +102,14 @@ function isDumbbell(exercise: string | IncrementExercise): boolean {
 	const { name, equipment } =
 		typeof exercise === "string" ? { name: exercise } : exercise;
 	if (equipment !== undefined) return equipment === "dumbbell";
-	return DUMBBELL_SUFFIX.test(name);
+	return DUMBBELL_MARK.test(name);
 }
 
 /**
  * Suggests the next workout's sets for one exercise, group by group. Only
  * complete, non-warm-up sets count; a group is raised only when all of its
- * sets reached repMax, never because of a single set.
+ * sets reached repMax, never because of a single set. A deload takes two
+ * thirds of the exercise's working sets, not of each group.
  */
 export function suggestProgression(
 	input: ProgressionInput,
@@ -122,47 +117,97 @@ export function suggestProgression(
 	const working = input.sets.filter(
 		(set) => set.completedAt !== undefined && !set.warmup,
 	);
+	const keepCount = input.deload
+		? Math.max(1, Math.round(working.length * DELOAD_SET_SHARE))
+		: working.length;
 	return groupByRange(working, input).map((group) => ({
-		...group,
-		suggestion: suggestForGroup(group, input),
+		repMin: group.repMin,
+		repMax: group.repMax,
+		sets: group.entries.map((entry) => entry.set),
+		suggestion: input.deload
+			? deloadGroup(group.entries, keepCount)
+			: suggestForGroup(group, input),
 	}));
 }
 
+interface Entry {
+	set: ProgressionSet;
+	/** Position among the exercise's working sets. */
+	index: number;
+}
+
+interface RangeGroup {
+	repMin: number | undefined;
+	repMax: number | undefined;
+	entries: Entry[];
+}
+
+/**
+ * Groups the working sets by rep range across the whole exercise, in order of
+ * first appearance; a group's sets keep their original order. A set's own
+ * range counts only when it has both ends, otherwise the exercise's applies.
+ */
 function groupByRange(
 	sets: ProgressionSet[],
 	input: ProgressionInput,
-): ProgressionGroup[] {
-	const groups: ProgressionGroup[] = [];
-	for (const set of sets) {
-		const repMin = set.repMin ?? input.repMin;
-		const repMax = set.repMax ?? input.repMax;
-		const last = groups.at(-1);
-		if (last && last.repMin === repMin && last.repMax === repMax) {
-			last.sets.push(set);
-		} else {
-			groups.push({ repMin, repMax, sets: [set], suggestion: undefined });
-		}
+): RangeGroup[] {
+	const groups = new Map<string, RangeGroup>();
+	sets.forEach((set, index) => {
+		const own = set.repMin !== undefined && set.repMax !== undefined;
+		const repMin = own ? set.repMin : input.repMin;
+		const repMax = own ? set.repMax : input.repMax;
+		const key = `${repMin ?? ""}-${repMax ?? ""}`;
+		const group = groups.get(key);
+		if (group) group.entries.push({ set, index });
+		else groups.set(key, { repMin, repMax, entries: [{ set, index }] });
+	});
+	return [...groups.values()];
+}
+
+/** A set's weight and reps, or undefined for bodyweight or missing values. */
+function loaded(set: ProgressionSet): SuggestedSet | undefined {
+	const { weightKg, reps } = set;
+	if (weightKg === undefined || reps === undefined) return undefined;
+	if (!(weightKg > 0)) return undefined;
+	return { weightKg, reps };
+}
+
+/**
+ * The group's sets among the first `keepCount` working sets of the exercise,
+ * at the same weights and reps. Needs no rep range. A group left with no sets
+ * still gets a deload suggestion, with an empty list.
+ */
+function deloadGroup(
+	entries: Entry[],
+	keepCount: number,
+): Suggestion | undefined {
+	const sets: SuggestedSet[] = [];
+	for (const { set, index } of entries) {
+		const one = loaded(set);
+		if (one === undefined) return undefined;
+		if (index < keepCount) sets.push(one);
 	}
-	return groups;
+	return { action: "deload", sets };
 }
 
 function suggestForGroup(
-	group: ProgressionGroup,
+	group: RangeGroup,
 	input: ProgressionInput,
 ): Suggestion | undefined {
 	const { repMin, repMax } = group;
 	if (repMin === undefined || repMax === undefined) return undefined;
 	const done: SuggestedSet[] = [];
-	for (const { weightKg, reps } of group.sets) {
-		if (weightKg === undefined || reps === undefined) return undefined;
-		done.push({ weightKg, reps });
+	for (const { set } of group.entries) {
+		const one = loaded(set);
+		if (one === undefined) return undefined;
+		done.push(one);
 	}
 
-	if (input.deload) {
-		const count = Math.max(1, Math.round(done.length * DELOAD_SET_SHARE));
-		return { action: "deload", sets: done.slice(0, count) };
-	}
 	if (done.every((set) => set.reps >= repMax)) {
+		// No usable increment: nothing to raise by, so repeat the sets.
+		if (!(input.incrementKg > 0) || !Number.isFinite(input.incrementKg)) {
+			return { action: "keep", sets: done };
+		}
 		const unit = input.unit ?? "kg";
 		return {
 			action: "increase",
@@ -185,18 +230,22 @@ function suggestForGroup(
 }
 
 /**
- * The weight plus the increment, rounded to a multiple of the increment in
- * the user's unit so it can be loaded. Always above the weight, since the
- * rounding moves it by at most half an increment.
+ * The weight plus the increment, rounded to the plate grid of the user's unit
+ * (2.5 kg, 5 lb) so it can be loaded, whatever the increment. The exception
+ * is a kilogram increment that is not whole plate steps (2 kg per dumbbell):
+ * dumbbells come in their own steps, so it is added as it is. Always above
+ * the weight.
  */
 function raiseWeight(
 	kg: number,
 	incrementKg: number,
 	unit: WeightUnit,
 ): number {
-	return roundToPlateIncrement(
-		kg + incrementKg,
-		unit,
-		convertFromKg(incrementKg, unit),
-	);
+	const raised = kg + incrementKg;
+	if (unit === "kg") {
+		const steps = incrementKg / PLATE_INCREMENT.kg;
+		if (Math.abs(steps - Math.round(steps)) > 1e-9) return raised;
+	}
+	const snapped = roundToPlateIncrement(raised, unit);
+	return snapped > kg ? snapped : raised;
 }

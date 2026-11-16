@@ -189,8 +189,8 @@ export interface WorkoutExercise {
  * What a planned set aims for (ADR-0014): a rep range and the reps to leave
  * in reserve. Planned in a template and copied into the workout's sets, so
  * the last workout's sets say what they aimed for without a template link.
- * Whole numbers, 0 or more; both ends of the range or neither, and repMin is
- * not above repMax. Not indexed.
+ * Whole numbers: repMin and repMax 1 to MAX_REPS, targetRir 0 to MAX_RIR; both
+ * ends of the range or neither, and repMin is not above repMax. Not indexed.
  */
 export interface PlannedTargets {
 	repMin?: number;
@@ -198,6 +198,10 @@ export interface PlannedTargets {
 	/** Reps in reserve aimed for. */
 	targetRir?: number;
 }
+
+/** The largest planned rep count (range end), and the largest target RIR. */
+export const MAX_REPS = 999;
+export const MAX_RIR = 99;
 
 /** The planned target fields, in the order they are copied. */
 export const PLANNED_TARGET_FIELDS = [

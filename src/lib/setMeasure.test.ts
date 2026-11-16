@@ -59,6 +59,12 @@ describe("formatSetSeconds", () => {
 		expect(formatSetSeconds(60)).toBe("1:00");
 		expect(formatSetSeconds(95)).toBe("1:35");
 	});
+
+	it("rounds fractional seconds, carrying into the minute", () => {
+		expect(formatSetSeconds(65.5)).toBe("1:06");
+		expect(formatSetSeconds(59.6)).toBe("1:00");
+		expect(formatSetSeconds(44.4)).toBe("44 s");
+	});
 });
 
 describe("set field inputs", () => {
@@ -78,6 +84,17 @@ describe("set field inputs", () => {
 		expect(formatFieldInput("seconds", 90, "kg")).toBe("90");
 		expect(formatFieldInput("distanceM", 20.25, "kg")).toBe("20.3");
 		expect(formatFieldInput("seconds", undefined, "kg")).toBe("");
+	});
+
+	it("show fractional seconds as a whole number the field reads back", () => {
+		for (const stored of [65.5, 59.6, 0.4, 90]) {
+			const shown = formatFieldInput("seconds", stored, "kg");
+			expect(shown).toBe(String(Math.round(stored)));
+			expect(readFieldInput("seconds", shown, "kg")).toEqual({
+				ok: true,
+				value: Math.round(stored),
+			});
+		}
 	});
 
 	it("read typed text with each field's rules", () => {
