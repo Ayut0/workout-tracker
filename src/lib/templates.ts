@@ -100,8 +100,9 @@ export function updatePlannedSet(
 
 /**
  * Sets an exercise's notes (ADR-0014), shown under it while logging. Text
- * that is all whitespace clears them; the rest is kept as typed and trimmed
- * when the template is saved.
+ * that is empty clears them; anything else, whitespace-only included, is kept
+ * as typed so no keystroke is lost, and `tidyNotes` trims it, and drops
+ * blanks, when the template is saved.
  */
 export function setTemplateExerciseNotes(
 	exercises: readonly TemplateExercise[],
@@ -111,8 +112,13 @@ export function setTemplateExerciseNotes(
 	return exercises.map((exercise, i) => {
 		if (i !== exerciseIndex) return exercise;
 		const { notes: _old, ...rest } = exercise;
-		return notes.trim() === "" ? rest : { ...rest, notes };
+		return notes === "" ? rest : { ...rest, notes };
 	});
+}
+
+/** Rows for a notes field: one per line (a trailing line break opens one), at least two. */
+export function templateNotesRows(notes: string | undefined): number {
+	return Math.max(2, (notes ?? "").split("\n").length);
 }
 
 /** What to tell the user after saving a workout as a template. */

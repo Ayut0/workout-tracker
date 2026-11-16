@@ -791,7 +791,8 @@ fieldset {
 .exercise-notes-field .notes-input {
 	width: 100%;
 	box-sizing: border-box;
-	min-height: 44px;
+	/* The rows attribute sizes it; this grows it too where supported. */
+	field-sizing: content;
 }
 
 .exercise-card-tools {
