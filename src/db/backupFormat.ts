@@ -143,7 +143,25 @@ function listOfValues(check: Check): Check {
 	};
 }
 
-const muscles = optional(listOfValues(oneOf(...MUSCLE_GROUPS)));
+/**
+ * A muscle list as the app writes it (ADR-0016): known groups, none twice,
+ * and never empty (an empty list is stored as no field).
+ */
+const knownMuscles = listOfValues(oneOf(...MUSCLE_GROUPS));
+const muscles = optional((value) => {
+	const problem = knownMuscles(value);
+	if (problem !== undefined) return problem;
+	if (!Array.isArray(value)) return "must be a list";
+	const list: unknown[] = value;
+	if (list.length === 0) return "must not be empty";
+	const seen = new Set<unknown>();
+	for (const muscle of list) {
+		if (seen.has(muscle))
+			return `lists ${JSON.stringify(muscle)} more than once`;
+		seen.add(muscle);
+	}
+	return undefined;
+});
 
 const EXERCISE: Spec<Exercise> = {
 	id,
@@ -278,7 +296,14 @@ function readData(data: RawData): BackupData | string {
 
 	// Exercise names are unique (the &nameKey index); a clash would fail the write.
 	const nameKeys = new Set<string>();
-	for (const exercise of exercises) {
+	for (const [i, exercise] of exercises.entries()) {
+		// A muscle is primary or secondary, never both (ADR-0016).
+		const overlap = exercise.primaryMuscles?.find((muscle) =>
+			exercise.secondaryMuscles?.includes(muscle),
+		);
+		if (overlap !== undefined) {
+			return `Exercise record ${i + 1}: ${JSON.stringify(overlap)} is in both primaryMuscles and secondaryMuscles.`;
+		}
 		if (nameKeys.has(exercise.nameKey)) {
 			return `Two exercises have the same name ("${exercise.name}").`;
 		}
