@@ -10,7 +10,7 @@ function pad(n: number): string {
 }
 
 /** The file name for a backup made at `at`, dated in local time. */
-export function nameBackupFile(at: number): string {
+export function buildBackupFileName(at: number): string {
 	const d = new Date(at);
 	return `workout-tracker-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
 }

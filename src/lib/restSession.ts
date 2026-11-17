@@ -59,14 +59,14 @@ export function reduceRest(state: RestState, action: RestAction): RestState {
 	}
 }
 
-export function remainingRestMs(rest: Rest, now: number): number {
+export function getRemainingRestMs(rest: Rest, now: number): number {
 	return Math.max(0, rest.endsAt - now);
 }
 
 /** The share of the rest still to go, from 1 down to 0. */
-export function restProgress(rest: Rest, now: number): number {
+export function getRestProgress(rest: Rest, now: number): number {
 	const total = rest.endsAt - rest.startedAt;
-	return total > 0 ? remainingRestMs(rest, now) / total : 0;
+	return total > 0 ? getRemainingRestMs(rest, now) / total : 0;
 }
 
 /**
@@ -74,7 +74,7 @@ export function restProgress(rest: Rest, now: number): number {
  * (finished, discarded, or replaced) ends the rest, and the rest's set being
  * uncompleted or removed cancels it.
  */
-export function restActionsForLog(
+export function buildRestActionsForLog(
 	previousWorkoutId: string | null,
 	observed: RestWatch,
 	rest: RestState,

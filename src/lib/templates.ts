@@ -121,7 +121,7 @@ export function setTemplateExerciseNotes(
 }
 
 /** Rows for a notes field: one per line (a trailing line break opens one), at least two. */
-export function templateNotesRows(notes: string | undefined): number {
+export function getTemplateNotesRows(notes: string | undefined): number {
 	return Math.max(2, (notes ?? "").split("\n").length);
 }
 

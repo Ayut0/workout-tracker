@@ -14,10 +14,10 @@ import {
 	WorkoutDB,
 } from "./index";
 import {
+	buildWorkoutImportKey,
 	importStrongWorkouts,
 	planStrongImport,
 	previewStrongImport,
-	toWorkoutImportKey,
 } from "./strongImport";
 
 let database: WorkoutDB;
@@ -63,13 +63,13 @@ async function countRecords() {
 	};
 }
 
-describe("toWorkoutImportKey", () => {
+describe("buildWorkoutImportKey", () => {
 	it("ignores case and spacing in the workout name", () => {
-		expect(toWorkoutImportKey(1_000, "  Push   Day ")).toBe(
-			toWorkoutImportKey(1_000, "push day"),
+		expect(buildWorkoutImportKey(1_000, "  Push   Day ")).toBe(
+			buildWorkoutImportKey(1_000, "push day"),
 		);
-		expect(toWorkoutImportKey(1_000, "Push Day")).not.toBe(
-			toWorkoutImportKey(2_000, "Push Day"),
+		expect(buildWorkoutImportKey(1_000, "Push Day")).not.toBe(
+			buildWorkoutImportKey(2_000, "Push Day"),
 		);
 	});
 });
@@ -103,7 +103,7 @@ describe("planStrongImport", () => {
 	it("skips workouts already in the database", () => {
 		const plan = planStrongImport([push, legs], [], {
 			exerciseNameKeys: new Set(),
-			workoutKeys: new Set([toWorkoutImportKey(push.startedAt, "push day")]),
+			workoutKeys: new Set([buildWorkoutImportKey(push.startedAt, "push day")]),
 		});
 
 		expect(plan.workouts).toEqual([legs]);
@@ -118,7 +118,7 @@ describe("planStrongImport", () => {
 	it("has no date range when nothing is new", () => {
 		const plan = planStrongImport([push], [], {
 			exerciseNameKeys: new Set(),
-			workoutKeys: new Set([toWorkoutImportKey(push.startedAt, push.name)]),
+			workoutKeys: new Set([buildWorkoutImportKey(push.startedAt, push.name)]),
 		});
 
 		expect(plan.workouts).toEqual([]);

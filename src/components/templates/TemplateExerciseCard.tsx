@@ -5,7 +5,7 @@ import type {
 	TemplateSet,
 	WeightUnit,
 } from "../../db/types";
-import { plansTargets } from "../../db/workoutLog";
+import { canPlanTargets } from "../../db/workoutLog";
 import { describeFieldColumn } from "../../lib/setMeasure";
 import type { PlannedSetChanges } from "../../lib/templates";
 import { MeasureInputs } from "../workout/MeasureInputs";
@@ -166,7 +166,7 @@ function PlannedSetRow({
 			>
 				×
 			</button>
-			{plansTargets(measure) && (
+			{canPlanTargets(measure) && (
 				<PlannedTargetInputs targets={set} label={label} onChange={onChange} />
 			)}
 			<div className="set-extras">

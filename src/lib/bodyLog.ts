@@ -39,7 +39,7 @@ export function formatLocalDay(epochMs: number): string {
  * The end of the chart ranges for a given "today": its local midnight, so the
  * ranges follow the day shown rather than the moment the screen opened.
  */
-export function chartEndForDay(today: string): number {
+export function getChartEndForDay(today: string): number {
 	return parseLocalDay(today) ?? Date.now();
 }
 
@@ -107,7 +107,7 @@ export function parseBodyEntryForm(
 	}
 	const shown =
 		stored?.date === form.date
-			? toBodyEntryForm(stored, form.date, unit)
+			? buildBodyEntryForm(stored, form.date, unit)
 			: undefined;
 	const keptWeightKg =
 		shown !== undefined && weightText === shown.bodyWeight
@@ -128,7 +128,7 @@ export function parseBodyEntryForm(
 }
 
 /** The form for a day: its stored measurements in the user's unit, or blank. */
-export function toBodyEntryForm(
+export function buildBodyEntryForm(
 	entry: BodyEntry | undefined,
 	date: string,
 	unit: WeightUnit,

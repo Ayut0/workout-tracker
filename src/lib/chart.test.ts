@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
 	CHART_RANGES,
 	type ChartFrame,
+	computeLineChartLayout,
 	downsampleSeries,
 	filterByRange,
 	findNearestIndex,
 	findRangeStart,
-	layoutLineChart,
 	listNiceTicks,
 	MAX_CHART_POINTS,
 	selectChartData,
@@ -126,7 +126,7 @@ describe("listNiceTicks", () => {
 	});
 });
 
-describe("layoutLineChart", () => {
+describe("computeLineChartLayout", () => {
 	const frame: ChartFrame = {
 		width: 300,
 		height: 200,
@@ -137,7 +137,7 @@ describe("layoutLineChart", () => {
 	};
 
 	it("maps the oldest point to the left edge and the newest to the right", () => {
-		const layout = layoutLineChart(
+		const layout = computeLineChartLayout(
 			[makeDatum(0, 80), makeDatum(10 * DAY, 120)],
 			frame,
 		);
@@ -148,7 +148,7 @@ describe("layoutLineChart", () => {
 	});
 
 	it("puts y ticks inside the plot, bottom to top", () => {
-		const layout = layoutLineChart(
+		const layout = computeLineChartLayout(
 			[makeDatum(0, 83), makeDatum(DAY, 117)],
 			frame,
 		);
@@ -159,13 +159,13 @@ describe("layoutLineChart", () => {
 	});
 
 	it("centres a single point", () => {
-		const layout = layoutLineChart([makeDatum(5, 100)], frame);
+		const layout = computeLineChartLayout([makeDatum(5, 100)], frame);
 
 		expect(layout.dots[0]?.x).toBe(165);
 	});
 
 	it("draws nothing for no data", () => {
-		const layout = layoutLineChart([], frame);
+		const layout = computeLineChartLayout([], frame);
 
 		expect(layout.path).toBe("");
 		expect(layout.dots).toEqual([]);

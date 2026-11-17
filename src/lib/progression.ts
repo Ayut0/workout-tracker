@@ -166,7 +166,7 @@ function groupByRange(
 }
 
 /** A set's weight and reps, or undefined for bodyweight or missing values. */
-function loaded(set: ProgressionSet): SuggestedSet | undefined {
+function readLoadedSet(set: ProgressionSet): SuggestedSet | undefined {
 	const { weightKg, reps } = set;
 	if (weightKg === undefined || reps === undefined) return undefined;
 	if (!(weightKg > 0)) return undefined;
@@ -184,7 +184,7 @@ function deloadGroup(
 ): Suggestion | undefined {
 	const sets: SuggestedSet[] = [];
 	for (const { set, index } of entries) {
-		const one = loaded(set);
+		const one = readLoadedSet(set);
 		if (one === undefined) return undefined;
 		if (index < keepCount) sets.push(one);
 	}
@@ -199,7 +199,7 @@ function suggestForGroup(
 	if (repMin === undefined || repMax === undefined) return undefined;
 	const done: SuggestedSet[] = [];
 	for (const { set } of group.entries) {
-		const one = loaded(set);
+		const one = readLoadedSet(set);
 		if (one === undefined) return undefined;
 		done.push(one);
 	}

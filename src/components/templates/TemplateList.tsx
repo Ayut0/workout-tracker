@@ -1,5 +1,5 @@
 import type { Template } from "../../db/types";
-import { NEW_TEMPLATE_PATH, templatePath } from "../../lib/routes";
+import { buildTemplatePath, NEW_TEMPLATE_PATH } from "../../lib/routes";
 import { countPlannedSets } from "../../lib/templates";
 import { Link } from "../Link";
 
@@ -24,7 +24,7 @@ export function TemplateList({ templates, onStart }: TemplateListProps) {
 					{templates.map((template) => (
 						<li key={template.id} className="template-item">
 							<Link
-								to={templatePath(template.id)}
+								to={buildTemplatePath(template.id)}
 								className="template-link"
 								aria-label={`Edit ${template.name}`}
 							>

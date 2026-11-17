@@ -174,7 +174,7 @@ function roundCoordinate(value: number): number {
  * and the value axis spans round ticks around the data (not from zero, so
  * progress is visible).
  */
-export function layoutLineChart(
+export function computeLineChartLayout(
 	data: readonly ChartDatum[],
 	frame: ChartFrame,
 ): LineChartLayout {

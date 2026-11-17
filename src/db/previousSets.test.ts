@@ -61,7 +61,7 @@ async function seedWorkout(
 	}
 }
 
-function measurements(sets: WorkoutSet[]) {
+function getMeasurements(sets: WorkoutSet[]) {
 	return sets.map(({ weightKg, reps }) => ({ weightKg, reps }));
 }
 
@@ -87,7 +87,7 @@ describe("listPreviousSets", () => {
 			["squat", [{ weightKg: 140, reps: 5 }]],
 		]);
 
-		expect(measurements(await listPreviousSets("bench", database))).toEqual([
+		expect(getMeasurements(await listPreviousSets("bench", database))).toEqual([
 			{ weightKg: 100, reps: 5 },
 			{ weightKg: 102.5, reps: 3 },
 		]);
@@ -101,7 +101,7 @@ describe("listPreviousSets", () => {
 			["bench", [{ weightKg: 120, reps: 1 }]],
 		]);
 
-		expect(measurements(await listPreviousSets("bench", database))).toEqual([
+		expect(getMeasurements(await listPreviousSets("bench", database))).toEqual([
 			{ weightKg: 90, reps: 6 },
 		]);
 	});
@@ -121,7 +121,7 @@ describe("listPreviousSets", () => {
 			["bench", [{ weightKg: 200, reps: 1, done: false }]],
 		]);
 
-		expect(measurements(await listPreviousSets("bench", database))).toEqual([
+		expect(getMeasurements(await listPreviousSets("bench", database))).toEqual([
 			{ weightKg: 90, reps: 6 },
 			{ weightKg: 92.5, reps: 5 },
 		]);
@@ -140,7 +140,7 @@ describe("listPreviousSets", () => {
 			],
 		]);
 
-		expect(measurements(await listPreviousSets("bench", database))).toEqual([
+		expect(getMeasurements(await listPreviousSets("bench", database))).toEqual([
 			{ weightKg: 100, reps: 5 },
 			{ weightKg: 70, reps: 12 },
 			{ weightKg: 70, reps: 10 },
@@ -195,7 +195,7 @@ describe("listPreviousSets", () => {
 			database,
 		);
 
-		expect(measurements(await listPreviousSets("bench", database))).toEqual([
+		expect(getMeasurements(await listPreviousSets("bench", database))).toEqual([
 			{ weightKg: 60, reps: 10 },
 			{ weightKg: 62.5, reps: 8 },
 		]);

@@ -30,7 +30,7 @@ export const PERMISSION = {
 	unsupported: "unsupported",
 } as const satisfies { [P in PermissionState]: P };
 
-export function pushSupported(): boolean {
+export function isPushSupported(): boolean {
 	return (
 		"serviceWorker" in navigator &&
 		"PushManager" in window &&
@@ -38,11 +38,11 @@ export function pushSupported(): boolean {
 	);
 }
 
-export function permissionState(): PermissionState {
-	return pushSupported() ? Notification.permission : PERMISSION.unsupported;
+export function getPermissionState(): PermissionState {
+	return isPushSupported() ? Notification.permission : PERMISSION.unsupported;
 }
 
-function base64UrlToBytes(input: string): Uint8Array<ArrayBuffer> {
+function decodeBase64Url(input: string): Uint8Array<ArrayBuffer> {
 	const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
 	const binary = atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4));
 	const bytes = new Uint8Array(new ArrayBuffer(binary.length));
@@ -50,8 +50,8 @@ function base64UrlToBytes(input: string): Uint8Array<ArrayBuffer> {
 	return bytes;
 }
 
-export async function currentSubscription(): Promise<PushSubscription | null> {
-	if (!pushSupported()) return null;
+export async function getCurrentSubscription(): Promise<PushSubscription | null> {
+	if (!isPushSupported()) return null;
 	const registration = await navigator.serviceWorker.ready;
 	return registration.pushManager.getSubscription();
 }
@@ -61,7 +61,7 @@ export async function currentSubscription(): Promise<PushSubscription | null> {
  * iOS only shows the permission dialog in response to a user gesture.
  */
 export async function enableNotifications(): Promise<PushSubscription> {
-	if (!pushSupported())
+	if (!isPushSupported())
 		throw new Error("This device does not support notifications");
 	const permission = await Notification.requestPermission();
 	if (permission !== PERMISSION.granted)
@@ -71,7 +71,7 @@ export async function enableNotifications(): Promise<PushSubscription> {
 	if (existing) return existing;
 	return registration.pushManager.subscribe({
 		userVisibleOnly: true,
-		applicationServerKey: base64UrlToBytes(VAPID_PUBLIC_KEY),
+		applicationServerKey: decodeBase64Url(VAPID_PUBLIC_KEY),
 	});
 }
 
@@ -104,7 +104,7 @@ export function cancelRestPush(subscription: PushSubscription): Promise<void> {
 }
 
 /** The timer worker, bound to this device's push subscription. */
-export function timerApiFor(subscription: PushSubscription): TimerApi {
+export function createTimerApi(subscription: PushSubscription): TimerApi {
 	return {
 		schedule: (fireAt) => scheduleRestPush(subscription, fireAt),
 		cancel: () => cancelRestPush(subscription),

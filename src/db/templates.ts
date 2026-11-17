@@ -149,7 +149,7 @@ export type TemplateFromWorkoutResult =
  * An exercise with no complete set is left out; a workout with none at all
  * gives no template.
  */
-export async function templateFromWorkout(
+export async function createTemplateFromWorkout(
 	workoutId: string,
 	database: WorkoutDB = db,
 ): Promise<TemplateFromWorkoutResult> {

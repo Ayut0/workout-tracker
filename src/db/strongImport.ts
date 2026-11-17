@@ -43,7 +43,7 @@ export interface ImportSkippedRow {
  * ignoring case and spacing. A workout whose key is already stored is skipped,
  * so importing the same file again adds nothing.
  */
-export function toWorkoutImportKey(startedAt: number, name: string): string {
+export function buildWorkoutImportKey(startedAt: number, name: string): string {
 	return `${startedAt}\n${normalizeExerciseName(name)}`;
 }
 
@@ -51,7 +51,7 @@ export function toWorkoutImportKey(startedAt: number, name: string): string {
 export interface StoredImportKeys {
 	/** Exercise.nameKey of every exercise, archived ones included. */
 	exerciseNameKeys: ReadonlySet<string>;
-	/** toWorkoutImportKey of the stored workouts the import might repeat. */
+	/** buildWorkoutImportKey of the stored workouts the import might repeat. */
 	workoutKeys: ReadonlySet<string>;
 }
 
@@ -83,7 +83,7 @@ export function planStrongImport(
 	stored: StoredImportKeys,
 ): StrongImportPlan {
 	const toAdd = workouts.filter(
-		(w) => !stored.workoutKeys.has(toWorkoutImportKey(w.startedAt, w.name)),
+		(w) => !stored.workoutKeys.has(buildWorkoutImportKey(w.startedAt, w.name)),
 	);
 	const newExercises = new Map<string, string>();
 	let setCount = 0;
@@ -136,7 +136,7 @@ async function readStoredImportKeys(
 		keys: {
 			exerciseNameKeys: new Set(exercises.map((e) => e.nameKey)),
 			workoutKeys: new Set(
-				candidates.map((w) => toWorkoutImportKey(w.startedAt, w.name)),
+				candidates.map((w) => buildWorkoutImportKey(w.startedAt, w.name)),
 			),
 		},
 	};

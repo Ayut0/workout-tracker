@@ -116,7 +116,7 @@ export function parseCsvRecords(text: string, delimiter: string): CsvRecord[] {
 	let recordLine = 1;
 	const input = text.charCodeAt(0) === BYTE_ORDER_MARK ? text.slice(1) : text;
 
-	const endRecord = () => {
+	const finishRecord = () => {
 		fields.push(field);
 		const isBlank = fields.length === 1 && fields[0] === "";
 		if (!isBlank) records.push({ line: recordLine, fields });
@@ -143,14 +143,14 @@ export function parseCsvRecords(text: string, delimiter: string): CsvRecord[] {
 			field = "";
 		} else if (char === "\n" || char === "\r") {
 			if (char === "\r" && input[i + 1] === "\n") i++;
-			endRecord();
+			finishRecord();
 			line++;
 			recordLine = line;
 		} else {
 			field += char;
 		}
 	}
-	endRecord();
+	finishRecord();
 	return records;
 }
 
@@ -421,32 +421,37 @@ function readRow(
 			reason: `Expected ${columns.count} columns, found ${fields.length}`,
 		};
 	}
-	const cell = (column: number | undefined) => readCell(fields, column);
+	const readColumnCell = (column: number | undefined) =>
+		readCell(fields, column);
 	// Newer exports log each rest as a row of its own; it is not a set.
-	if (cell(columns.setOrder).toLowerCase() === REST_TIMER) {
+	if (readColumnCell(columns.setOrder).toLowerCase() === REST_TIMER) {
 		return { kind: "skip", reason: "Rest timer row" };
 	}
-	const dateText = cell(columns.date);
+	const dateText = readColumnCell(columns.date);
 	const startedAt = parseStrongDate(dateText);
 	if (startedAt === undefined) {
 		return { kind: "skip", reason: `Invalid date "${dateText}"` };
 	}
-	const exerciseName = cell(columns.exerciseName);
+	const exerciseName = readColumnCell(columns.exerciseName);
 	if (exerciseName === "") {
 		return { kind: "skip", reason: "Missing exercise name" };
 	}
-	const invalidNumber = findInvalidNumber(cell, columns);
+	const invalidNumber = findInvalidNumber(readColumnCell, columns);
 	if (invalidNumber) return { kind: "skip", reason: invalidNumber };
-	const workoutName = cell(columns.workoutName);
+	const workoutName = readColumnCell(columns.workoutName);
 	return {
 		kind: "set",
-		workoutKey: [cell(columns.workoutNumber), dateText, workoutName].join("\n"),
+		workoutKey: [
+			readColumnCell(columns.workoutNumber),
+			dateText,
+			workoutName,
+		].join("\n"),
 		workoutName,
 		startedAt,
-		durationText: cell(columns.duration),
-		workoutNotes: cell(columns.workoutNotes),
+		durationText: readColumnCell(columns.duration),
+		workoutNotes: readColumnCell(columns.workoutNotes),
 		exerciseName,
-		...readSet(cell, columns, fallback),
+		...readSet(readColumnCell, columns, fallback),
 	};
 }
 

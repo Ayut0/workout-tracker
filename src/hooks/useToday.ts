@@ -10,14 +10,14 @@ export function useToday(): string {
 	const [today, setToday] = useState(() => formatLocalDay(Date.now()));
 	useEffect(() => {
 		const refresh = () => setToday(formatLocalDay(Date.now()));
-		const onVisibility = () => {
+		const handleVisibilityChange = () => {
 			if (document.visibilityState === "visible") refresh();
 		};
-		document.addEventListener("visibilitychange", onVisibility);
+		document.addEventListener("visibilitychange", handleVisibilityChange);
 		window.addEventListener("focus", refresh);
 		window.addEventListener("pageshow", refresh);
 		return () => {
-			document.removeEventListener("visibilitychange", onVisibility);
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			window.removeEventListener("focus", refresh);
 			window.removeEventListener("pageshow", refresh);
 		};

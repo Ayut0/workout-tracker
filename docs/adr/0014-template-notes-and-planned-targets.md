@@ -75,7 +75,7 @@ decisions; each section belongs to one issue:
   2 x 100 kg for 4-6) must not join the working sets' group and be judged
   against their range by Progression. Filling a set from the Previous column
   copies measurements only, never targets.
-- **Only for measures that count reps** (`plansTargets`: weight-reps and
+- **Only for measures that count reps** (`canPlanTargets`: weight-reps and
   reps). A rep range means nothing to a plank or a carry, so seconds and
   distance sets neither show nor copy targets; values already stored are
   kept, only hidden, as for measures (ADR-0012).

@@ -24,7 +24,7 @@ import type {
 	ProgramSet,
 	SetMeasure,
 } from "./types";
-import { plansTargets } from "./workoutLog";
+import { canPlanTargets } from "./workoutLog";
 
 /**
  * Reading a program file (ADR-0019): a multi-week plan written outside the
@@ -201,7 +201,7 @@ function joinIndexPath(path: string, i: number): string {
 /** Whether sets of `measure` use `field` (a warm-up mark is always used). */
 function usesSetField(measure: SetMeasure, field: string): boolean {
 	return TARGET_KEYS.some((key) => key === field)
-		? plansTargets(measure)
+		? canPlanTargets(measure)
 		: MEASURE_FIELDS[measure].some((used) => used === field);
 }
 

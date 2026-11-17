@@ -4,10 +4,10 @@
  */
 import { db, type WorkoutDB } from "../db";
 import {
-	currentSubscription,
+	createTimerApi,
+	getCurrentSubscription,
+	getPermissionState,
 	isConfigured,
-	permissionState,
-	timerApiFor,
 } from "./push";
 import {
 	findPushBlocker,
@@ -148,12 +148,12 @@ export async function connectTimerApi(): Promise<TimerConnection> {
 	// Check what needs no service worker first, then read the subscription.
 	const blocker = findPushBlocker({
 		configured: isConfigured(),
-		permission: permissionState(),
+		permission: getPermissionState(),
 		subscribed: true,
 	});
 	if (blocker) return { blocker };
-	const subscription = await readSubscription(currentSubscription);
+	const subscription = await readSubscription(getCurrentSubscription);
 	return subscription
-		? { api: timerApiFor(subscription) }
+		? { api: createTimerApi(subscription) }
 		: { blocker: PUSH_BLOCKER.notEnabled };
 }

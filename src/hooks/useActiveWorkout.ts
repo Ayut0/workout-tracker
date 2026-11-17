@@ -22,7 +22,7 @@ import {
 	updateSets,
 	updateWorkout,
 } from "../db/workoutLog";
-import { nameWorkoutFor } from "../lib/workoutLog";
+import { buildWorkoutName } from "../lib/workoutLog";
 
 /** The active workout as the Workout screen shows it. */
 export interface ActiveWorkoutView {
@@ -54,7 +54,7 @@ export const workoutLogActions = {
 	start: (exercises?: PlannedExercise[]): Promise<StartWorkoutResult> => {
 		const startedAt = Date.now();
 		return startWorkout({
-			name: nameWorkoutFor(startedAt),
+			name: buildWorkoutName(startedAt),
 			startedAt,
 			exercises,
 		});

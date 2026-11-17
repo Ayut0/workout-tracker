@@ -103,13 +103,17 @@ function planFills(
 	today: readonly TodaySet[],
 	unit: WeightUnit,
 ): SetUpdate[] {
-	const shown = (kg: number | undefined) =>
+	const convertForDisplay = (kg: number | undefined) =>
 		kg === undefined ? undefined : roundForDisplay(convertFromKg(kg, unit));
 	const fills: SetUpdate[] = [];
 	for (const [index, { weightKg, reps }] of suggested.entries()) {
 		const set = today[index];
 		if (!set || set.completedAt !== undefined) continue;
-		if (shown(set.weightKg) === shown(weightKg) && set.reps === reps) continue;
+		if (
+			convertForDisplay(set.weightKg) === convertForDisplay(weightKg) &&
+			set.reps === reps
+		)
+			continue;
 		fills.push({ setId: set.id, changes: { weightKg, reps } });
 	}
 	return fills;

@@ -554,7 +554,7 @@ export function planNextTemplateSet(
 	measure: SetMeasure,
 ): PlannedSet {
 	const planned = planNextSet(last, measure);
-	if (plansTargets(measure)) {
+	if (canPlanTargets(measure)) {
 		for (const field of PLANNED_TARGET_FIELDS) {
 			const value = last?.[field];
 			if (value !== undefined) planned[field] = value;
@@ -582,7 +582,7 @@ export function copyPlannedSet(
  * Whether sets of a measure plan a rep range and target RIR (ADR-0014): only
  * measures that count reps do.
  */
-export function plansTargets(measure: SetMeasure): boolean {
+export function canPlanTargets(measure: SetMeasure): boolean {
 	return MEASURE_FIELDS[measure].includes("reps");
 }
 
