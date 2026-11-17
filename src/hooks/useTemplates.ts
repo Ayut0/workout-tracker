@@ -2,6 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import {
 	createTemplate,
+	createTemplateFromWorkout,
 	deleteTemplate,
 	findTemplate,
 	listTemplates,
@@ -9,7 +10,6 @@ import {
 	type TemplateFromWorkoutResult,
 	type TemplateInput,
 	type TemplateResult,
-	templateFromWorkout,
 	updateTemplate,
 } from "../db/templates";
 import type { Exercise, Template } from "../db/types";
@@ -48,5 +48,5 @@ export const templateActions = {
 	): Promise<StartWorkoutResult | { ok: false; reason: "not-found" }> =>
 		startWorkoutFromTemplate(id, Date.now()),
 	saveFromWorkout: (workoutId: string): Promise<TemplateFromWorkoutResult> =>
-		templateFromWorkout(workoutId),
+		createTemplateFromWorkout(workoutId),
 };

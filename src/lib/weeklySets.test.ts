@@ -10,7 +10,7 @@ import {
 
 // Local times, so the tests hold in any time zone. 2026-11-09 is a Monday.
 const MONDAY = new Date(2026, 10, 9).getTime();
-const at = (day: number, hours = 12, minutes = 0) =>
+const buildTimestamp = (day: number, hours = 12, minutes = 0) =>
 	new Date(2026, 10, day, hours, minutes).getTime();
 
 const BENCH = {
@@ -18,9 +18,9 @@ const BENCH = {
 	secondaryMuscles: ["triceps" as const, "front-delts" as const],
 };
 const ROW = { primaryMuscles: ["upper-back" as const, "lats" as const] };
-const DONE = at(9, 13);
+const DONE = buildTimestamp(9, 13);
 
-function workout(
+function buildWorkout(
 	startedAt: number,
 	exercises: WeeklySetsWorkout["exercises"],
 ): WeeklySetsWorkout {
@@ -30,14 +30,16 @@ function workout(
 describe("startOfWeek", () => {
 	it("is Monday 00:00 local time for every day of that week", () => {
 		expect(startOfWeek(MONDAY)).toBe(MONDAY);
-		expect(startOfWeek(at(9, 0, 0))).toBe(MONDAY);
-		expect(startOfWeek(at(12, 18))).toBe(MONDAY);
+		expect(startOfWeek(buildTimestamp(9, 0, 0))).toBe(MONDAY);
+		expect(startOfWeek(buildTimestamp(12, 18))).toBe(MONDAY);
 		// Sunday 23:59 is still the same week.
-		expect(startOfWeek(at(15, 23, 59))).toBe(MONDAY);
+		expect(startOfWeek(buildTimestamp(15, 23, 59))).toBe(MONDAY);
 	});
 
 	it("starts a new week at the next Monday 00:00", () => {
-		expect(startOfWeek(at(16, 0, 0))).toBe(new Date(2026, 10, 16).getTime());
+		expect(startOfWeek(buildTimestamp(16, 0, 0))).toBe(
+			new Date(2026, 10, 16).getTime(),
+		);
 	});
 
 	it("goes back across a month boundary", () => {
@@ -71,8 +73,8 @@ const ZONES = [
 ];
 // Node re-reads TZ when it is assigned. The project has no Node typings, so
 // reach process.env through a minimal local type.
-const env = nodeEnv();
-function nodeEnv(): { TZ?: string } {
+const env = getNodeEnv();
+function getNodeEnv(): { TZ?: string } {
 	const node: unknown = Reflect.get(globalThis, "process");
 	const env = typeof node === "object" ? Reflect.get(node ?? {}, "env") : null;
 	if (typeof env !== "object" || env === null) {
@@ -165,7 +167,7 @@ describe("countWeeklySets", () => {
 	it("counts a complete set as 1 for each primary and 0.5 for each secondary muscle", () => {
 		const counts = countWeeklySets(
 			[
-				workout(at(10), [
+				buildWorkout(buildTimestamp(10), [
 					{
 						exercise: BENCH,
 						sets: [{ completedAt: DONE }, { completedAt: DONE }],
@@ -184,11 +186,11 @@ describe("countWeeklySets", () => {
 	it("adds up across exercises and workouts, sorted by most sets", () => {
 		const counts = countWeeklySets(
 			[
-				workout(at(9), [
+				buildWorkout(buildTimestamp(9), [
 					{ exercise: BENCH, sets: [{ completedAt: DONE }] },
 					{ exercise: ROW, sets: [{ completedAt: DONE }] },
 				]),
-				workout(at(12), [
+				buildWorkout(buildTimestamp(12), [
 					{
 						exercise: { primaryMuscles: ["triceps"] },
 						sets: [{ completedAt: DONE }, { completedAt: DONE }],
@@ -210,7 +212,7 @@ describe("countWeeklySets", () => {
 	it("leaves out warm-ups and incomplete sets", () => {
 		const counts = countWeeklySets(
 			[
-				workout(at(10), [
+				buildWorkout(buildTimestamp(10), [
 					{
 						exercise: BENCH,
 						sets: [
@@ -232,19 +234,19 @@ describe("countWeeklySets", () => {
 	});
 
 	it("counts a workout in the week it started, wherever its sets fall", () => {
-		const sundayNight = at(15, 23, 30);
-		const afterMidnight = at(16, 0, 30);
+		const sundayNight = buildTimestamp(15, 23, 30);
+		const afterMidnight = buildTimestamp(16, 0, 30);
 		const counts = countWeeklySets(
 			[
-				workout(sundayNight, [
+				buildWorkout(sundayNight, [
 					{ exercise: ROW, sets: [{ completedAt: afterMidnight }] },
 				]),
 				// Monday 00:00 of the next week is outside this week.
-				workout(new Date(2026, 10, 16).getTime(), [
+				buildWorkout(new Date(2026, 10, 16).getTime(), [
 					{ exercise: BENCH, sets: [{ completedAt: afterMidnight }] },
 				]),
 				// Sunday 23:59 of the week before is outside it too.
-				workout(at(8, 23, 59), [
+				buildWorkout(buildTimestamp(8, 23, 59), [
 					{ exercise: BENCH, sets: [{ completedAt: DONE }] },
 				]),
 			],
@@ -259,7 +261,11 @@ describe("countWeeklySets", () => {
 	it("counts a set the same whatever its exercise measures", () => {
 		const plank = { primaryMuscles: ["abs" as const] };
 		const counts = countWeeklySets(
-			[workout(at(10), [{ exercise: plank, sets: [{ completedAt: DONE }] }])],
+			[
+				buildWorkout(buildTimestamp(10), [
+					{ exercise: plank, sets: [{ completedAt: DONE }] },
+				]),
+			],
 			MONDAY,
 		);
 		expect(counts).toEqual([{ muscle: "abs", sets: 1 }]);
@@ -268,7 +274,7 @@ describe("countWeeklySets", () => {
 	it("skips exercises with no muscles or no library exercise", () => {
 		const counts = countWeeklySets(
 			[
-				workout(at(10), [
+				buildWorkout(buildTimestamp(10), [
 					{ exercise: {}, sets: [{ completedAt: DONE }] },
 					{ exercise: undefined, sets: [{ completedAt: DONE }] },
 				]),
@@ -281,7 +287,7 @@ describe("countWeeklySets", () => {
 	it("counts a muscle listed twice once, as primary when it is in both lists", () => {
 		const counts = countWeeklySets(
 			[
-				workout(at(10), [
+				buildWorkout(buildTimestamp(10), [
 					{
 						exercise: {
 							primaryMuscles: ["glutes", "glutes"],

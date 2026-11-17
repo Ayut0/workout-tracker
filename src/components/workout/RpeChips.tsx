@@ -1,4 +1,4 @@
-import { describeRpeChips, rpeOtherLabel } from "../../lib/rpe";
+import { buildRpeOtherLabel, describeRpeChips } from "../../lib/rpe";
 
 type RpeChipsProps = {
 	rpe: number | undefined;
@@ -25,8 +25,8 @@ export function RpeChips({ rpe, label, onToggle }: RpeChipsProps) {
 				<span
 					className="rpe-other"
 					role="img"
-					aria-label={rpeOtherLabel(other)}
-					title={rpeOtherLabel(other)}
+					aria-label={buildRpeOtherLabel(other)}
+					title={buildRpeOtherLabel(other)}
 				>
 					{other}
 				</span>

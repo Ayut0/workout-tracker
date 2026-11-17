@@ -86,7 +86,7 @@ export function suggestForExercise(
 				? { ...set, repMin: planned.repMin, repMax: planned.repMax }
 				: set;
 		if (!hasRange(judged)) continue;
-		const key = rangeKey(judged);
+		const key = buildRangeKey(judged);
 		byRange.set(key, [...(byRange.get(key) ?? []), judged]);
 	}
 
@@ -103,7 +103,7 @@ export function suggestForExercise(
 		const { repMin, repMax, suggestion } = group;
 		if (repMin === undefined || repMax === undefined) continue;
 		const todaySameRange = todayWorking.filter(
-			(set) => hasRange(set) && rangeKey(set) === key,
+			(set) => hasRange(set) && buildRangeKey(set) === key,
 		);
 		suggestions.push({
 			action: suggestion.action,
@@ -122,7 +122,7 @@ function hasRange<T extends { repMin?: number; repMax?: number }>(
 	return set.repMin !== undefined && set.repMax !== undefined;
 }
 
-function rangeKey(set: { repMin: number; repMax: number }): string {
+function buildRangeKey(set: { repMin: number; repMax: number }): string {
 	return `${set.repMin}-${set.repMax}`;
 }
 
@@ -138,13 +138,17 @@ function planFills(
 	today: readonly TodaySet[],
 	unit: WeightUnit,
 ): SetUpdate[] {
-	const shown = (kg: number | undefined) =>
+	const convertForDisplay = (kg: number | undefined) =>
 		kg === undefined ? undefined : roundForDisplay(convertFromKg(kg, unit));
 	const fills: SetUpdate[] = [];
 	for (const [index, { weightKg, reps }] of suggested.entries()) {
 		const set = today[index];
 		if (!set || set.completedAt !== undefined) continue;
-		if (shown(set.weightKg) === shown(weightKg) && set.reps === reps) continue;
+		if (
+			convertForDisplay(set.weightKg) === convertForDisplay(weightKg) &&
+			set.reps === reps
+		)
+			continue;
 		fills.push({ setId: set.id, changes: { weightKg, reps } });
 	}
 	return fills;
@@ -155,7 +159,7 @@ function planFills(
  * exercise. Last time's sets are joined across an exercise's appearances, so
  * a second card of the same exercise would be lined up from the first set.
  */
-export function firstOccurrenceIds(
+export function findFirstOccurrenceIds(
 	entries: readonly { id: string; exerciseId: string }[],
 ): Set<string> {
 	const seen = new Set<string>();

@@ -9,11 +9,11 @@ import { useToday } from "../hooks/useToday";
 import {
 	type BodyEntryForm,
 	type BodyMeasure,
+	buildBodyEntryForm,
 	buildBodySeries,
-	chartEndForDay,
 	formatBodyValue,
+	getChartEndForDay,
 	parseBodyEntryForm,
-	toBodyEntryForm,
 	WAIST_UNIT,
 } from "../lib/bodyLog";
 import { CHART_RANGES, type ChartRangeId, selectChartData } from "../lib/chart";
@@ -52,7 +52,7 @@ export function BodyLog() {
 	// Follows the clock when the page is shown again, so a screen left open
 	// past midnight does not keep offering yesterday.
 	const today = useToday();
-	const now = chartEndForDay(today);
+	const now = getChartEndForDay(today);
 	const unit = settings.weightUnit;
 
 	return (
@@ -107,7 +107,7 @@ type EntryFormProps = {
 function EntryForm({ entries, unit, today }: EntryFormProps) {
 	const findEntry = (day: string) => entries.find((e) => e.date === day);
 	const [form, setForm] = useState<BodyEntryForm>(() =>
-		toBodyEntryForm(findEntry(today), today, unit),
+		buildBodyEntryForm(findEntry(today), today, unit),
 	);
 	// `field` is the input at fault; none for a failed write.
 	const [error, setError] = useState<{
@@ -123,7 +123,7 @@ function EntryForm({ entries, unit, today }: EntryFormProps) {
 		setError(null);
 		setForm((current) =>
 			field === "date"
-				? toBodyEntryForm(findEntry(value), value, unit)
+				? buildBodyEntryForm(findEntry(value), value, unit)
 				: { ...current, [field]: value },
 		);
 	}
@@ -146,7 +146,7 @@ function EntryForm({ entries, unit, today }: EntryFormProps) {
 		}
 	}
 
-	const invalid = (field: keyof BodyEntryForm) => error?.field === field;
+	const hasFieldError = (field: keyof BodyEntryForm) => error?.field === field;
 
 	return (
 		<section aria-labelledby="body-entry">
@@ -159,7 +159,7 @@ function EntryForm({ entries, unit, today }: EntryFormProps) {
 						value={form.date}
 						max={today}
 						required
-						aria-invalid={invalid("date")}
+						aria-invalid={hasFieldError("date")}
 						aria-describedby="body-entry-message"
 						onChange={(e) => change("date", e.target.value)}
 					/>
@@ -171,7 +171,7 @@ function EntryForm({ entries, unit, today }: EntryFormProps) {
 						inputMode="decimal"
 						autoComplete="off"
 						value={form.bodyWeight}
-						aria-invalid={invalid("bodyWeight")}
+						aria-invalid={hasFieldError("bodyWeight")}
 						aria-describedby="body-entry-message"
 						onChange={(e) => change("bodyWeight", e.target.value)}
 					/>
@@ -183,7 +183,7 @@ function EntryForm({ entries, unit, today }: EntryFormProps) {
 						inputMode="decimal"
 						autoComplete="off"
 						value={form.waist}
-						aria-invalid={invalid("waist")}
+						aria-invalid={hasFieldError("waist")}
 						aria-describedby="body-entry-message"
 						onChange={(e) => change("waist", e.target.value)}
 					/>
@@ -292,7 +292,7 @@ function EntryList({ entries, unit }: EntryListProps) {
 			<h2 id="body-days">Days</h2>
 			<ul>
 				{newestFirst.map((entry) => {
-					const values = toBodyEntryForm(entry, entry.date, unit);
+					const values = buildBodyEntryForm(entry, entry.date, unit);
 					return (
 						<li key={entry.id} className="row body-row">
 							<span>{formatDay(entry.date)}</span>

@@ -5,11 +5,11 @@ import {
 	appendTemplateExercise,
 	countPlannedSets,
 	describeTemplateFromWorkout,
+	getTemplateNotesRows,
 	moveTemplateExercise,
 	removePlannedSet,
 	removeTemplateExercise,
 	setTemplateExerciseNotes,
-	templateNotesRows,
 	updatePlannedSet,
 } from "./templates";
 
@@ -151,10 +151,10 @@ describe("template exercise notes (ADR-0014)", () => {
 	});
 
 	it("sizes the notes field from its line count, at least two rows", () => {
-		expect(templateNotesRows(undefined)).toBe(2);
-		expect(templateNotesRows("one line")).toBe(2);
-		expect(templateNotesRows("a\nb\nc")).toBe(3);
-		expect(templateNotesRows("a\nb\nc\n")).toBe(4);
+		expect(getTemplateNotesRows(undefined)).toBe(2);
+		expect(getTemplateNotesRows("one line")).toBe(2);
+		expect(getTemplateNotesRows("a\nb\nc")).toBe(3);
+		expect(getTemplateNotesRows("a\nb\nc\n")).toBe(4);
 	});
 
 	it("are kept when the exercise's sets are edited", () => {

@@ -2,11 +2,11 @@ import { useNow } from "../hooks/useNow";
 import { useRestSession } from "../hooks/useRestSession";
 import {
 	describePushBlocker,
+	getRemainingRestMs,
+	getRestProgress,
 	type PushBlocker,
 	REST_ADJUST_SECONDS,
 	type Rest,
-	remainingRestMs,
-	restProgress,
 } from "../lib/restSession";
 import { formatCountdown } from "../lib/restTimer";
 import { NOTIFICATION_CHECK_PATH } from "../lib/routes";
@@ -50,13 +50,13 @@ function RestCountdown({
 			<div className="rest-track" aria-hidden="true">
 				<div
 					className="rest-fill"
-					style={{ transform: `scaleX(${restProgress(rest, now)})` }}
+					style={{ transform: `scaleX(${getRestProgress(rest, now)})` }}
 				/>
 			</div>
 			<div className="rest-row">
 				<span className="rest-label">Rest</span>
 				<span className="rest-time" role="timer">
-					{formatCountdown(remainingRestMs(rest, now))}
+					{formatCountdown(getRemainingRestMs(rest, now))}
 				</span>
 				<button
 					type="button"

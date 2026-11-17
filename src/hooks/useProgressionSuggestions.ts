@@ -3,7 +3,7 @@ import type { WeightUnit, WorkoutSet } from "../db/types";
 import { resolveMeasure } from "../db/workoutLog";
 import {
 	type ExerciseSuggestion,
-	firstOccurrenceIds,
+	findFirstOccurrenceIds,
 	suggestForExercise,
 } from "../lib/suggestions";
 import type { ActiveWorkoutView } from "./useActiveWorkout";
@@ -23,7 +23,7 @@ export function useProgressionSuggestions(
 	return useMemo(() => {
 		const suggestions = new Map<string, ExerciseSuggestion[]>();
 		if (!previous) return suggestions;
-		const first = firstOccurrenceIds(
+		const first = findFirstOccurrenceIds(
 			view.detail.exercises.map((e) => ({
 				id: e.workoutExercise.id,
 				exerciseId: e.workoutExercise.exerciseId,

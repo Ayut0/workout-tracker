@@ -4,8 +4,8 @@ import sample from "../../fixtures/program-sample.json?raw";
 import { WorkoutDB } from "./index";
 import { type ProgramFile, parseProgram } from "./programFormat";
 import {
+	buildProgramTemplateName,
 	importProgram,
-	nameProgramTemplate,
 	previewProgramImport,
 } from "./programImport";
 import { listTemplates, startWorkoutFromTemplate } from "./templates";
@@ -37,24 +37,24 @@ function readSampleBlock(block: number): ProgramFile {
 	};
 }
 
-describe("nameProgramTemplate", () => {
+describe("buildProgramTemplateName", () => {
 	const week = { week: 1, days: [] };
 	it("names the program, week and day", () => {
 		expect(
-			nameProgramTemplate("Plan", 1, week, {
+			buildProgramTemplateName("Plan", 1, week, {
 				day: "A",
 				name: "Lower",
 				exercises: [],
 			}),
 		).toBe("Plan · W1 · A — Lower");
 		expect(
-			nameProgramTemplate("Plan", 1, week, { day: "B", exercises: [] }),
+			buildProgramTemplateName("Plan", 1, week, { day: "B", exercises: [] }),
 		).toBe("Plan · W1 · B");
 	});
 
 	it("adds the block after the first", () => {
 		expect(
-			nameProgramTemplate("Plan", 2, week, { day: "A", exercises: [] }),
+			buildProgramTemplateName("Plan", 2, week, { day: "A", exercises: [] }),
 		).toBe("Plan · B2 · W1 · A");
 	});
 });
@@ -88,7 +88,7 @@ type DayExercises =
 	ProgramFile["blocks"][number]["weeks"][number]["days"][number]["exercises"];
 
 /** A program whose one day has the given exercises. */
-function programWith(
+function buildProgramWithExercises(
 	exercises: DayExercises,
 	changes: Partial<ProgramFile> = {},
 ): ProgramFile {
@@ -111,7 +111,7 @@ describe("sets are checked against the library measure", () => {
 		nameKey: "plank",
 		measure: "seconds" as const,
 	};
-	const weighted = programWith([
+	const weighted = buildProgramWithExercises([
 		{ name: "plank", sets: [{ weightKg: 20, reps: 10 }] },
 	]);
 	const setPath = "blocks[0].weeks[0].days[0].exercises[0].sets[0]";
@@ -136,7 +136,9 @@ describe("sets are checked against the library measure", () => {
 
 	it("accepts a timed set for a library exercise whose measure the file omits", async () => {
 		await database.exercises.add(libraryPlank);
-		const program = programWith([{ name: "Plank", sets: [{ seconds: 30 }] }]);
+		const program = buildProgramWithExercises([
+			{ name: "Plank", sets: [{ seconds: 30 }] },
+		]);
 		const parsed = parseProgram(JSON.stringify(program));
 		if (!parsed.ok) throw new Error(parsed.errors.join("\n"));
 
@@ -150,7 +152,7 @@ describe("sets are checked against the library measure", () => {
 
 	it("reports a mismatch warning and the sets the library measure cannot hold", async () => {
 		await database.exercises.add(libraryPlank);
-		const program = programWith([
+		const program = buildProgramWithExercises([
 			{ name: "Plank", measure: "weight-reps", sets: [{ weightKg: 20 }] },
 		]);
 		const plan = await previewProgramImport(program, database);
@@ -167,7 +169,7 @@ describe("sets are checked against the library measure", () => {
 			name: "Pull Up",
 			nameKey: "pull up",
 		});
-		const program = programWith([
+		const program = buildProgramWithExercises([
 			{ name: "Pull Up", measure: "reps", sets: [{ reps: 8 }] },
 		]);
 		const plan = await previewProgramImport(program, database);
@@ -178,7 +180,9 @@ describe("sets are checked against the library measure", () => {
 
 	it("checks a new exercise that omits its measure against the default", async () => {
 		const plan = await previewProgramImport(
-			programWith([{ name: "Wall Sit", sets: [{ seconds: 30 }] }]),
+			buildProgramWithExercises([
+				{ name: "Wall Sit", sets: [{ seconds: 30 }] },
+			]),
 			database,
 		);
 
@@ -190,7 +194,7 @@ describe("sets are checked against the library measure", () => {
 	it("starting a workout from an imported template keeps the planned values", async () => {
 		await database.exercises.add(libraryPlank);
 		await importProgram(
-			programWith([{ name: "Plank", sets: [{ seconds: 45 }] }]),
+			buildProgramWithExercises([{ name: "Plank", sets: [{ seconds: 45 }] }]),
 			database,
 		);
 		const [template] = await listTemplates(database);
@@ -209,13 +213,13 @@ describe("programId and day ids", () => {
 
 	it("refuses a programId that differs only in case or spacing", async () => {
 		const first = await importProgram(
-			programWith(row, { programId: "up  down" }),
+			buildProgramWithExercises(row, { programId: "up  down" }),
 			database,
 		);
 		expect(first.ok).toBe(true);
 
 		const again = await importProgram(
-			programWith(row, { programId: " UP down " }),
+			buildProgramWithExercises(row, { programId: " UP down " }),
 			database,
 		);
 		expect(again).toEqual({
@@ -227,7 +231,7 @@ describe("programId and day ids", () => {
 	});
 
 	it("stores a day id with its inner spacing collapsed", async () => {
-		const program = programWith(row);
+		const program = buildProgramWithExercises(row);
 		const day = program.blocks[0]?.weeks[0]?.days[0];
 		if (!day) throw new Error("expected a day");
 		day.day = " Upper   A ";

@@ -10,7 +10,7 @@ import {
 } from "../db/backup";
 import { parseBackup } from "../db/backupFormat";
 import {
-	nameBackupFile,
+	buildBackupFileName,
 	SAVE_OUTCOME,
 	type SaveTarget,
 	saveBackupFile,
@@ -108,7 +108,7 @@ export function useBackup() {
 				const backup = await exportBackup(Date.now());
 				const file = new File(
 					[JSON.stringify(backup)],
-					nameBackupFile(backup.exportedAt),
+					buildBackupFileName(backup.exportedAt),
 					{ type: "application/json" },
 				);
 				await save(file, backup.exportedAt);

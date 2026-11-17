@@ -265,7 +265,7 @@ describe("rescheduleWorkout", () => {
 });
 
 describe("editing a finished workout", () => {
-	async function finishedWorkout(): Promise<Workout> {
+	async function createFinishedWorkout(): Promise<Workout> {
 		const started = await startWorkout(
 			{
 				name: "Push",
@@ -288,7 +288,7 @@ describe("editing a finished workout", () => {
 	}
 
 	it("changes name and notes and keeps it finished", async () => {
-		const workout = await finishedWorkout();
+		const workout = await createFinishedWorkout();
 
 		await updateWorkout(
 			workout.id,
@@ -304,7 +304,7 @@ describe("editing a finished workout", () => {
 	});
 
 	it("edits, adds, completes and removes sets and exercises", async () => {
-		const workout = await finishedWorkout();
+		const workout = await createFinishedWorkout();
 		const bench = (await readDetail(workout.id)).exercises[0];
 		const firstSet = bench?.sets[0];
 		if (!bench || !firstSet) throw new Error("expected a set");
@@ -334,7 +334,7 @@ describe("editing a finished workout", () => {
 	});
 
 	it("shows the edits in History", async () => {
-		const workout = await finishedWorkout();
+		const workout = await createFinishedWorkout();
 		await updateWorkout(workout.id, { name: "Renamed" }, database);
 
 		const [entry] = (await listWorkoutHistory({}, database)).entries;

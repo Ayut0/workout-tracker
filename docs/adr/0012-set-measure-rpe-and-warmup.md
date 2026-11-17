@@ -114,7 +114,7 @@ Each section below belongs to one issue; later issues add sections:
   the transaction. Deciding from the rendered props would let two quick taps
   (before the live query re-renders) both compute "set".
 - What the row shows is a pure function in `src/lib/rpe.ts`
-  (`describeRpeChips`, `rpeOtherLabel`); `RpeChips` only renders it.
+  (`describeRpeChips`, `buildRpeOtherLabel`); `RpeChips` only renders it.
 - Chips are 44px tall like the other controls of the set row and wrap
   rather than shrink at 320px. The group is named per set (`<set> RPE`) and
   the dashed chip reads "RPE 8.5".

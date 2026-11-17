@@ -41,7 +41,7 @@ function makeProgram(changes: Record<string, unknown> = {}) {
 }
 
 /** A valid program whose only exercise is `exercise`. */
-function withExercise(exercise: Record<string, unknown>) {
+function buildProgramWithExercise(exercise: Record<string, unknown>) {
 	return makeProgram({
 		blocks: [
 			{
@@ -52,7 +52,7 @@ function withExercise(exercise: Record<string, unknown>) {
 	});
 }
 
-function errorsOf(value: unknown): string[] {
+function collectErrors(value: unknown): string[] {
 	const parsed = parseProgram(
 		typeof value === "string" ? value : JSON.stringify(value),
 	);
@@ -70,7 +70,7 @@ describe("parseProgram accepts", () => {
 	});
 
 	it("a minimal program", () => {
-		expect(errorsOf(makeProgram())).toEqual([]);
+		expect(collectErrors(makeProgram())).toEqual([]);
 	});
 
 	it("a measure given on a later mention of the exercise", () => {
@@ -102,7 +102,7 @@ describe("parseProgram accepts", () => {
 				},
 			],
 		});
-		expect(errorsOf(program)).toEqual([]);
+		expect(collectErrors(program)).toEqual([]);
 	});
 });
 
@@ -133,54 +133,57 @@ describe("parseProgram rejects", () => {
 		],
 		[
 			"a set field with a typo",
-			withExercise({ name: "Squat", sets: [{ rep_min: 5 }] }),
+			buildProgramWithExercise({ name: "Squat", sets: [{ rep_min: 5 }] }),
 			new RegExp(
 				`^${escapePath(EXERCISE_PATH)}\\.sets\\[0\\]\\.rep_min: unknown field`,
 			),
 		],
 		[
 			"an unknown measure",
-			withExercise({ name: "Row", measure: "kg", sets: [{}] }),
+			buildProgramWithExercise({ name: "Row", measure: "kg", sets: [{}] }),
 			/exercises\[0\]\.measure: must be one of "weight-reps", "reps", "seconds", "distance"/,
 		],
 		[
 			"a blank exercise name",
-			withExercise({ name: "", sets: [{}] }),
+			buildProgramWithExercise({ name: "", sets: [{}] }),
 			/exercises\[0\]\.name: must be a non-empty exercise name/,
 		],
 		[
 			"an exercise with no sets",
-			withExercise({ name: "Row", sets: [] }),
+			buildProgramWithExercise({ name: "Row", sets: [] }),
 			/exercises\[0\]\.sets: must not be empty/,
 		],
 		[
 			"a negative weight",
-			withExercise({ name: "Row", sets: [{ weightKg: -5 }] }),
+			buildProgramWithExercise({ name: "Row", sets: [{ weightKg: -5 }] }),
 			/sets\[0\]\.weightKg: must be a number, 0 or more/,
 		],
 		[
 			"fractional reps",
-			withExercise({ name: "Row", sets: [{ reps: 7.5 }] }),
+			buildProgramWithExercise({ name: "Row", sets: [{ reps: 7.5 }] }),
 			/sets\[0\]\.reps: must be a whole number, 0 or more/,
 		],
 		[
 			"a rep range with one end",
-			withExercise({ name: "Row", sets: [{ repMin: 6 }] }),
+			buildProgramWithExercise({ name: "Row", sets: [{ repMin: 6 }] }),
 			/sets\[0\]: repMin and repMax must be given together/,
 		],
 		[
 			"a rep range with its ends swapped",
-			withExercise({ name: "Row", sets: [{ repMin: 10, repMax: 8 }] }),
+			buildProgramWithExercise({
+				name: "Row",
+				sets: [{ repMin: 10, repMax: 8 }],
+			}),
 			/sets\[0\]: repMin \(10\) must not be more than repMax \(8\)/,
 		],
 		[
 			"a warm-up mark that is not a flag",
-			withExercise({ name: "Row", sets: [{ warmup: "yes" }] }),
+			buildProgramWithExercise({ name: "Row", sets: [{ warmup: "yes" }] }),
 			/sets\[0\]\.warmup: must be true or false/,
 		],
 		[
 			"a weight on a timed exercise",
-			withExercise({
+			buildProgramWithExercise({
 				name: "Plank",
 				measure: "seconds",
 				sets: [{ seconds: 30, weightKg: 10 }],
@@ -189,7 +192,7 @@ describe("parseProgram rejects", () => {
 		],
 		[
 			"a rep range on a distance exercise",
-			withExercise({
+			buildProgramWithExercise({
 				name: "Carry",
 				measure: "distance",
 				sets: [{ distanceM: 40, repMin: 1, repMax: 2 }],
@@ -197,7 +200,7 @@ describe("parseProgram rejects", () => {
 			/sets\[0\]\.repMin: is not used by the measure "distance"/,
 		],
 	])("%s", (_name, value, expected) => {
-		const errors = errorsOf(value);
+		const errors = collectErrors(value);
 		expect(errors.some((error) => expected.test(error))).toBe(true);
 	});
 
@@ -226,7 +229,7 @@ describe("parseProgram rejects", () => {
 				},
 			],
 		});
-		expect(errorsOf(program)).toEqual([
+		expect(collectErrors(program)).toEqual([
 			'blocks[0].weeks[0].days[1].exercises[0].measure: "reps" differs from "seconds" given for "PLANK" at blocks[0].weeks[0].days[0].exercises[0].measure; an exercise has one measure.',
 		]);
 	});
@@ -245,7 +248,7 @@ describe("parseProgram rejects", () => {
 				{ block: 1, weeks: [{ week: 1, days: [day] }] },
 			],
 		});
-		expect(errorsOf(program)).toEqual([
+		expect(collectErrors(program)).toEqual([
 			'blocks[0].weeks[0].days[1].day: "A" is used twice in this week (also blocks[0].weeks[0].days[0]).',
 			"blocks[0].weeks[1].week: week 1 is used twice in this block (also blocks[0].weeks[0]).",
 			"blocks[1].block: block 1 is used twice (also blocks[0]).",
@@ -254,8 +257,8 @@ describe("parseProgram rejects", () => {
 
 	it("an unknown measure once, without also judging its sets by a default", () => {
 		expect(
-			errorsOf(
-				withExercise({
+			collectErrors(
+				buildProgramWithExercise({
 					name: "Plank",
 					measure: "time",
 					sets: [{ seconds: 30 }],
@@ -268,7 +271,9 @@ describe("parseProgram rejects", () => {
 
 	it("listing every problem, up to a limit", () => {
 		const sets = Array.from({ length: 30 }, () => ({ reps: -1 }));
-		const errors = errorsOf(withExercise({ name: "Row", sets }));
+		const errors = collectErrors(
+			buildProgramWithExercise({ name: "Row", sets }),
+		);
 		expect(errors).toHaveLength(MAX_PROGRAM_ERRORS + 1);
 		expect(errors.at(-1)).toBe("…and 10 more problems.");
 	});
@@ -277,14 +282,16 @@ describe("parseProgram rejects", () => {
 describe("parseProgram leaves the library's measure to the import", () => {
 	it("accepts a timed exercise that omits its measure", () => {
 		expect(
-			errorsOf(withExercise({ name: "Plank", sets: [{ seconds: 30 }] })),
+			collectErrors(
+				buildProgramWithExercise({ name: "Plank", sets: [{ seconds: 30 }] }),
+			),
 		).toEqual([]);
 	});
 
 	it("still rejects a set field the stated measure does not use", () => {
 		expect(
-			errorsOf(
-				withExercise({
+			collectErrors(
+				buildProgramWithExercise({
 					name: "Plank",
 					measure: "seconds",
 					sets: [{ weightKg: 20 }],
@@ -297,8 +304,8 @@ describe("parseProgram leaves the library's measure to the import", () => {
 describe("parseProgram rejects a set with reps and a rep range", () => {
 	it("naming both", () => {
 		expect(
-			errorsOf(
-				withExercise({
+			collectErrors(
+				buildProgramWithExercise({
 					name: "Row",
 					sets: [{ reps: 3, repMin: 5, repMax: 8 }],
 				}),
@@ -315,19 +322,19 @@ describe("parseProgram limits", () => {
 	const repeat = <T>(count: number, item: T) =>
 		Array.from({ length: count }, () => item);
 	/** Distinct day ids, so only the count is wrong. */
-	const days = (count: number) =>
+	const buildDays = (count: number) =>
 		Array.from({ length: count }, (_, i) => ({ ...day, day: `D${i}` }));
-	const weekList = (count: number, dayCount = 1) =>
+	const buildWeekList = (count: number, dayCount = 1) =>
 		Array.from({ length: count }, (_, i) => ({
 			week: i + 1,
-			days: days(dayCount),
+			days: buildDays(dayCount),
 		}));
-	const blockList = (count: number, weekCount = 1, dayCount = 1) =>
+	const buildBlockList = (count: number, weekCount = 1, dayCount = 1) =>
 		Array.from({ length: count }, (_, i) => ({
 			block: i + 1,
-			weeks: weekList(weekCount, dayCount),
+			weeks: buildWeekList(weekCount, dayCount),
 		}));
-	const withDays = (dayItems: unknown[]) =>
+	const buildProgramWithDays = (dayItems: unknown[]) =>
 		makeProgram({
 			blocks: [{ block: 1, weeks: [{ week: 1, days: dayItems }] }],
 		});
@@ -335,22 +342,22 @@ describe("parseProgram limits", () => {
 	it.each([
 		[
 			"too many blocks",
-			makeProgram({ blocks: blockList(L.maxBlocks + 1) }),
+			makeProgram({ blocks: buildBlockList(L.maxBlocks + 1) }),
 			/^blocks: has \d+ items; at most \d+ are allowed/,
 		],
 		[
 			"too many weeks in a block",
-			makeProgram({ blocks: blockList(1, L.maxWeeksPerBlock + 1) }),
+			makeProgram({ blocks: buildBlockList(1, L.maxWeeksPerBlock + 1) }),
 			/blocks\[0\]\.weeks: has \d+ items; at most \d+ are allowed/,
 		],
 		[
 			"too many days in a week",
-			withDays(days(L.maxDaysPerWeek + 1)),
+			buildProgramWithDays(buildDays(L.maxDaysPerWeek + 1)),
 			/days: has \d+ items; at most \d+ are allowed/,
 		],
 		[
 			"too many exercises in a day",
-			withDays([
+			buildProgramWithDays([
 				{
 					day: "A",
 					exercises: repeat(L.maxExercisesPerDay + 1, {
@@ -363,7 +370,7 @@ describe("parseProgram limits", () => {
 		],
 		[
 			"too many sets",
-			withExercise({
+			buildProgramWithExercise({
 				name: "Row",
 				sets: repeat(L.maxSetsPerExercise + 1, {}),
 			}),
@@ -372,7 +379,11 @@ describe("parseProgram limits", () => {
 		[
 			"too many templates in all",
 			makeProgram({
-				blocks: blockList(L.maxBlocks, L.maxWeeksPerBlock, L.maxDaysPerWeek),
+				blocks: buildBlockList(
+					L.maxBlocks,
+					L.maxWeeksPerBlock,
+					L.maxDaysPerWeek,
+				),
 			}),
 			/^blocks: would create \d+ templates .*at most \d+ are allowed/,
 		],
@@ -388,12 +399,15 @@ describe("parseProgram limits", () => {
 		],
 		[
 			"a very long exercise name",
-			withExercise({ name: "x".repeat(L.maxNameLength + 1), sets: [{}] }),
+			buildProgramWithExercise({
+				name: "x".repeat(L.maxNameLength + 1),
+				sets: [{}],
+			}),
 			/exercises\[0\]\.name: must be at most \d+ characters/,
 		],
 		[
 			"very long notes",
-			withExercise({
+			buildProgramWithExercise({
 				name: "Row",
 				notes: "x".repeat(L.maxNotesLength + 1),
 				sets: [{}],
@@ -402,27 +416,27 @@ describe("parseProgram limits", () => {
 		],
 		[
 			"a very long day id",
-			withDays([{ ...day, day: "x".repeat(L.maxIdLength + 1) }]),
+			buildProgramWithDays([{ ...day, day: "x".repeat(L.maxIdLength + 1) }]),
 			/days\[0\]\.day: must be at most \d+ characters/,
 		],
 		[
 			"a very long day name",
-			withDays([{ ...day, name: "x".repeat(L.maxNameLength + 1) }]),
+			buildProgramWithDays([{ ...day, name: "x".repeat(L.maxNameLength + 1) }]),
 			/days\[0\]\.name: must be at most \d+ characters/,
 		],
 		[
 			"huge reps",
-			withExercise({ name: "Row", sets: [{ reps: 1e300 }] }),
+			buildProgramWithExercise({ name: "Row", sets: [{ reps: 1e300 }] }),
 			/sets\[0\]\.reps: must be at most 999/,
 		],
 		[
 			"a huge weight",
-			withExercise({ name: "Row", sets: [{ weightKg: 1e308 }] }),
+			buildProgramWithExercise({ name: "Row", sets: [{ weightKg: 1e308 }] }),
 			/sets\[0\]\.weightKg: must be at most \d+/,
 		],
 		[
 			"a huge time",
-			withExercise({
+			buildProgramWithExercise({
 				name: "Plank",
 				measure: "seconds",
 				sets: [{ seconds: 1e9 }],
@@ -431,7 +445,7 @@ describe("parseProgram limits", () => {
 		],
 		[
 			"a huge distance",
-			withExercise({
+			buildProgramWithExercise({
 				name: "Run",
 				measure: "distance",
 				sets: [{ distanceM: 1e9 }],
@@ -440,17 +454,20 @@ describe("parseProgram limits", () => {
 		],
 		[
 			"a huge targetRir",
-			withExercise({ name: "Row", sets: [{ targetRir: 1e20 }] }),
+			buildProgramWithExercise({ name: "Row", sets: [{ targetRir: 1e20 }] }),
 			/sets\[0\]\.targetRir: must be at most \d+/,
 		],
 		[
 			"a huge rep range",
-			withExercise({ name: "Row", sets: [{ repMin: 1, repMax: 1e6 }] }),
+			buildProgramWithExercise({
+				name: "Row",
+				sets: [{ repMin: 1, repMax: 1e6 }],
+			}),
 			/sets\[0\]\.repMax: must be at most 999/,
 		],
 		[
 			"a huge block number",
-			makeProgram({ blocks: [{ ...blockList(1)[0], block: 1e300 }] }),
+			makeProgram({ blocks: [{ ...buildBlockList(1)[0], block: 1e300 }] }),
 			/blocks\[0\]\.block: must be at most \d+/,
 		],
 		[
@@ -459,7 +476,7 @@ describe("parseProgram limits", () => {
 				blocks: [
 					{
 						block: 1,
-						weeks: [{ week: Number.MAX_SAFE_INTEGER + 2, days: days(1) }],
+						weeks: [{ week: Number.MAX_SAFE_INTEGER + 2, days: buildDays(1) }],
 					},
 				],
 			}),
@@ -467,7 +484,7 @@ describe("parseProgram limits", () => {
 		],
 		[
 			"a name of only zero-width characters",
-			withExercise({ name: "​‍﻿", sets: [{}] }),
+			buildProgramWithExercise({ name: "​‍﻿", sets: [{}] }),
 			/exercises\[0\]\.name: must be a non-empty exercise name/,
 		],
 		[
@@ -477,21 +494,21 @@ describe("parseProgram limits", () => {
 		],
 		[
 			"a day id that differs only in inner spacing",
-			withDays([
+			buildProgramWithDays([
 				{ ...day, day: "A  B" },
 				{ ...day, day: "A B" },
 			]),
 			/days\[1\]\.day: "A B" is used twice in this week/,
 		],
 	])("%s", (_name, value, expected) => {
-		const errors = errorsOf(value);
+		const errors = collectErrors(value);
 		expect(errors.some((error) => expected.test(error))).toBe(true);
 	});
 
 	it("accepts values at the limits", () => {
 		expect(
-			errorsOf(
-				withExercise({
+			collectErrors(
+				buildProgramWithExercise({
 					name: "x".repeat(L.maxNameLength),
 					sets: [
 						{
@@ -506,14 +523,14 @@ describe("parseProgram limits", () => {
 	});
 
 	it("does not walk a list that is over its limit", () => {
-		const errors = errorsOf(
-			makeProgram({ blocks: blockList(L.maxBlocks + 1) }),
+		const errors = collectErrors(
+			makeProgram({ blocks: buildBlockList(L.maxBlocks + 1) }),
 		);
 		expect(errors).toHaveLength(1);
 	});
 
 	it("refuses text over the file size limit", () => {
-		expect(errorsOf(" ".repeat(L.maxFileBytes + 1))).toEqual([
+		expect(collectErrors(" ".repeat(L.maxFileBytes + 1))).toEqual([
 			expect.stringMatching(/^The file is larger than 2 MB/),
 		]);
 	});

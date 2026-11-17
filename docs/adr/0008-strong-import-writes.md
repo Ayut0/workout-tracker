@@ -24,7 +24,7 @@ it.
   as already stored, their date range, the exercises to create and the rows
   the parser skipped. Only Confirm writes.
 - **Idempotency key: start time + workout name**, the name compared ignoring
-  case and spacing (`toWorkoutImportKey`). A workout whose key is already
+  case and spacing (`buildWorkoutImportKey`). A workout whose key is already
   stored is skipped, so importing the same file, or a later export that
   contains it, adds nothing for it. Duplicates are checked against the
   database only, not within the file: two workouts in one file with the same

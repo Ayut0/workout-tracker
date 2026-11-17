@@ -42,7 +42,7 @@ afterEach(async () => {
 	await database.delete();
 });
 
-function pendingTimers() {
+function getPendingTimers() {
 	return database.restTimers
 		.where("status")
 		.equals(TIMER_STATUS.pending)
@@ -59,7 +59,7 @@ describe("createRestSession", () => {
 			endsAt: 90_000,
 		});
 		expect(api.schedule).toHaveBeenCalledWith(90_000);
-		expect(await pendingTimers()).toMatchObject([{ scheduledAt: 90_000 }]);
+		expect(await getPendingTimers()).toMatchObject([{ scheduledAt: 90_000 }]);
 	});
 
 	it("replaces the pending timer when another set is completed", async () => {
@@ -75,7 +75,7 @@ describe("createRestSession", () => {
 		expect(session.getSnapshot().rest?.setId).toBe("s2");
 		// The worker keeps one timer per device: scheduling again replaces it.
 		expect(api.schedule).toHaveBeenLastCalledWith(80_000);
-		expect(await pendingTimers()).toMatchObject([{ scheduledAt: 80_000 }]);
+		expect(await getPendingTimers()).toMatchObject([{ scheduledAt: 80_000 }]);
 		expect(await database.restTimers.count()).toBe(2);
 	});
 
@@ -92,7 +92,7 @@ describe("createRestSession", () => {
 			[90_000],
 			[75_000],
 		]);
-		expect(await pendingTimers()).toMatchObject([{ scheduledAt: 75_000 }]);
+		expect(await getPendingTimers()).toMatchObject([{ scheduledAt: 75_000 }]);
 	});
 
 	it("sends one push for rapid taps, at the latest time", async () => {
@@ -121,7 +121,7 @@ describe("createRestSession", () => {
 
 		expect(session.getSnapshot().rest).toBeNull();
 		expect(api.cancel).toHaveBeenCalledOnce();
-		expect(await pendingTimers()).toEqual([]);
+		expect(await getPendingTimers()).toEqual([]);
 	});
 
 	it("cancels the push when −15 s leaves no rest", async () => {
@@ -154,7 +154,7 @@ describe("createRestSession", () => {
 		await session.dispatch({ type: "workoutEnded" });
 
 		expect(api.cancel).toHaveBeenCalledOnce();
-		expect(await pendingTimers()).toEqual([]);
+		expect(await getPendingTimers()).toEqual([]);
 	});
 
 	it("ends the countdown at its time without cancelling the push", async () => {
@@ -168,7 +168,7 @@ describe("createRestSession", () => {
 		expect(session.getSnapshot().rest).toBeNull();
 		expect(changes).toHaveBeenCalled();
 		expect(api.cancel).not.toHaveBeenCalled();
-		expect(await pendingTimers()).toHaveLength(1);
+		expect(await getPendingTimers()).toHaveLength(1);
 	});
 
 	it("counts down without a push, and says why", async () => {

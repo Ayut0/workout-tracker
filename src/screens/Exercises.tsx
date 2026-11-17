@@ -19,7 +19,7 @@ import {
 import { useSettings } from "../hooks/useSettings";
 import { describeExerciseNameError } from "../lib/exerciseLibrary";
 
-function toFormMessage(result: ExerciseNameResult): string | null {
+function buildExerciseNameMessage(result: ExerciseNameResult): string | null {
 	return result.ok ? null : describeExerciseNameError(result);
 }
 
@@ -44,7 +44,7 @@ export function Exercises() {
 			setNotice(`Added “${result.exercise.name}”.`);
 			setNewMeasure(DEFAULT_SET_MEASURE);
 		}
-		return toFormMessage(result);
+		return buildExerciseNameMessage(result);
 	}
 
 	async function rename(exercise: Exercise, name: string) {
@@ -53,7 +53,7 @@ export function Exercises() {
 			setNotice(`Renamed to “${result.exercise.name}”.`);
 			setExpandedId(null);
 		}
-		return toFormMessage(result);
+		return buildExerciseNameMessage(result);
 	}
 
 	async function changeMeasure(exercise: Exercise, measure: SetMeasure) {
