@@ -46,7 +46,7 @@ export function formatDuration(ms: number): string {
 }
 
 /** A time as a `datetime-local` input value in local time, e.g. "2026-11-04T07:05". */
-export function toDateTimeLocal(ms: number): string {
+export function formatDateTimeLocal(ms: number): string {
 	const date = new Date(ms);
 	const pad = (n: number) => String(n).padStart(2, "0");
 	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;

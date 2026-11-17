@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { templateNotesRows } from "../../lib/templates";
+import { getTemplateNotesRows } from "../../lib/templates";
 
 type TemplateExerciseNotesProps = {
 	/** The exercise's name, to label the field. */
@@ -28,7 +28,7 @@ export function TemplateExerciseNotes({
 			<textarea
 				id={id}
 				className="text-input notes-input"
-				rows={templateNotesRows(notes)}
+				rows={getTemplateNotesRows(notes)}
 				autoCapitalize="sentences"
 				placeholder="Notes, e.g. seat 4, pause at the bottom"
 				value={notes ?? ""}

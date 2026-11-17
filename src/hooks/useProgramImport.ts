@@ -1,8 +1,8 @@
 import { useState } from "react";
 import {
+	findProgramFileSizeProblem,
 	type ProgramFile,
 	parseProgram,
-	programFileSizeProblem,
 } from "../db/programFormat";
 import {
 	importProgram,
@@ -48,7 +48,7 @@ export function useProgramImport() {
 		chooseFile: (file: File) =>
 			run("Reading the program…", async () => {
 				// Before the file is read into memory.
-				const tooLarge = programFileSizeProblem(file.size);
+				const tooLarge = findProgramFileSizeProblem(file.size);
 				if (tooLarge) {
 					setState({ step: "invalid", errors: [tooLarge] });
 					return;

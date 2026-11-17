@@ -119,6 +119,10 @@ posted-review policy in [REVIEW.md](REVIEW.md), which wins on conflict.
   maintainer before rewriting history on a pushed branch (rebase,
   `--force-with-lease`, `commit --amend`, `reset --hard`).
 - **Commits/PRs:** open a PR per issue; link it to the issue it addresses.
+- **Function names:** a function's name MUST start with a verb (`getX`, `buildX`,
+  `isX`, `hasX`, `canX`, `handleX`, `checkX`, `findX`, `useX` for hooks). A name
+  that is a noun (`rangeKey`, `templatePath`) is not allowed. React components
+  are exempt: they are written as PascalCase nouns (`SetRow`).
 
 ## Escalation
 

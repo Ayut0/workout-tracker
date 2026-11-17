@@ -21,7 +21,7 @@ const MORNING_FROM_HOUR = 5;
  * starts: "Morning workout", "Afternoon workout", "Evening workout" or
  * "Night workout".
  */
-export function nameWorkoutFor(startedAt: number): string {
+export function buildWorkoutName(startedAt: number): string {
 	const hour = new Date(startedAt).getHours();
 	if (hour >= NIGHT_FROM_HOUR || hour < MORNING_FROM_HOUR) {
 		return "Night workout";
@@ -72,7 +72,7 @@ export const MAX_SECONDS = 86_400;
 /** 1,000 km. */
 export const MAX_DISTANCE_M = 1_000_000;
 
-function withinCap(value: number, cap: number): SetFieldInput {
+function capFieldValue(value: number, cap: number): SetFieldInput {
 	return Number.isFinite(value) && value <= cap
 		? { ok: true, value }
 		: { ok: false };
@@ -85,7 +85,7 @@ export function readRepsField(text: string): SetFieldInput {
 	const trimmed = text.trim();
 	if (trimmed === "") return { ok: true, value: undefined };
 	if (!REPS_INPUT.test(trimmed)) return { ok: false };
-	return withinCap(Number(trimmed), MAX_REPS);
+	return capFieldValue(Number(trimmed), MAX_REPS);
 }
 
 const SECONDS_INPUT = /^\d+$/;
@@ -99,11 +99,11 @@ export function readSecondsField(text: string): SetFieldInput {
 	const trimmed = text.trim();
 	if (trimmed === "") return { ok: true, value: undefined };
 	if (SECONDS_INPUT.test(trimmed)) {
-		return withinCap(Number(trimmed), MAX_SECONDS);
+		return capFieldValue(Number(trimmed), MAX_SECONDS);
 	}
 	const match = MINUTES_SECONDS_INPUT.exec(trimmed);
 	if (!match) return { ok: false };
-	return withinCap(
+	return capFieldValue(
 		Number(match[1]) * SECONDS_PER_MINUTE + Number(match[2]),
 		MAX_SECONDS,
 	);
@@ -116,5 +116,5 @@ export function readDistanceField(text: string): SetFieldInput {
 	const trimmed = text.trim();
 	if (trimmed === "") return { ok: true, value: undefined };
 	if (!DISTANCE_INPUT.test(trimmed)) return { ok: false };
-	return withinCap(Number(trimmed.replace(",", ".")), MAX_DISTANCE_M);
+	return capFieldValue(Number(trimmed.replace(",", ".")), MAX_DISTANCE_M);
 }

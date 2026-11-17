@@ -193,7 +193,11 @@ describe("schema upgrade", () => {
 	});
 });
 
-function exercise(id: string, name: string, archivedAt?: number): Exercise {
+function buildExercise(
+	id: string,
+	name: string,
+	archivedAt?: number,
+): Exercise {
 	return {
 		id,
 		name,
@@ -210,17 +214,17 @@ describe("exercises", () => {
 	});
 
 	it("rejects a second exercise whose name differs only by case or spacing", async () => {
-		await database.exercises.add(exercise("a", "Squat"));
+		await database.exercises.add(buildExercise("a", "Squat"));
 		await expect(
-			database.exercises.add(exercise("b", " squat ")),
+			database.exercises.add(buildExercise("b", " squat ")),
 		).rejects.toThrow();
 	});
 
 	it("lists the library by name without archived exercises", async () => {
 		await database.exercises.bulkAdd([
-			exercise("s", "Squat"),
-			exercise("b", "bench press"),
-			exercise("o", "Old Row", 5),
+			buildExercise("s", "Squat"),
+			buildExercise("b", "bench press"),
+			buildExercise("o", "Old Row", 5),
 		]);
 
 		const names = (await listLibraryExercises(database)).map((e) => e.name);
@@ -228,14 +232,14 @@ describe("exercises", () => {
 	});
 
 	it("deletes an exercise nothing refers to", async () => {
-		await database.exercises.add(exercise("e", "Squat"));
+		await database.exercises.add(buildExercise("e", "Squat"));
 
 		expect(await removeExercise("e", 7, database)).toBe("deleted");
 		expect(await database.exercises.get("e")).toBeUndefined();
 	});
 
 	it("archives an exercise a workout refers to", async () => {
-		await database.exercises.add(exercise("e", "Squat"));
+		await database.exercises.add(buildExercise("e", "Squat"));
 		await database.workoutExercises.add({
 			id: "we",
 			workoutId: "w",
@@ -248,7 +252,7 @@ describe("exercises", () => {
 	});
 
 	it("archives an exercise a template refers to", async () => {
-		await database.exercises.add(exercise("e", "Squat"));
+		await database.exercises.add(buildExercise("e", "Squat"));
 		await database.templates.add({
 			id: "t",
 			name: "Legs",
@@ -282,18 +286,18 @@ describe("exercises", () => {
 		});
 
 		it("rejects a name that differs from an existing one only by case or spacing", async () => {
-			await database.exercises.add(exercise("s", "Squat"));
+			await database.exercises.add(buildExercise("s", "Squat"));
 
 			expect(await createExercise(" SQUAT ", database)).toEqual({
 				ok: false,
 				reason: "duplicate",
-				existing: exercise("s", "Squat"),
+				existing: buildExercise("s", "Squat"),
 			});
 			expect(await database.exercises.count()).toBe(1);
 		});
 
 		it("reports the archived exercise that already holds the name", async () => {
-			await database.exercises.add(exercise("o", "Old Row", 5));
+			await database.exercises.add(buildExercise("o", "Old Row", 5));
 
 			const result = await createExercise("old row", database);
 			expect(result).toMatchObject({
@@ -323,20 +327,20 @@ describe("exercises", () => {
 
 	describe("renameExercise", () => {
 		it("renames and updates the name key", async () => {
-			await database.exercises.add(exercise("s", "Squat"));
+			await database.exercises.add(buildExercise("s", "Squat"));
 
 			const result = await renameExercise("s", " Back  Squat", database);
 			expect(result).toEqual({
 				ok: true,
-				exercise: exercise("s", "Back Squat"),
+				exercise: buildExercise("s", "Back Squat"),
 			});
 			expect(await database.exercises.get("s")).toEqual(
-				exercise("s", "Back Squat"),
+				buildExercise("s", "Back Squat"),
 			);
 		});
 
 		it("allows changing only the case of its own name", async () => {
-			await database.exercises.add(exercise("s", "squat"));
+			await database.exercises.add(buildExercise("s", "squat"));
 
 			expect(await renameExercise("s", "Squat", database)).toMatchObject({
 				ok: true,
@@ -346,20 +350,22 @@ describe("exercises", () => {
 
 		it("rejects a name another exercise holds, leaving both unchanged", async () => {
 			await database.exercises.bulkAdd([
-				exercise("s", "Squat"),
-				exercise("b", "Bench Press"),
+				buildExercise("s", "Squat"),
+				buildExercise("b", "Bench Press"),
 			]);
 
 			expect(await renameExercise("s", "bench  press", database)).toEqual({
 				ok: false,
 				reason: "duplicate",
-				existing: exercise("b", "Bench Press"),
+				existing: buildExercise("b", "Bench Press"),
 			});
-			expect(await database.exercises.get("s")).toEqual(exercise("s", "Squat"));
+			expect(await database.exercises.get("s")).toEqual(
+				buildExercise("s", "Squat"),
+			);
 		});
 
 		it("rejects a blank name and an unknown id", async () => {
-			await database.exercises.add(exercise("s", "Squat"));
+			await database.exercises.add(buildExercise("s", "Squat"));
 
 			expect(await renameExercise("s", " ", database)).toEqual({
 				ok: false,
@@ -374,16 +380,18 @@ describe("exercises", () => {
 
 	it("lists archived exercises by name and restores one to the library", async () => {
 		await database.exercises.bulkAdd([
-			exercise("s", "Squat"),
-			exercise("r", "Row", 6),
-			exercise("c", "curl", 5),
+			buildExercise("s", "Squat"),
+			buildExercise("r", "Row", 6),
+			buildExercise("c", "curl", 5),
 		]);
 
 		const archived = await listArchivedExercises(database);
 		expect(archived.map((e) => e.id)).toEqual(["c", "r"]);
 
 		expect(await restoreExercise("r", database)).toBe(true);
-		expect(await database.exercises.get("r")).toEqual(exercise("r", "Row"));
+		expect(await database.exercises.get("r")).toEqual(
+			buildExercise("r", "Row"),
+		);
 		expect((await listLibraryExercises(database)).map((e) => e.id)).toEqual([
 			"r",
 			"s",
@@ -476,10 +484,10 @@ describe("workouts", () => {
 
 	it("lists the exercises with history by name, archived ones included", async () => {
 		await database.exercises.bulkAdd([
-			exercise("squat", "Squat"),
-			exercise("bench", "Bench Press"),
-			exercise("ohp", "Overhead Press"),
-			exercise("curl", "Curl"),
+			buildExercise("squat", "Squat"),
+			buildExercise("bench", "Bench Press"),
+			buildExercise("ohp", "Overhead Press"),
+			buildExercise("curl", "Curl"),
 		]);
 		await database.exercises.update("squat", { archivedAt: 9 });
 

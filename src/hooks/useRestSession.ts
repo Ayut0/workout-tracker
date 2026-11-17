@@ -11,7 +11,7 @@ import {
 import { readRestWatch } from "../db/restWatch";
 import type { CompletedSet } from "../db/workoutLog";
 import { resolveRestSeconds } from "../lib/restDuration";
-import { restActionsForLog } from "../lib/restSession";
+import { buildRestActionsForLog } from "../lib/restSession";
 import {
 	connectTimerApi,
 	createRestSession,
@@ -53,7 +53,7 @@ export function useRestSessionOwner(): RestSessionValue {
 	const previousWorkoutId = useRef<string | null>(null);
 	useEffect(() => {
 		if (!watch) return;
-		const actions = restActionsForLog(
+		const actions = buildRestActionsForLog(
 			previousWorkoutId.current,
 			watch,
 			session.getSnapshot().rest,

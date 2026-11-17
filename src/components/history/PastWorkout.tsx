@@ -4,9 +4,9 @@ import type { Exercise, WeightUnit, WorkoutSet } from "../../db/types";
 import { resolveMeasure, type SetChanges } from "../../db/workoutLog";
 import { useDraftField } from "../../hooks/useDraftField";
 import {
+	formatDateTimeLocal,
 	formatDuration,
 	parseDateTimeLocal,
-	toDateTimeLocal,
 } from "../../lib/history";
 import { describeProgramLink } from "../../lib/programLink";
 import { HISTORY_PATH } from "../../lib/routes";
@@ -57,7 +57,7 @@ export function PastWorkout({
 	const { workout } = detail;
 	const name = useDraftField(workout.name, onRename);
 	const notes = useDraftField(workout.notes ?? "", onNotesChange);
-	const storedStart = toDateTimeLocal(workout.startedAt);
+	const storedStart = formatDateTimeLocal(workout.startedAt);
 	const start = useDraftField(storedStart, (text) => {
 		const startedAt = parseDateTimeLocal(text);
 		// Unchanged to the minute: keep the stored seconds.

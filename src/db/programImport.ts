@@ -5,13 +5,13 @@ import {
 	type WorkoutDB,
 } from "./index";
 import {
-	capProblems,
 	describeUnusedField,
+	findUnusedSetFields,
 	type ProgramDay,
 	type ProgramFile,
 	type ProgramSet,
 	type ProgramWeek,
-	unusedSetFields,
+	truncateProblems,
 } from "./programFormat";
 import { tidyTemplateName } from "./templates";
 import {
@@ -87,7 +87,7 @@ export type ProgramImportResult =
  * A template's name: "<Program> · W1 · A — Lower"; blocks after the first
  * add "B2 · " before the week, so templates of two blocks never share a name.
  */
-export function nameProgramTemplate(
+export function buildProgramTemplateName(
 	programName: string,
 	block: number,
 	week: ProgramWeek,
@@ -101,7 +101,7 @@ export function nameProgramTemplate(
 }
 
 /** A program id compared ignoring case and spacing, as exercise names are. */
-function programKey(programId: string): string {
+function buildProgramKey(programId: string): string {
 	return normalizeExerciseName(programId);
 }
 
@@ -148,7 +148,7 @@ function checkSetsAgainstMeasures(
 							? `which the file gives "${tidyExerciseName(exercise.name)}"`
 							: `which "${tidyExerciseName(exercise.name)}" is given because the file names no measure for it`;
 					exercise.sets.forEach((set, s) => {
-						for (const field of unusedSetFields(set, measure)) {
+						for (const field of findUnusedSetFields(set, measure)) {
 							errors.push(
 								`blocks[${b}].weeks[${w}].days[${d}].exercises[${e}].sets[${s}].${field}: ${describeUnusedField(measure)}, ${reason}.`,
 							);
@@ -158,7 +158,7 @@ function checkSetsAgainstMeasures(
 			});
 		});
 	});
-	return capProblems(errors);
+	return truncateProblems(errors);
 }
 
 /** What importing `program` would add, given what is stored. Pure. */
@@ -187,7 +187,7 @@ export function planProgramImport(
 				};
 				if (week.deload) link.deload = true;
 				templates.push({
-					name: nameProgramTemplate(programName, block.block, week, day),
+					name: buildProgramTemplateName(programName, block.block, week, day),
 					program: link,
 					exercises: day.exercises.map((exercise) => {
 						const nameKey = normalizeExerciseName(exercise.name);
@@ -240,10 +240,10 @@ export function planProgramImport(
 	);
 
 	const blocks = program.blocks.map((block) => block.block);
-	const key = programKey(programId);
+	const key = buildProgramKey(programId);
 	const imported = new Set(
 		storedTemplates.flatMap((template) =>
-			template.program && programKey(template.program.programId) === key
+			template.program && buildProgramKey(template.program.programId) === key
 				? [template.program.block]
 				: [],
 		),

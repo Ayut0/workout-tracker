@@ -89,21 +89,21 @@ function isObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const id: Check = (value) =>
+const checkId: Check = (value) =>
 	typeof value === "string" && value !== "" ? undefined : "must be an id";
 
-const text: Check = (value) =>
+const checkText: Check = (value) =>
 	typeof value === "string" ? undefined : "must be text";
 
-const finite: Check = (value) =>
+const checkFinite: Check = (value) =>
 	typeof value === "number" && Number.isFinite(value)
 		? undefined
 		: "must be a number";
 
-const flag: Check = (value) =>
+const checkFlag: Check = (value) =>
 	typeof value === "boolean" ? undefined : "must be true or false";
 
-const integer: Check = (value) =>
+const checkInteger: Check = (value) =>
 	Number.isInteger(value) ? undefined : "must be a whole number";
 
 const boundedCount =
@@ -113,16 +113,16 @@ const boundedCount =
 			? undefined
 			: `must be a whole number, ${min} to ${max}`;
 
-const positive: Check = (value) =>
+const checkPositive: Check = (value) =>
 	Number.isInteger(value) && Number(value) >= 1
 		? undefined
 		: "must be a whole number, 1 or more";
 
-function optional(check: Check): Check {
+function makeOptional(check: Check): Check {
 	return (value) => (value === undefined ? undefined : check(value));
 }
 
-function oneOf(...allowed: unknown[]): Check {
+function buildOneOfCheck(...allowed: unknown[]): Check {
 	return (value) =>
 		allowed.includes(value)
 			? undefined
@@ -147,7 +147,11 @@ function findProblem<T>(
 	return rule?.(value);
 }
 
-function conforms<T>(value: unknown, spec: Spec<T>, rule?: Rule): value is T {
+function matchesSpec<T>(
+	value: unknown,
+	spec: Spec<T>,
+	rule?: Rule,
+): value is T {
 	return findProblem(value, spec, rule) === undefined;
 }
 
@@ -178,7 +182,7 @@ function listOfValues(check: Check): Check {
  * An object nested in a record, checked field by field. Its problem starts
  * with ":" so findProblem reports it as "source: program: week must be…".
  */
-function objectOf<T>(spec: Spec<T>): Check {
+function buildObjectCheck<T>(spec: Spec<T>): Check {
 	return (value) => {
 		const problem = findProblem(value, spec);
 		return problem === undefined ? undefined : `: ${problem}`;
@@ -189,8 +193,8 @@ function objectOf<T>(spec: Spec<T>): Check {
  * A muscle list as the app writes it (ADR-0016): known groups, none twice,
  * and never empty (an empty list is stored as no field).
  */
-const knownMuscles = listOfValues(oneOf(...MUSCLE_GROUPS));
-const muscles = optional((value) => {
+const knownMuscles = listOfValues(buildOneOfCheck(...MUSCLE_GROUPS));
+const muscles = makeOptional((value) => {
 	const problem = knownMuscles(value);
 	if (problem !== undefined) return problem;
 	if (!Array.isArray(value)) return "must be a list";
@@ -206,61 +210,61 @@ const muscles = optional((value) => {
 });
 
 const EXERCISE: Spec<Exercise> = {
-	id,
-	name: text,
-	nameKey: text,
-	archivedAt: optional(finite),
-	restSeconds: optional(finite),
+	id: checkId,
+	name: checkText,
+	nameKey: checkText,
+	archivedAt: makeOptional(checkFinite),
+	restSeconds: makeOptional(checkFinite),
 	// Missing in backups made before measures (ADR-0012): weight and reps.
-	measure: optional(oneOf(...SET_MEASURES)),
+	measure: makeOptional(buildOneOfCheck(...SET_MEASURES)),
 	// Missing in backups made before attributes (ADR-0016): none chosen.
 	primaryMuscles: muscles,
 	secondaryMuscles: muscles,
-	movementPattern: optional(oneOf(...MOVEMENT_PATTERNS)),
-	category: optional(oneOf(...EXERCISE_CATEGORIES)),
-	equipment: optional(oneOf(...EQUIPMENT)),
+	movementPattern: makeOptional(buildOneOfCheck(...MOVEMENT_PATTERNS)),
+	category: makeOptional(buildOneOfCheck(...EXERCISE_CATEGORIES)),
+	equipment: makeOptional(buildOneOfCheck(...EQUIPMENT)),
 };
 
 /** Where a template sits in a program (ADR-0018); absent before #74. */
 const PROGRAM_LINK: Spec<ProgramLink> = {
-	programId: id,
-	programName: text,
-	block: positive,
-	week: positive,
-	day: optional(text),
-	deload: optional(flag),
+	programId: checkId,
+	programName: checkText,
+	block: checkPositive,
+	week: checkPositive,
+	day: makeOptional(checkText),
+	deload: makeOptional(checkFlag),
 };
 
 const WORKOUT_SOURCE: Spec<WorkoutSource> = {
-	templateId: id,
-	templateName: text,
-	program: optional(objectOf(PROGRAM_LINK)),
+	templateId: checkId,
+	templateName: checkText,
+	program: makeOptional(buildObjectCheck(PROGRAM_LINK)),
 };
 
 const WORKOUT: Spec<Workout> = {
-	id,
-	name: text,
-	startedAt: finite,
-	endedAt: optional(finite),
-	notes: optional(text),
+	id: checkId,
+	name: checkText,
+	startedAt: checkFinite,
+	endedAt: makeOptional(checkFinite),
+	notes: makeOptional(checkText),
 	// The template it was started from (ADR-0018); absent before #74.
-	source: optional(objectOf(WORKOUT_SOURCE)),
+	source: makeOptional(buildObjectCheck(WORKOUT_SOURCE)),
 };
 
 const WORKOUT_EXERCISE: Spec<WorkoutExercise> = {
-	id,
-	workoutId: id,
-	exerciseId: id,
-	order: integer,
+	id: checkId,
+	workoutId: checkId,
+	exerciseId: checkId,
+	order: checkInteger,
 	// Copied from a template exercise (ADR-0014); absent before #66.
-	notes: optional(text),
+	notes: makeOptional(checkText),
 };
 
 /**
  * A planned rep range (ADR-0014) has both ends or neither, and its bottom is
  * not above its top. Each end is already known to be 1 to MAX_REPS.
  */
-const repRange: Rule = ({ repMin, repMax }) => {
+const checkRepRange: Rule = ({ repMin, repMax }) => {
 	if ((repMin === undefined) !== (repMax === undefined)) {
 		return "repMin and repMax must be given together";
 	}
@@ -274,61 +278,61 @@ const repsBound = boundedCount(1, MAX_REPS);
 const rirBound = boundedCount(0, MAX_RIR);
 
 const SET: Spec<WorkoutSet> = {
-	id,
-	workoutExerciseId: id,
-	order: integer,
-	weightKg: optional(finite),
-	reps: optional(finite),
-	distanceM: optional(finite),
-	seconds: optional(finite),
-	rpe: optional(finite),
-	notes: optional(text),
+	id: checkId,
+	workoutExerciseId: checkId,
+	order: checkInteger,
+	weightKg: makeOptional(checkFinite),
+	reps: makeOptional(checkFinite),
+	distanceM: makeOptional(checkFinite),
+	seconds: makeOptional(checkFinite),
+	rpe: makeOptional(checkFinite),
+	notes: makeOptional(checkText),
 	// Missing in backups made before warm-ups (#65): a working set.
-	warmup: optional(flag),
-	completedAt: optional(finite),
+	warmup: makeOptional(checkFlag),
+	completedAt: makeOptional(checkFinite),
 	// Planned targets copied from a template (ADR-0014); absent before #69.
-	repMin: optional(repsBound),
-	repMax: optional(repsBound),
-	targetRir: optional(rirBound),
+	repMin: makeOptional(repsBound),
+	repMax: makeOptional(repsBound),
+	targetRir: makeOptional(rirBound),
 };
 
 const TEMPLATE_SET: Spec<TemplateSet> = {
-	weightKg: optional(finite),
-	reps: optional(finite),
-	seconds: optional(finite),
-	distanceM: optional(finite),
-	warmup: optional(flag),
-	repMin: optional(repsBound),
-	repMax: optional(repsBound),
-	targetRir: optional(rirBound),
+	weightKg: makeOptional(checkFinite),
+	reps: makeOptional(checkFinite),
+	seconds: makeOptional(checkFinite),
+	distanceM: makeOptional(checkFinite),
+	warmup: makeOptional(checkFlag),
+	repMin: makeOptional(repsBound),
+	repMax: makeOptional(repsBound),
+	targetRir: makeOptional(rirBound),
 };
 
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {
-	exerciseId: id,
-	sets: listOf(TEMPLATE_SET, repRange),
-	notes: optional(text),
+	exerciseId: checkId,
+	sets: listOf(TEMPLATE_SET, checkRepRange),
+	notes: makeOptional(checkText),
 };
 
 const TEMPLATE: Spec<Template> = {
-	id,
-	name: text,
+	id: checkId,
+	name: checkText,
 	exercises: listOf(TEMPLATE_EXERCISE),
 	// Set by a program import (ADR-0018); absent before #74.
-	program: optional(objectOf(PROGRAM_LINK)),
+	program: makeOptional(buildObjectCheck(PROGRAM_LINK)),
 };
 
 const SETTINGS: Spec<SettingsRecord> = {
-	id: oneOf(SETTINGS_ID),
-	weightUnit: oneOf("kg", "lb"),
-	restSeconds: finite,
-	lastBackupAt: optional(finite),
+	id: buildOneOfCheck(SETTINGS_ID),
+	weightUnit: buildOneOfCheck("kg", "lb"),
+	restSeconds: checkFinite,
+	lastBackupAt: makeOptional(checkFinite),
 };
 
-const localDay: Check = (value) =>
+const checkLocalDay: Check = (value) =>
 	isLocalDay(value) ? undefined : "must be a day (YYYY-MM-DD)";
 
 /** A number above zero and at most `max`, as the body log form requires. */
-function positiveUpTo(max: number): Check {
+function buildPositiveUpToCheck(max: number): Check {
 	return (value) =>
 		typeof value === "number" &&
 		Number.isFinite(value) &&
@@ -339,10 +343,10 @@ function positiveUpTo(max: number): Check {
 }
 
 const BODY_ENTRY: Spec<BodyEntry> = {
-	id,
-	date: localDay,
-	bodyWeightKg: optional(positiveUpTo(MAX_BODY_WEIGHT_KG)),
-	waistCm: optional(positiveUpTo(MAX_WAIST_CM)),
+	id: checkId,
+	date: checkLocalDay,
+	bodyWeightKg: makeOptional(buildPositiveUpToCheck(MAX_BODY_WEIGHT_KG)),
+	waistCm: makeOptional(buildPositiveUpToCheck(MAX_WAIST_CM)),
 };
 
 /** Reads one store's records, or says which record is wrong and how. */
@@ -358,7 +362,7 @@ function readRows<T extends { id: string }>(
 	const read: T[] = [];
 	const ids = new Set<string>();
 	for (const [i, row] of rows.entries()) {
-		if (!conforms(row, spec, rule)) {
+		if (!matchesSpec(row, spec, rule)) {
 			return `${label} record ${i + 1}: ${findProblem(row, spec, rule)}.`;
 		}
 		if (ids.has(row.id)) {
@@ -374,7 +378,7 @@ function readRows<T extends { id: string }>(
  * Keeps the "notes are never blank" invariant (ADR-0014) on restore: trims
  * the notes and drops them when nothing is left.
  */
-function withTidyNotes<T extends { notes?: string }>(record: T): T {
+function tidyRecordNotes<T extends { notes?: string }>(record: T): T {
 	if (record.notes === undefined) return record;
 	const tidy = tidyNotes(record.notes);
 	const copy = { ...record };
@@ -391,7 +395,7 @@ function readData(data: RawData): BackupData | string {
 	if (typeof workouts === "string") return workouts;
 	const workoutExercises = readRows(data, "workoutExercises", WORKOUT_EXERCISE);
 	if (typeof workoutExercises === "string") return workoutExercises;
-	const sets = readRows(data, "sets", SET, repRange);
+	const sets = readRows(data, "sets", SET, checkRepRange);
 	if (typeof sets === "string") return sets;
 	const templates = readRows(data, "templates", TEMPLATE);
 	if (typeof templates === "string") return templates;
@@ -441,11 +445,11 @@ function readData(data: RawData): BackupData | string {
 	return {
 		exercises,
 		workouts,
-		workoutExercises: workoutExercises.map(withTidyNotes),
+		workoutExercises: workoutExercises.map(tidyRecordNotes),
 		sets: normalisedSets,
 		templates: normalisedTemplates.map((template) => ({
 			...template,
-			exercises: template.exercises.map(withTidyNotes),
+			exercises: template.exercises.map(tidyRecordNotes),
 		})),
 		settings,
 		bodyEntries,

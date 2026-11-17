@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { PERMISSION } from "./push";
 import { MAX_REST_SECONDS } from "./restDuration";
 import {
+	buildRestActionsForLog,
 	describePushBlocker,
 	findPushBlocker,
+	getRemainingRestMs,
+	getRestProgress,
 	PUSH_BLOCKER,
 	type Rest,
 	reduceRest,
-	remainingRestMs,
-	restActionsForLog,
-	restProgress,
 } from "./restSession";
 
 const resting: Rest = { setId: "s1", startedAt: 0, endsAt: 90_000 };
@@ -85,34 +85,34 @@ describe("reduceRest", () => {
 	});
 });
 
-describe("remainingRestMs and restProgress", () => {
+describe("getRemainingRestMs and getRestProgress", () => {
 	it("counts down to zero, never below", () => {
-		expect(remainingRestMs(resting, 30_000)).toBe(60_000);
-		expect(remainingRestMs(resting, 100_000)).toBe(0);
+		expect(getRemainingRestMs(resting, 30_000)).toBe(60_000);
+		expect(getRemainingRestMs(resting, 100_000)).toBe(0);
 	});
 
 	it("is the share of the rest still to go", () => {
-		expect(restProgress(resting, 45_000)).toBe(0.5);
-		expect(restProgress(resting, 100_000)).toBe(0);
+		expect(getRestProgress(resting, 45_000)).toBe(0.5);
+		expect(getRestProgress(resting, 100_000)).toBe(0);
 	});
 });
 
-describe("restActionsForLog", () => {
+describe("buildRestActionsForLog", () => {
 	it("ends the rest when the active workout ends or changes", () => {
-		expect(restActionsForLog("w1", { activeWorkoutId: null }, resting)).toEqual(
-			[{ type: "workoutEnded" }],
-		);
-		expect(restActionsForLog("w1", { activeWorkoutId: "w2" }, null)).toEqual([
-			{ type: "workoutEnded" },
-		]);
+		expect(
+			buildRestActionsForLog("w1", { activeWorkoutId: null }, resting),
+		).toEqual([{ type: "workoutEnded" }]);
+		expect(
+			buildRestActionsForLog("w1", { activeWorkoutId: "w2" }, null),
+		).toEqual([{ type: "workoutEnded" }]);
 	});
 
 	it("does nothing when a workout starts or keeps going", () => {
-		expect(restActionsForLog(null, { activeWorkoutId: "w1" }, null)).toEqual(
-			[],
-		);
 		expect(
-			restActionsForLog(
+			buildRestActionsForLog(null, { activeWorkoutId: "w1" }, null),
+		).toEqual([]);
+		expect(
+			buildRestActionsForLog(
 				"w1",
 				{ activeWorkoutId: "w1", set: { id: "s1", done: true } },
 				resting,
@@ -122,7 +122,7 @@ describe("restActionsForLog", () => {
 
 	it("cancels when the resting set was uncompleted or removed", () => {
 		expect(
-			restActionsForLog(
+			buildRestActionsForLog(
 				"w1",
 				{ activeWorkoutId: "w1", set: { id: "s1", done: false } },
 				resting,
@@ -132,7 +132,7 @@ describe("restActionsForLog", () => {
 
 	it("ignores a stale read for another set", () => {
 		expect(
-			restActionsForLog(
+			buildRestActionsForLog(
 				"w1",
 				{ activeWorkoutId: "w1", set: { id: "old", done: false } },
 				resting,

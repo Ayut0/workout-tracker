@@ -26,7 +26,7 @@ interface LoadedSet {
 }
 
 /** A complete set that is not a warm-up: the only kind progress counts. */
-export function countsAsWorkingSet(
+export function isWorkingSet(
 	set: Pick<WorkoutSet, "completedAt" | "warmup">,
 ): boolean {
 	return set.completedAt !== undefined && !set.warmup;
@@ -34,7 +34,7 @@ export function countsAsWorkingSet(
 
 function readLoadedSet(set: WorkoutSet): LoadedSet | undefined {
 	const { weightKg, reps } = set;
-	if (!countsAsWorkingSet(set)) return undefined;
+	if (!isWorkingSet(set)) return undefined;
 	if (weightKg === undefined || weightKg <= 0) return undefined;
 	if (reps === undefined || reps <= 0) return undefined;
 	return { weightKg, reps };
@@ -114,7 +114,7 @@ export function listProgressPoints(
 ): ProgressPoint[] {
 	const byWorkout = new Map<string, { date: number; sets: WorkoutSet[] }>();
 	for (const { workout, sets } of history) {
-		const working = sets.filter(countsAsWorkingSet);
+		const working = sets.filter(isWorkingSet);
 		const existing = byWorkout.get(workout.id);
 		if (existing) existing.sets.push(...working);
 		else byWorkout.set(workout.id, { date: workout.startedAt, sets: working });

@@ -6,7 +6,7 @@ import {
 	type SetMeasure,
 	type TemplateSet,
 } from "./types";
-import { plansTargets } from "./workoutLog";
+import { canPlanTargets } from "./workoutLog";
 
 /**
  * Reading a program file (ADR-0019): a multi-week plan written outside the
@@ -55,7 +55,7 @@ export const PROGRAM_LIMITS = {
 } as const;
 
 /** The problem with a file of `bytes` size, if it is over the limit. */
-export function programFileSizeProblem(bytes: number): string | undefined {
+export function findProgramFileSizeProblem(bytes: number): string | undefined {
 	if (bytes <= PROGRAM_LIMITS.maxFileBytes) return undefined;
 	const megabytes = PROGRAM_LIMITS.maxFileBytes / (1024 * 1024);
 	return `The file is larger than ${megabytes} MB, the most a program file may be.`;
@@ -280,7 +280,7 @@ function join(path: string, key: string): string {
 	return path === "" ? key : `${path}.${key}`;
 }
 
-function index(path: string, i: number): string {
+function appendIndex(path: string, i: number): string {
 	return `${path}[${i}]`;
 }
 
@@ -297,19 +297,19 @@ const SET_VALUE_FIELDS = [
 ] as const;
 
 /** Whether sets of `measure` use `field` (a warm-up mark is always used). */
-function usesSetField(measure: SetMeasure, field: string): boolean {
+function isSetFieldUsed(measure: SetMeasure, field: string): boolean {
 	return TARGET_KEYS.some((key) => key === field)
-		? plansTargets(measure)
+		? canPlanTargets(measure)
 		: MEASURE_FIELDS[measure].some((used) => used === field);
 }
 
 /** The set's fields that sets of `measure` do not use. */
-export function unusedSetFields(
+export function findUnusedSetFields(
 	set: ProgramSet,
 	measure: SetMeasure,
 ): (typeof SET_VALUE_FIELDS)[number][] {
 	return SET_VALUE_FIELDS.filter(
-		(field) => set[field] !== undefined && !usesSetField(measure, field),
+		(field) => set[field] !== undefined && !isSetFieldUsed(measure, field),
 	);
 }
 
@@ -334,7 +334,7 @@ function checkSet(
 	if (!set) return;
 	problems.unknownKeys(path, set, SET_KEYS);
 	const checkUsed = (field: string) => {
-		if (measure !== undefined && !usesSetField(measure, field)) {
+		if (measure !== undefined && !isSetFieldUsed(measure, field)) {
 			problems.add(join(path, field), `${describeUnusedField(measure)}.`);
 		}
 	};
@@ -501,7 +501,7 @@ function checkDay(
 		PROGRAM_LIMITS.maxExercisesPerDay,
 	);
 	exercises?.forEach((item, e) => {
-		const exercisePath = index(join(path, "exercises"), e);
+		const exercisePath = appendIndex(join(path, "exercises"), e);
 		const exercise = problems.object(exercisePath, item);
 		if (!exercise) return;
 		const given = checkExercise(exercisePath, exercise, measures, problems);
@@ -513,7 +513,7 @@ function checkDay(
 			PROGRAM_LIMITS.maxSetsPerExercise,
 		);
 		sets?.forEach((set, s) => {
-			checkSet(index(setsPath, s), set, measure, problems);
+			checkSet(appendIndex(setsPath, s), set, measure, problems);
 		});
 	});
 	return isText(day.day) ? tidySpaces(day.day) : undefined;
@@ -545,13 +545,13 @@ function checkWeek(
 	);
 	const seen = new Map<string, number>();
 	days?.forEach((day, d) => {
-		const id = checkDay(index(daysPath, d), day, measures, problems);
+		const id = checkDay(appendIndex(daysPath, d), day, measures, problems);
 		if (id === undefined) return;
 		const first = seen.get(id);
 		if (first !== undefined) {
 			problems.add(
-				join(index(daysPath, d), "day"),
-				`"${id}" is used twice in this week (also ${index(daysPath, first)}).`,
+				join(appendIndex(daysPath, d), "day"),
+				`"${id}" is used twice in this week (also ${appendIndex(daysPath, first)}).`,
 			);
 		} else {
 			seen.set(id, d);
@@ -583,13 +583,18 @@ function checkBlock(
 	);
 	const seen = new Map<number, number>();
 	weeks?.forEach((week, w) => {
-		const number = checkWeek(index(weeksPath, w), week, measures, problems);
+		const number = checkWeek(
+			appendIndex(weeksPath, w),
+			week,
+			measures,
+			problems,
+		);
 		if (number === undefined) return;
 		const first = seen.get(number);
 		if (first !== undefined) {
 			problems.add(
-				join(index(weeksPath, w), "week"),
-				`week ${number} is used twice in this block (also ${index(weeksPath, first)}).`,
+				join(appendIndex(weeksPath, w), "week"),
+				`week ${number} is used twice in this block (also ${appendIndex(weeksPath, first)}).`,
 			);
 		} else {
 			seen.set(number, w);
@@ -664,12 +669,17 @@ function findProblems(file: Json): string[] {
 	const measures = collectMeasures(blocks);
 	const seen = new Map<number, number>();
 	blocks.forEach((block, b) => {
-		const number = checkBlock(index("blocks", b), block, measures, problems);
+		const number = checkBlock(
+			appendIndex("blocks", b),
+			block,
+			measures,
+			problems,
+		);
 		if (number === undefined) return;
 		const first = seen.get(number);
 		if (first !== undefined) {
 			problems.add(
-				join(index("blocks", b), "block"),
+				join(appendIndex("blocks", b), "block"),
 				`block ${number} is used twice (also blocks[${first}]).`,
 			);
 		} else {
@@ -680,7 +690,7 @@ function findProblems(file: Json): string[] {
 }
 
 /** Shortens a long list of problems, saying how many were left out. */
-export function capProblems(problems: string[]): string[] {
+export function truncateProblems(problems: string[]): string[] {
 	if (problems.length <= MAX_PROGRAM_ERRORS) return problems;
 	const rest = problems.length - MAX_PROGRAM_ERRORS;
 	return [
@@ -699,7 +709,7 @@ function isProgramFile(
 
 /** Parses and checks a program file's text; lists every problem found. */
 export function parseProgram(fileText: string): ProgramParseResult {
-	const tooLarge = programFileSizeProblem(fileText.length);
+	const tooLarge = findProgramFileSizeProblem(fileText.length);
 	if (tooLarge) return { ok: false, errors: [tooLarge] };
 	let parsed: unknown;
 	try {
@@ -716,7 +726,7 @@ export function parseProgram(fileText: string): ProgramParseResult {
 	}
 	const problems = findProblems(parsed);
 	if (!isProgramFile(parsed, problems)) {
-		return { ok: false, errors: capProblems(problems) };
+		return { ok: false, errors: truncateProblems(problems) };
 	}
 	return { ok: true, program: parsed };
 }

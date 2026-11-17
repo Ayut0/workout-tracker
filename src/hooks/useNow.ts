@@ -8,14 +8,14 @@ export function useNow(intervalMs: number): number {
 	const [now, setNow] = useState(() => Date.now());
 	useEffect(() => {
 		const refresh = () => setNow(Date.now());
-		const onVisible = () => {
+		const handleVisibilityChange = () => {
 			if (document.visibilityState === "visible") refresh();
 		};
 		const id = window.setInterval(refresh, intervalMs);
-		document.addEventListener("visibilitychange", onVisible);
+		document.addEventListener("visibilitychange", handleVisibilityChange);
 		return () => {
 			window.clearInterval(id);
-			document.removeEventListener("visibilitychange", onVisible);
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
 		};
 	}, [intervalMs]);
 	return now;

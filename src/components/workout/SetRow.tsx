@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { SetMeasure, WeightUnit, WorkoutSet } from "../../db/types";
-import { plansTargets, type SetChanges } from "../../db/workoutLog";
+import { canPlanTargets, type SetChanges } from "../../db/workoutLog";
 import { MeasureInputs } from "./MeasureInputs";
 import { RpeChips } from "./RpeChips";
 import { SetTargets } from "./SetTargets";
@@ -76,7 +76,7 @@ export function SetRow({
 			>
 				×
 			</button>
-			{plansTargets(measure) && <SetTargets targets={set} />}
+			{canPlanTargets(measure) && <SetTargets targets={set} />}
 			<div className="set-extras">
 				<WarmupToggle
 					warmup={set.warmup}

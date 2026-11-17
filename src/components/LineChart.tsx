@@ -7,8 +7,8 @@ import {
 } from "react";
 import {
 	type ChartFrame,
+	computeLineChartLayout,
 	findNearestIndex,
-	layoutLineChart,
 } from "../lib/chart";
 import type { ChartDatum } from "../lib/progress";
 
@@ -57,7 +57,7 @@ export function LineChart({
 	formatValue,
 	pointNoun = WORKOUT_NOUN,
 }: LineChartProps) {
-	const layout = useMemo(() => layoutLineChart(data, FRAME), [data]);
+	const layout = useMemo(() => computeLineChartLayout(data, FRAME), [data]);
 	const [selected, setSelected] = useState<number | undefined>(undefined);
 	const summaryId = useId();
 	const index = Math.min(selected ?? data.length - 1, data.length - 1);
@@ -77,7 +77,7 @@ export function LineChart({
 		if (nearest !== undefined) setSelected(nearest);
 	}
 
-	function step(e: KeyboardEvent<HTMLDivElement>) {
+	function handleKeyStep(e: KeyboardEvent<HTMLDivElement>) {
 		const targets: Record<string, number> = {
 			ArrowLeft: index - 1,
 			ArrowDown: index - 1,
@@ -117,7 +117,7 @@ export function LineChart({
 				tabIndex={0}
 				onPointerDown={inspect}
 				onPointerMove={inspect}
-				onKeyDown={step}
+				onKeyDown={handleKeyStep}
 			>
 				<svg viewBox={`0 0 ${FRAME.width} ${FRAME.height}`} aria-hidden="true">
 					{layout.yTicks.map((tick) => (

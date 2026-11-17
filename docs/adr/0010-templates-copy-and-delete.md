@@ -25,7 +25,7 @@ schema does not change.
 - **Writes live in `src/db/templates.ts`**, tested against fake-indexeddb:
   `createTemplate`, `updateTemplate` (replaces name and exercises),
   `deleteTemplate`, `listTemplates` (by name, ignoring case), `findTemplate`,
-  `startWorkoutFromTemplate` and `templateFromWorkout`. A blank name is
+  `startWorkoutFromTemplate` and `createTemplateFromWorkout`. A blank name is
   rejected with `{ ok: false, reason: "empty" }`; names are trimmed with
   runs of spaces collapsed. Names need not be unique.
 - **The editor holds a draft and saves on Save.** Unlike the active workout

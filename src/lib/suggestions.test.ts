@@ -3,7 +3,7 @@ import type { WorkoutSet } from "../db/types";
 import {
 	describeSuggestion,
 	type ExerciseSuggestion,
-	firstOccurrenceIds,
+	findFirstOccurrenceIds,
 	type SuggestionInput,
 	suggestForExercise,
 } from "./suggestions";
@@ -12,7 +12,7 @@ import { KG_PER_LB } from "./units";
 const DONE = 1_700_000_000_000;
 
 /** A complete set from the last workout. */
-function last(
+function buildLastSet(
 	weightKg: number,
 	reps: number,
 	extra: Partial<WorkoutSet> = {},
@@ -29,14 +29,17 @@ function last(
 }
 
 /** Today's set `id`, as copied from a template. */
-function today(id: string, extra: Partial<WorkoutSet> = {}): WorkoutSet {
+function buildTodaySet(
+	id: string,
+	extra: Partial<WorkoutSet> = {},
+): WorkoutSet {
 	return { id, workoutExerciseId: "today", order: 0, ...extra };
 }
 
 const heavy = { repMin: 4, repMax: 6 };
 const backOff = { repMin: 8, repMax: 10 };
 
-function input(overrides: Partial<SuggestionInput>): SuggestionInput {
+function buildInput(overrides: Partial<SuggestionInput>): SuggestionInput {
 	return {
 		sets: [],
 		previous: [],
@@ -47,7 +50,7 @@ function input(overrides: Partial<SuggestionInput>): SuggestionInput {
 	};
 }
 
-function onlySuggestion(found: ExerciseSuggestion[]): ExerciseSuggestion {
+function getOnlySuggestion(found: ExerciseSuggestion[]): ExerciseSuggestion {
 	const [suggestion, ...rest] = found;
 	if (!suggestion || rest.length > 0) {
 		throw new Error("expected exactly one suggestion");
@@ -57,11 +60,11 @@ function onlySuggestion(found: ExerciseSuggestion[]): ExerciseSuggestion {
 
 describe("suggestForExercise", () => {
 	it("raises the weight when every set reached the top of the range, and fills today's working sets", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
-					sets: [today("a", heavy), today("b", heavy)],
-					previous: [last(100, 6, heavy), last(100, 6, heavy)],
+				buildInput({
+					sets: [buildTodaySet("a", heavy), buildTodaySet("b", heavy)],
+					previous: [buildLastSet(100, 6, heavy), buildLastSet(100, 6, heavy)],
 				}),
 			),
 		);
@@ -82,14 +85,17 @@ describe("suggestForExercise", () => {
 	});
 
 	it("never fills a warm-up, which keeps its planned values", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
+				buildInput({
 					sets: [
-						today("w", { warmup: true, weightKg: 60, reps: 5 }),
-						today("a", heavy),
+						buildTodaySet("w", { warmup: true, weightKg: 60, reps: 5 }),
+						buildTodaySet("a", heavy),
 					],
-					previous: [last(60, 5, { warmup: true }), last(100, 5, heavy)],
+					previous: [
+						buildLastSet(60, 5, { warmup: true }),
+						buildLastSet(100, 5, heavy),
+					],
 				}),
 			),
 		);
@@ -102,12 +108,16 @@ describe("suggestForExercise", () => {
 
 	it("judges heavy and back-off sets as separate groups", () => {
 		const found = suggestForExercise(
-			input({
-				sets: [today("h1", heavy), today("h2", heavy), today("b1", backOff)],
+			buildInput({
+				sets: [
+					buildTodaySet("h1", heavy),
+					buildTodaySet("h2", heavy),
+					buildTodaySet("b1", backOff),
+				],
 				previous: [
-					last(100, 6, heavy),
-					last(100, 6, heavy),
-					last(80, 7, backOff),
+					buildLastSet(100, 6, heavy),
+					buildLastSet(100, 6, heavy),
+					buildLastSet(80, 7, backOff),
 				],
 			}),
 		);
@@ -119,11 +129,11 @@ describe("suggestForExercise", () => {
 	});
 
 	it("applies today's planned ranges to last workout's sets that have none", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
-					sets: [today("a", heavy), today("b", heavy)],
-					previous: [last(100, 6), last(100, 6)],
+				buildInput({
+					sets: [buildTodaySet("a", heavy), buildTodaySet("b", heavy)],
+					previous: [buildLastSet(100, 6), buildLastSet(100, 6)],
 				}),
 			),
 		);
@@ -133,11 +143,11 @@ describe("suggestForExercise", () => {
 	});
 
 	it("prefers the range last workout's sets were planned with", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
-					sets: [today("a", backOff)],
-					previous: [last(100, 6, heavy)],
+				buildInput({
+					sets: [buildTodaySet("a", backOff)],
+					previous: [buildLastSet(100, 6, heavy)],
 				}),
 			),
 		);
@@ -146,17 +156,17 @@ describe("suggestForExercise", () => {
 	});
 
 	it("suggests nothing without history", () => {
-		expect(suggestForExercise(input({ sets: [today("a", heavy)] }))).toEqual(
-			[],
-		);
+		expect(
+			suggestForExercise(buildInput({ sets: [buildTodaySet("a", heavy)] })),
+		).toEqual([]);
 	});
 
 	it("suggests nothing when last workout had only warm-ups", () => {
 		expect(
 			suggestForExercise(
-				input({
-					sets: [today("a", heavy)],
-					previous: [last(60, 5, { warmup: true })],
+				buildInput({
+					sets: [buildTodaySet("a", heavy)],
+					previous: [buildLastSet(60, 5, { warmup: true })],
 				}),
 			),
 		).toEqual([]);
@@ -165,9 +175,12 @@ describe("suggestForExercise", () => {
 	it("suggests nothing when today's sets plan no rep range (not from a template)", () => {
 		expect(
 			suggestForExercise(
-				input({
-					sets: [today("a"), today("w", { warmup: true, ...heavy })],
-					previous: [last(100, 6, heavy)],
+				buildInput({
+					sets: [
+						buildTodaySet("a"),
+						buildTodaySet("w", { warmup: true, ...heavy }),
+					],
+					previous: [buildLastSet(100, 6, heavy)],
 				}),
 			),
 		).toEqual([]);
@@ -176,10 +189,10 @@ describe("suggestForExercise", () => {
 	it("suggests nothing for a measure without weight and reps", () => {
 		expect(
 			suggestForExercise(
-				input({
+				buildInput({
 					measure: "reps",
-					sets: [today("a", heavy)],
-					previous: [last(0, 6, heavy)],
+					sets: [buildTodaySet("a", heavy)],
+					previous: [buildLastSet(0, 6, heavy)],
 				}),
 			),
 		).toEqual([]);
@@ -187,9 +200,9 @@ describe("suggestForExercise", () => {
 
 	it("leaves out a group without a range or with a set missing its weight", () => {
 		const found = suggestForExercise(
-			input({
-				sets: [today("a", heavy)],
-				previous: [last(100, 5, heavy), last(80, 10)],
+			buildInput({
+				sets: [buildTodaySet("a", heavy)],
+				previous: [buildLastSet(100, 5, heavy), buildLastSet(80, 10)],
 			}),
 		);
 
@@ -197,20 +210,20 @@ describe("suggestForExercise", () => {
 	});
 
 	it("overwrites planned and typed values of not-done sets, but not sets already holding the suggestion", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
+				buildInput({
 					sets: [
-						today("planned", { ...heavy, weightKg: 100, reps: 4 }),
-						today("typed", { ...heavy, weightKg: 105, reps: 5 }),
-						today("holds", { ...heavy, weightKg: 102.5, reps: 4 }),
-						today("empty", heavy),
+						buildTodaySet("planned", { ...heavy, weightKg: 100, reps: 4 }),
+						buildTodaySet("typed", { ...heavy, weightKg: 105, reps: 5 }),
+						buildTodaySet("holds", { ...heavy, weightKg: 102.5, reps: 4 }),
+						buildTodaySet("empty", heavy),
 					],
 					previous: [
-						last(100, 6, heavy),
-						last(100, 6, heavy),
-						last(100, 6, heavy),
-						last(100, 6, heavy),
+						buildLastSet(100, 6, heavy),
+						buildLastSet(100, 6, heavy),
+						buildLastSet(100, 6, heavy),
+						buildLastSet(100, 6, heavy),
 					],
 				}),
 			),
@@ -225,12 +238,12 @@ describe("suggestForExercise", () => {
 
 	it("has nothing to fill once a pound set shows the suggested number", () => {
 		const typedKg = 220.5 * KG_PER_LB;
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
+				buildInput({
 					unit: "lb",
-					sets: [today("a", { ...heavy, weightKg: typedKg, reps: 6 })],
-					previous: [last(100, 5, heavy)],
+					sets: [buildTodaySet("a", { ...heavy, weightKg: typedKg, reps: 6 })],
+					previous: [buildLastSet(100, 5, heavy)],
 				}),
 			),
 		);
@@ -240,17 +253,22 @@ describe("suggestForExercise", () => {
 	});
 
 	it("does not fill a set already done today, nor sets today does not have", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
+				buildInput({
 					sets: [
-						today("a", { ...heavy, completedAt: DONE, weightKg: 95, reps: 6 }),
-						today("b", heavy),
+						buildTodaySet("a", {
+							...heavy,
+							completedAt: DONE,
+							weightKg: 95,
+							reps: 6,
+						}),
+						buildTodaySet("b", heavy),
 					],
 					previous: [
-						last(100, 6, heavy),
-						last(100, 6, heavy),
-						last(100, 6, heavy),
+						buildLastSet(100, 6, heavy),
+						buildLastSet(100, 6, heavy),
+						buildLastSet(100, 6, heavy),
 					],
 				}),
 			),
@@ -261,12 +279,12 @@ describe("suggestForExercise", () => {
 	});
 
 	it("uses the dumbbell increment from the exercise's equipment", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
+				buildInput({
 					exercise: { name: "Press", equipment: "dumbbell" },
-					sets: [today("a", heavy)],
-					previous: [last(20, 6, heavy)],
+					sets: [buildTodaySet("a", heavy)],
+					previous: [buildLastSet(20, 6, heavy)],
 				}),
 			),
 		);
@@ -275,12 +293,12 @@ describe("suggestForExercise", () => {
 	});
 
 	it("rounds a raised weight to what loads in pounds", () => {
-		const suggestion = onlySuggestion(
+		const suggestion = getOnlySuggestion(
 			suggestForExercise(
-				input({
+				buildInput({
 					unit: "lb",
-					sets: [today("a", heavy)],
-					previous: [last(100, 6, heavy)],
+					sets: [buildTodaySet("a", heavy)],
+					previous: [buildLastSet(100, 6, heavy)],
 				}),
 			),
 		);
@@ -290,29 +308,29 @@ describe("suggestForExercise", () => {
 });
 
 describe("suggestForExercise lining groups up by rep range", () => {
-	const fillsOf = (found: ExerciseSuggestion[]) =>
+	const collectFills = (found: ExerciseSuggestion[]) =>
 		found.map((s) => s.fills.map((f) => f.setId));
 
 	it("A: a set-count change in one group does not shift the next group", () => {
 		const found = suggestForExercise(
-			input({
+			buildInput({
 				sets: [
-					today("h1", heavy),
-					today("h2", heavy),
-					today("h3", heavy),
-					today("b1", backOff),
-					today("b2", backOff),
+					buildTodaySet("h1", heavy),
+					buildTodaySet("h2", heavy),
+					buildTodaySet("h3", heavy),
+					buildTodaySet("b1", backOff),
+					buildTodaySet("b2", backOff),
 				],
 				previous: [
-					last(100, 5, heavy),
-					last(100, 5, heavy),
-					last(60, 9, backOff),
-					last(60, 9, backOff),
+					buildLastSet(100, 5, heavy),
+					buildLastSet(100, 5, heavy),
+					buildLastSet(60, 9, backOff),
+					buildLastSet(60, 9, backOff),
 				],
 			}),
 		);
 
-		expect(fillsOf(found)).toEqual([
+		expect(collectFills(found)).toEqual([
 			["h1", "h2"],
 			["b1", "b2"],
 		]);
@@ -321,25 +339,33 @@ describe("suggestForExercise lining groups up by rep range", () => {
 
 	it("B: a heavy set gained in the template never receives the back-off suggestion", () => {
 		const found = suggestForExercise(
-			input({
-				sets: [today("h1", heavy), today("h2", heavy), today("h3", heavy)],
+			buildInput({
+				sets: [
+					buildTodaySet("h1", heavy),
+					buildTodaySet("h2", heavy),
+					buildTodaySet("h3", heavy),
+				],
 				previous: [
-					last(100, 6, heavy),
-					last(100, 6, heavy),
-					last(60, 10, backOff),
+					buildLastSet(100, 6, heavy),
+					buildLastSet(100, 6, heavy),
+					buildLastSet(60, 10, backOff),
 				],
 			}),
 		);
 
 		expect(found.map((s) => s.repMin)).toEqual([4, 8]);
-		expect(fillsOf(found)).toEqual([["h1", "h2"], []]);
+		expect(collectFills(found)).toEqual([["h1", "h2"], []]);
 	});
 
 	it("C: a skipped set does not give last time's light set the heavy range", () => {
 		const found = suggestForExercise(
-			input({
-				sets: [today("h1", heavy), today("h2", heavy), today("b1", backOff)],
-				previous: [last(100, 6), last(60, 6)],
+			buildInput({
+				sets: [
+					buildTodaySet("h1", heavy),
+					buildTodaySet("h2", heavy),
+					buildTodaySet("b1", backOff),
+				],
+				previous: [buildLastSet(100, 6), buildLastSet(60, 6)],
 			}),
 		);
 
@@ -348,9 +374,9 @@ describe("suggestForExercise lining groups up by rep range", () => {
 
 	it("borrows today's ranges by position only when the set counts match", () => {
 		const found = suggestForExercise(
-			input({
-				sets: [today("h1", heavy), today("b1", backOff)],
-				previous: [last(100, 6), last(60, 8)],
+			buildInput({
+				sets: [buildTodaySet("h1", heavy), buildTodaySet("b1", backOff)],
+				previous: [buildLastSet(100, 6), buildLastSet(60, 8)],
 			}),
 		);
 
@@ -358,14 +384,14 @@ describe("suggestForExercise lining groups up by rep range", () => {
 			[4, "increase"],
 			[8, "addRep"],
 		]);
-		expect(fillsOf(found)).toEqual([["h1"], ["b1"]]);
+		expect(collectFills(found)).toEqual([["h1"], ["b1"]]);
 	});
 
 	it("H: today's sets with another range than the suggestion are not filled", () => {
 		const found = suggestForExercise(
-			input({
-				sets: [today("a", heavy), today("b", heavy)],
-				previous: [last(60, 9, backOff), last(60, 9, backOff)],
+			buildInput({
+				sets: [buildTodaySet("a", heavy), buildTodaySet("b", heavy)],
+				previous: [buildLastSet(60, 9, backOff), buildLastSet(60, 9, backOff)],
 			}),
 		);
 
@@ -376,24 +402,28 @@ describe("suggestForExercise lining groups up by rep range", () => {
 
 	it("judges sets sharing a range together even when another range sits between them", () => {
 		const found = suggestForExercise(
-			input({
-				sets: [today("h1", heavy), today("b1", backOff), today("h2", heavy)],
+			buildInput({
+				sets: [
+					buildTodaySet("h1", heavy),
+					buildTodaySet("b1", backOff),
+					buildTodaySet("h2", heavy),
+				],
 				previous: [
-					last(100, 6, heavy),
-					last(60, 9, backOff),
-					last(100, 6, heavy),
+					buildLastSet(100, 6, heavy),
+					buildLastSet(60, 9, backOff),
+					buildLastSet(100, 6, heavy),
 				],
 			}),
 		);
 
-		expect(fillsOf(found)).toEqual([["h1", "h2"], ["b1"]]);
+		expect(collectFills(found)).toEqual([["h1", "h2"], ["b1"]]);
 	});
 });
 
-describe("firstOccurrenceIds", () => {
+describe("findFirstOccurrenceIds", () => {
 	it("keeps only the first card of an exercise that appears twice", () => {
 		expect(
-			firstOccurrenceIds([
+			findFirstOccurrenceIds([
 				{ id: "we1", exerciseId: "bench" },
 				{ id: "we2", exerciseId: "row" },
 				{ id: "we3", exerciseId: "bench" },

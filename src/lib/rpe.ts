@@ -24,7 +24,7 @@ export interface RpeChipsView {
 }
 
 /** The accessible name of the dashed "other" chip, so "8.5" has its context. */
-export function rpeOtherLabel(other: string): string {
+export function buildRpeOtherLabel(other: string): string {
 	return `RPE ${other}`;
 }
 

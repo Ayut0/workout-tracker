@@ -1,10 +1,10 @@
 import { startTransition, useState } from "react";
 import {
-	currentSubscription,
 	enableNotifications,
+	getCurrentSubscription,
+	getPermissionState,
 	isStandalone,
 	type PermissionState,
-	permissionState,
 } from "../lib/push";
 import { readPersisted, readSubscription } from "../lib/setupState";
 
@@ -15,9 +15,9 @@ import { readPersisted, readSubscription } from "../lib/setupState";
 export function useNotificationSetup() {
 	const [standalone] = useState(isStandalone);
 	const [permission, setPermission] =
-		useState<PermissionState>(permissionState);
+		useState<PermissionState>(getPermissionState);
 	const [subscription, setSubscription] = useState(() =>
-		readSubscription(currentSubscription),
+		readSubscription(getCurrentSubscription),
 	);
 	const [persisted, setPersisted] = useState(() =>
 		readPersisted(navigator.storage),
@@ -38,7 +38,7 @@ export function useNotificationSetup() {
 		} catch (e) {
 			setError(e instanceof Error ? e.message : String(e));
 		} finally {
-			setPermission(permissionState());
+			setPermission(getPermissionState());
 			setBusy(false);
 		}
 	}
