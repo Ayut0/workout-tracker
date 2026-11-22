@@ -9,6 +9,15 @@ Names are unique ignoring case and spacing. An exercise that history refers to
 is archived (hidden from the library) instead of deleted. An archived exercise
 keeps its name and can be restored. Each exercise has a **measure**, what its
 sets record: weight and reps (the default), reps only, seconds, or distance.
+An exercise may also have **attributes**, all optional and from fixed lists:
+**primary muscles** and **secondary muscles** (muscle groups such as chest,
+lats or quads; a muscle is one or the other, never both), a **movement
+pattern** (squat, hinge, horizontal push, vertical pull…), a **category**
+(strength, power, agility, mobility, core) and **equipment** (barbell,
+dumbbell, machine, cable, bodyweight, other). Equipment is meant to
+decide the progression increment when set, otherwise the name's "(Dumbbell)" mark does;
+that takes effect once the progression suggestions use `deriveIncrementKg`
+(a later change), not yet.
 
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active

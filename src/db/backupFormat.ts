@@ -7,7 +7,13 @@ import {
 	type BackupStore,
 } from "./backup";
 import { isLocalDay, MAX_BODY_WEIGHT_KG, MAX_WAIST_CM } from "./bodyLog";
-import { SET_MEASURES } from "./constants";
+import {
+	EQUIPMENT,
+	EXERCISE_CATEGORIES,
+	MOVEMENT_PATTERNS,
+	MUSCLE_GROUPS,
+	SET_MEASURES,
+} from "./constants";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
 import type {
 	BodyEntry,
@@ -127,6 +133,38 @@ function listOf<T>(spec: Spec<T>): Check {
 	};
 }
 
+/** A list whose every item passes `check`. */
+function listOfValues(check: Check): Check {
+	return (value) => {
+		if (!Array.isArray(value)) return "must be a list";
+		for (const [i, item] of value.entries()) {
+			const problem = check(item);
+			if (problem !== undefined) return `item ${i + 1} ${problem}`;
+		}
+		return undefined;
+	};
+}
+
+/**
+ * A muscle list as the app writes it (ADR-0016): known groups, none twice,
+ * and never empty (an empty list is stored as no field).
+ */
+const knownMuscles = listOfValues(oneOf(...MUSCLE_GROUPS));
+const muscles = optional((value) => {
+	const problem = knownMuscles(value);
+	if (problem !== undefined) return problem;
+	if (!Array.isArray(value)) return "must be a list";
+	const list: unknown[] = value;
+	if (list.length === 0) return "must not be empty";
+	const seen = new Set<unknown>();
+	for (const muscle of list) {
+		if (seen.has(muscle))
+			return `lists ${JSON.stringify(muscle)} more than once`;
+		seen.add(muscle);
+	}
+	return undefined;
+});
+
 const EXERCISE: Spec<Exercise> = {
 	id,
 	name: text,
@@ -135,6 +173,12 @@ const EXERCISE: Spec<Exercise> = {
 	restSeconds: optional(finite),
 	// Missing in backups made before measures (ADR-0012): weight and reps.
 	measure: optional(oneOf(...SET_MEASURES)),
+	// Missing in backups made before attributes (ADR-0016): none chosen.
+	primaryMuscles: muscles,
+	secondaryMuscles: muscles,
+	movementPattern: optional(oneOf(...MOVEMENT_PATTERNS)),
+	category: optional(oneOf(...EXERCISE_CATEGORIES)),
+	equipment: optional(oneOf(...EQUIPMENT)),
 };
 
 const WORKOUT: Spec<Workout> = {
@@ -254,7 +298,14 @@ function readData(data: RawData): BackupData | string {
 
 	// Exercise names are unique (the &nameKey index); a clash would fail the write.
 	const nameKeys = new Set<string>();
-	for (const exercise of exercises) {
+	for (const [i, exercise] of exercises.entries()) {
+		// A muscle is primary or secondary, never both (ADR-0016).
+		const overlap = exercise.primaryMuscles?.find((muscle) =>
+			exercise.secondaryMuscles?.includes(muscle),
+		);
+		if (overlap !== undefined) {
+			return `Exercise record ${i + 1}: ${JSON.stringify(overlap)} is in both primaryMuscles and secondaryMuscles.`;
+		}
 		if (nameKeys.has(exercise.nameKey)) {
 			return `Two exercises have the same name ("${exercise.name}").`;
 		}

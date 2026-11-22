@@ -41,9 +41,73 @@ export type SetMeasure = "weight-reps" | "reps" | "seconds" | "distance";
 
 /** The set fields a measure can show. */
 export type MeasureField = "weightKg" | "reps" | "seconds" | "distanceM";
+/**
+ * Muscle groups an exercise trains (ADR-0016); the list is MUSCLE_GROUPS. The
+ * groups do not overlap, so a set can be counted once per group.
+ */
+export type MuscleGroup =
+	| "chest"
+	| "lats"
+	| "upper-back"
+	| "lower-back"
+	| "front-delts"
+	| "side-delts"
+	| "rear-delts"
+	| "biceps"
+	| "triceps"
+	| "forearms"
+	| "abs"
+	| "glutes"
+	| "quads"
+	| "hamstrings"
+	| "adductors"
+	| "calves";
+
+/** The movement pattern of an exercise (ADR-0016). */
+export type MovementPattern =
+	| "squat"
+	| "hinge"
+	| "lunge"
+	| "horizontal-push"
+	| "vertical-push"
+	| "horizontal-pull"
+	| "vertical-pull"
+	| "carry"
+	| "rotation"
+	| "isolation";
+
+/** What kind of training an exercise is (ADR-0016). */
+export type ExerciseCategory =
+	| "strength"
+	| "power"
+	| "agility"
+	| "mobility"
+	| "core";
+
+/** What an exercise is done with; decides the progression increment. */
+export type Equipment =
+	| "barbell"
+	| "dumbbell"
+	| "machine"
+	| "cable"
+	| "bodyweight"
+	| "other";
+
+/**
+ * The optional, descriptive attributes of an exercise (ADR-0016). None is
+ * indexed, so adding them needs no schema version. A muscle is either primary
+ * or secondary, never both; an empty muscle list is stored as no field.
+ */
+export interface ExerciseAttributes {
+	primaryMuscles?: MuscleGroup[];
+	secondaryMuscles?: MuscleGroup[];
+	movementPattern?: MovementPattern;
+	category?: ExerciseCategory;
+	equipment?: Equipment;
+}
 
 /** A movement in the library, such as "Bench Press (Barbell)". */
-export interface Exercise {
+export interface Exercise extends ExerciseAttributes {
 	id: string;
 	name: string;
 	/**
