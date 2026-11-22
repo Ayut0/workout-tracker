@@ -56,6 +56,24 @@ the 1RM of high-rep sets; the cap keeps it conservative. A warm-up, a set with
 over its complete working sets (all reps, no cap). Warm-ups and bodyweight
 sets add nothing.
 
+**Week** — Monday 00:00 to the next Monday 00:00, local time. A workout
+belongs to the week it started in (its start time), even if it ends or has
+sets done after midnight into the next week. Weeks are counted in calendar
+days, so a week is 167 or 169 hours across a daylight-saving change. Where a
+change skips midnight (e.g. Havana, Cairo, Santiago, Beirut), the Monday's
+first instant (01:00) starts the week; weeks always tile the time line, so
+every instant is in exactly one week. The weekly-sets screen follows the
+clock: "this week" rolls over at the new week's start.
+
+**Hard sets** (weekly sets per muscle group) — How many sets each muscle group
+got in a Week, by fractional counting (Pelland et al. 2025): every complete
+working set counts 1 for each of its exercise's primary muscles
+and 0.5 for each secondary muscle, so counts are whole or half numbers. Unlike
+Volume, a complete working set counts whatever the exercise's measure (weight and reps, reps, seconds or
+distance) and whatever its weight, reps or RPE. Sets of exercises with no
+muscles set count towards nothing. The active workout counts too, as its sets
+are completed.
+
 **Progression** — The suggestion for an exercise's next workout from its last
 one. Its complete working sets (warm-ups never count) are judged in groups
 sharing a rep range: when every set of a group reached the top of the range,

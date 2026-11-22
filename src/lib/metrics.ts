@@ -26,7 +26,9 @@ interface LoadedSet {
 }
 
 /** A complete set that is not a warm-up: the only kind progress counts. */
-function countsAsWorkingSet(set: WorkoutSet): boolean {
+export function countsAsWorkingSet(
+	set: Pick<WorkoutSet, "completedAt" | "warmup">,
+): boolean {
 	return set.completedAt !== undefined && !set.warmup;
 }
 
