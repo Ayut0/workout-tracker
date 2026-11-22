@@ -19,6 +19,12 @@ decide the progression increment when set, otherwise the name's "(Dumbbell)" mar
 that takes effect once the progression suggestions use `deriveIncrementKg`
 (a later change), not yet.
 
+**Instructions** — How an exercise is performed, written by the lifter: an
+optional text and an optional web link. One per exercise, shared by every
+workout and template that uses it, and readable while logging. The app ships
+none; the lifter writes their own. Not to be confused with **notes**, which
+belong to one workout (or plan) and say what to do or what happened that time.
+
 **Workout** — One training session: a name, a start time, an end time once
 finished, and notes. A workout with no end time is in progress (the active
 workout). It holds exercises in order, each with its sets in order.

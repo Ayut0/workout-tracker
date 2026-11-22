@@ -13,6 +13,7 @@ import {
 } from "./backup";
 import { parseBackup } from "./backupFormat";
 import { findSettings, SETTINGS_ID, saveSettings, WorkoutDB } from "./index";
+import { MAX_INSTRUCTIONS_LENGTH } from "./instructions";
 import { TIMER_STATUS } from "./types";
 
 let database: WorkoutDB;
@@ -45,6 +46,8 @@ async function seedEveryStore(target: WorkoutDB) {
 			movementPattern: "squat",
 			category: "strength",
 			equipment: "barbell",
+			instructions: "Brace.\nSit down between the heels.",
+			instructionsUrl: "https://example.test/squat",
 		},
 	]);
 	await target.workouts.bulkAdd([
@@ -357,6 +360,113 @@ describe("restoring blank notes (ADR-0014)", () => {
 		expect(Object.hasOwn(templates[0]?.exercises[0] ?? {}, "notes")).toBe(
 			false,
 		);
+	});
+});
+
+describe("instructions in a backup (ADR-0020)", () => {
+	/** A backup holding just these exercises. */
+	function makeExercisesFile(exercises: unknown[]): string {
+		return makeFile({
+			data: {
+				exercises,
+				workouts: [],
+				workoutExercises: [],
+				sets: [],
+				templates: [],
+				settings: [],
+				bodyEntries: [],
+			},
+		});
+	}
+
+	it("restores a backup from before instructions unchanged", async () => {
+		const exercise = {
+			id: "e",
+			name: "Row",
+			nameKey: "row",
+			equipment: "cable",
+		};
+		await restoreBackup(parseOrThrow(makeExercisesFile([exercise])), database);
+		expect(await database.exercises.toArray()).toStrictEqual([exercise]);
+	});
+
+	it("trims instructions and drops blank ones, as the form stores them", () => {
+		const parsed = parseBackup(
+			makeExercisesFile([
+				{
+					id: "a",
+					name: "A",
+					nameKey: "a",
+					instructions: "  Step one.\nStep two. ",
+					instructionsUrl: " https://example.test/a ",
+				},
+				{
+					id: "b",
+					name: "B",
+					nameKey: "b",
+					instructions: " \n ",
+					instructionsUrl: "",
+				},
+			]),
+		);
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		const [a, b] = parsed.backup.data.exercises;
+		expect(a).toMatchObject({
+			instructions: "Step one.\nStep two.",
+			instructionsUrl: "https://example.test/a",
+		});
+		expect(b).toStrictEqual({ id: "b", name: "B", nameKey: "b" });
+	});
+
+	it("accepts text at the cap, counted after trimming", () => {
+		const parsed = parseBackup(
+			makeExercisesFile([
+				{
+					id: "e",
+					name: "Row",
+					nameKey: "row",
+					instructions: ` ${"a".repeat(MAX_INSTRUCTIONS_LENGTH)} `,
+				},
+			]),
+		);
+		expect(parsed.ok).toBe(true);
+	});
+
+	it.each([
+		[
+			"text that is not text",
+			{ instructions: 42 },
+			/instructions must be text/,
+		],
+		[
+			"text over the cap",
+			{ instructions: "a".repeat(MAX_INSTRUCTIONS_LENGTH + 1) },
+			/instructions must be at most 2,000 characters/,
+		],
+		[
+			"a link that is not text",
+			{ instructionsUrl: ["x"] },
+			/instructionsUrl must be text/,
+		],
+		[
+			"a script link",
+			{ instructionsUrl: "javascript:alert(1)" },
+			/instructionsUrl .*http/,
+		],
+		[
+			"a link with no scheme",
+			{ instructionsUrl: "example.test/row" },
+			/instructionsUrl .*http/,
+		],
+	])("rejects %s", (_label, fields, reason) => {
+		const parsed = parseBackup(
+			makeExercisesFile([{ id: "e", name: "Row", nameKey: "row", ...fields }]),
+		);
+		expect(parsed.ok).toBe(false);
+		if (parsed.ok) return;
+		expect(parsed.reason).toMatch(/^Exercise record 1: /);
+		expect(parsed.reason).toMatch(reason);
 	});
 });
 
