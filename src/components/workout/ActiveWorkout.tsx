@@ -106,15 +106,17 @@ export function ActiveWorkout({
 
 			{detail.exercises.map((entry, index) => {
 				const exerciseId = entry.workoutExercise.exerciseId;
-				const exerciseName =
-					exercises.get(exerciseId)?.name ?? "Unknown exercise";
-				const measure = resolveMeasure(exercises.get(exerciseId));
+				const exercise = exercises.get(exerciseId);
+				const exerciseName = exercise?.name ?? "Unknown exercise";
+				const measure = resolveMeasure(exercise);
 				const workoutExerciseId = entry.workoutExercise.id;
 				return (
 					<ExerciseCard
 						key={workoutExerciseId}
 						entry={entry}
 						name={exerciseName}
+						instructions={exercise?.instructions}
+						instructionsUrl={exercise?.instructionsUrl}
 						index={index}
 						count={detail.exercises.length}
 						measure={measure}

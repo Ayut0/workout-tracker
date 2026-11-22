@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
 	getInstructionsCounter,
+	getLinkLabel,
 	isInstructionsDraftChanged,
+	isSafeInstructionsLink,
 } from "./instructions";
 
 describe("getInstructionsCounter", () => {
@@ -50,5 +52,40 @@ describe("isInstructionsDraftChanged", () => {
 		[{ text: "", url: "https://example.test/lorem" }],
 	])("is changed for %j", (draft) => {
 		expect(isInstructionsDraftChanged(draft, stored)).toBe(true);
+	});
+});
+
+describe("getLinkLabel", () => {
+	it.each([
+		["https://www.video.example.test/watch?v=abc", "video.example.test"],
+		["http://example.test", "example.test"],
+		["https://EXAMPLE.test:8443/a", "example.test"],
+	])("shows %j as its host %j", (url, label) => {
+		expect(getLinkLabel(url)).toBe(label);
+	});
+
+	it("falls back to the text itself when it cannot be read as a URL", () => {
+		expect(getLinkLabel("not a url")).toBe("not a url");
+	});
+});
+
+describe("isSafeInstructionsLink", () => {
+	it.each(["https://example.test/a", "http://example.test"])(
+		"renders %j as a link",
+		(url) => {
+			expect(isSafeInstructionsLink(url)).toBe(true);
+		},
+	);
+
+	it.each([
+		"javascript:alert(1)",
+		"JavaScript:alert(1)",
+		"data:text/html,<p>x</p>",
+		"ftp://example.test/a",
+		"example.test/a",
+		"not a url",
+		"",
+	])("never renders %j as a link", (url) => {
+		expect(isSafeInstructionsLink(url)).toBe(false);
 	});
 });

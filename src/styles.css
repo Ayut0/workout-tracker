@@ -793,6 +793,44 @@ fieldset {
 	overflow-wrap: anywhere;
 }
 
+/* Exercise instructions (ADR-0020): collapsed under the name while logging. */
+.instructions {
+	display: grid;
+	gap: 4px;
+}
+
+.instructions-toggle {
+	align-self: start;
+	padding: 4px 0;
+	border: 0;
+	background: none;
+	color: var(--muted);
+	font-size: 14px;
+	text-align: left;
+	cursor: pointer;
+}
+
+.instructions-body {
+	display: grid;
+	gap: 6px;
+	font-size: 14px;
+}
+
+.instructions-body[hidden] {
+	display: none;
+}
+
+.instructions-text {
+	margin: 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.instructions-body a {
+	justify-self: start;
+	overflow-wrap: anywhere;
+}
+
 .suggestions {
 	list-style: none;
 	margin: 0;

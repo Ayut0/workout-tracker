@@ -5,11 +5,15 @@ import type { SetMeasure, WeightUnit, WorkoutSet } from "../../db/types";
 import type { SetChanges } from "../../db/workoutLog";
 import { describeFieldColumn } from "../../lib/setMeasure";
 import { ExerciseNotes } from "./ExerciseNotes";
+import { InstructionsRow } from "./InstructionsRow";
 import { SetRow } from "./SetRow";
 
 type ExerciseCardProps = {
 	entry: WorkoutExerciseDetail;
 	name: string;
+	/** How the exercise is performed (ADR-0020), from the library; optional. */
+	instructions?: string | undefined;
+	instructionsUrl?: string | undefined;
 	/** Position in the workout, from 0, and how many exercises it has. */
 	index: number;
 	count: number;
@@ -38,6 +42,8 @@ type ExerciseCardProps = {
 export function ExerciseCard({
 	entry,
 	name,
+	instructions,
+	instructionsUrl,
 	index,
 	count,
 	measure,
@@ -94,6 +100,10 @@ export function ExerciseCard({
 					</button>
 				</div>
 			</div>
+			<InstructionsRow
+				instructions={instructions}
+				instructionsUrl={instructionsUrl}
+			/>
 			<ExerciseNotes notes={entry.workoutExercise.notes} />
 			{suggestions}
 			<div className={gridClass}>
