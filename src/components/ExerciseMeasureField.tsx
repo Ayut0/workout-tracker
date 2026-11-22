@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import { SET_MEASURES, type SetMeasure } from "../db/types";
 import { describeMeasure, isSetMeasure } from "../lib/setMeasure";
 
@@ -15,15 +16,15 @@ export function ExerciseMeasureField({
 	onChange,
 	hint,
 }: ExerciseMeasureFieldProps) {
+	function handleChange(event: ChangeEvent<HTMLSelectElement>) {
+		const { value } = event.target;
+		if (isSetMeasure(value)) onChange(value);
+	}
+
 	return (
 		<label className="field">
 			<span className="label">Log sets by</span>
-			<select
-				value={measure}
-				onChange={(e) => {
-					if (isSetMeasure(e.target.value)) onChange(e.target.value);
-				}}
-			>
+			<select value={measure} onChange={handleChange}>
 				{SET_MEASURES.map((option) => (
 					<option key={option} value={option}>
 						{describeMeasure(option)}
