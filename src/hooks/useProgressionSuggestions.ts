@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { WeightUnit, WorkoutSet } from "../db/types";
 import { resolveMeasure } from "../db/workoutLog";
-import { firstOccurrenceIds, suggestForExercise } from "../lib/suggestions";
+import { findFirstOccurrenceIds, suggestForExercise } from "../lib/suggestions";
 import type { ExerciseSuggestion } from "../lib/types";
 import type { ActiveWorkoutView } from "./useActiveWorkout";
 
@@ -20,7 +20,7 @@ export function useProgressionSuggestions(
 	return useMemo(() => {
 		const suggestions = new Map<string, ExerciseSuggestion[]>();
 		if (!previous) return suggestions;
-		const first = firstOccurrenceIds(
+		const first = findFirstOccurrenceIds(
 			view.detail.exercises.map((e) => ({
 				id: e.workoutExercise.id,
 				exerciseId: e.workoutExercise.exerciseId,

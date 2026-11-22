@@ -8,7 +8,7 @@ import {
 import {
 	capProblems,
 	describeUnusedField,
-	unusedSetFields,
+	findUnusedSetFields,
 } from "./programFormat";
 import { tidyTemplateName } from "./templates";
 import {
@@ -57,7 +57,7 @@ export function nameProgramTemplate(
 }
 
 /** A program id compared ignoring case and spacing, as exercise names are. */
-function programKey(programId: string): string {
+function buildProgramKey(programId: string): string {
 	return normalizeExerciseName(programId);
 }
 
@@ -104,7 +104,7 @@ function checkSetsAgainstMeasures(
 							? `which the file gives "${tidyExerciseName(exercise.name)}"`
 							: `which "${tidyExerciseName(exercise.name)}" is given because the file names no measure for it`;
 					exercise.sets.forEach((set, s) => {
-						for (const field of unusedSetFields(set, measure)) {
+						for (const field of findUnusedSetFields(set, measure)) {
 							errors.push(
 								`blocks[${b}].weeks[${w}].days[${d}].exercises[${e}].sets[${s}].${field}: ${describeUnusedField(measure)}, ${reason}.`,
 							);
@@ -196,10 +196,10 @@ export function planProgramImport(
 	);
 
 	const blocks = program.blocks.map((block) => block.block);
-	const key = programKey(programId);
+	const key = buildProgramKey(programId);
 	const imported = new Set(
 		storedTemplates.flatMap((template) =>
-			template.program && programKey(template.program.programId) === key
+			template.program && buildProgramKey(template.program.programId) === key
 				? [template.program.block]
 				: [],
 		),
