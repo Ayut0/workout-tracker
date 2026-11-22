@@ -1,9 +1,5 @@
 import type { Equipment, WeightUnit } from "../db/types";
-import {
-	convertToKg,
-	PLATE_INCREMENT,
-	roundToPlateIncrement,
-} from "./units";
+import { convertToKg, PLATE_INCREMENT, roundToPlateIncrement } from "./units";
 
 /**
  * Progression (#70, ADR-0013): what to lift next time for an exercise, from
