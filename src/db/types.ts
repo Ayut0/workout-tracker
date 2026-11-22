@@ -33,6 +33,15 @@ export interface RestTimer {
 	error?: string;
 }
 
+/**
+ * What a set of an exercise records (ADR-0012): weight and reps, reps alone
+ * (bodyweight), seconds (a plank) or distance in metres (a carry, a row).
+ */
+export type SetMeasure = "weight-reps" | "reps" | "seconds" | "distance";
+
+/** The set fields a measure can show. */
+export type MeasureField = "weightKg" | "reps" | "seconds" | "distanceM";
+
 /** A movement in the library, such as "Bench Press (Barbell)". */
 export interface Exercise {
 	id: string;
@@ -49,6 +58,11 @@ export interface Exercise {
 	 * rest in Settings. Not indexed, so adding it needs no schema version.
 	 */
 	restSeconds?: number;
+	/**
+	 * What its sets record; missing means "weight-reps", so exercises stored
+	 * before measures existed need no migration. Not indexed (ADR-0012).
+	 */
+	measure?: SetMeasure;
 }
 
 /** One training session. It is active (in progress) until endedAt is set. */
@@ -85,10 +99,12 @@ export interface WorkoutSet {
 	completedAt?: number;
 }
 
-/** A planned set in a template. */
+/** A planned set in a template; the exercise's measure says which fields apply. */
 export interface TemplateSet {
 	weightKg?: number;
 	reps?: number;
+	seconds?: number;
+	distanceM?: number;
 }
 
 /** An exercise in a template; array position is its order. */

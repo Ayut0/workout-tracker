@@ -1,7 +1,7 @@
 import { type ReactNode, useId } from "react";
 import type { WorkoutDetail } from "../../db";
 import type { Exercise, WeightUnit, WorkoutSet } from "../../db/types";
-import type { SetChanges } from "../../db/workoutLog";
+import { resolveMeasure, type SetChanges } from "../../db/workoutLog";
 import { useDraftField } from "../../hooks/useDraftField";
 import { useNow } from "../../hooks/useNow";
 import { formatElapsed } from "../../lib/workoutLog";
@@ -101,6 +101,7 @@ export function ActiveWorkout({
 				const exerciseId = entry.workoutExercise.exerciseId;
 				const exerciseName =
 					exercises.get(exerciseId)?.name ?? "Unknown exercise";
+				const measure = resolveMeasure(exercises.get(exerciseId));
 				const workoutExerciseId = entry.workoutExercise.id;
 				return (
 					<ExerciseCard
@@ -109,6 +110,7 @@ export function ActiveWorkout({
 						name={exerciseName}
 						index={index}
 						count={detail.exercises.length}
+						measure={measure}
 						weightUnit={weightUnit}
 						renderPrevious={
 							renderPrevious &&

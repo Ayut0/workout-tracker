@@ -61,12 +61,60 @@ export function readWeightField(text: string, unit: WeightUnit): SetFieldInput {
 	return kg === undefined ? { ok: false } : { ok: true, value: kg };
 }
 
+/**
+ * Largest values a set field accepts. Digit-only input is otherwise
+ * unbounded ("9" typed 400 times becomes Infinity, which JSON stores as
+ * null), so each reader rejects what is above these (ADR-0012).
+ */
+export const MAX_REPS = 9_999;
+/** 24 hours. Longer holds are not a set. */
+export const MAX_SECONDS = 86_400;
+/** 1,000 km. */
+export const MAX_DISTANCE_M = 1_000_000;
+
+function withinCap(value: number, cap: number): SetFieldInput {
+	return Number.isFinite(value) && value <= cap
+		? { ok: true, value }
+		: { ok: false };
+}
+
 const REPS_INPUT = /^\d+$/;
 
-/** Reads a reps field: a whole number of reps, 0 or more. */
+/** Reads a reps field: a whole number of reps, 0 to MAX_REPS. */
 export function readRepsField(text: string): SetFieldInput {
 	const trimmed = text.trim();
 	if (trimmed === "") return { ok: true, value: undefined };
 	if (!REPS_INPUT.test(trimmed)) return { ok: false };
-	return { ok: true, value: Number(trimmed) };
+	return withinCap(Number(trimmed), MAX_REPS);
+}
+
+const SECONDS_INPUT = /^\d+$/;
+const MINUTES_SECONDS_INPUT = /^(\d+):([0-5]\d)$/;
+
+/**
+ * Reads a set's time: whole seconds ("45") or minutes and seconds ("1:30"),
+ * up to MAX_SECONDS. Longer holds are typed as plain seconds.
+ */
+export function readSecondsField(text: string): SetFieldInput {
+	const trimmed = text.trim();
+	if (trimmed === "") return { ok: true, value: undefined };
+	if (SECONDS_INPUT.test(trimmed)) {
+		return withinCap(Number(trimmed), MAX_SECONDS);
+	}
+	const match = MINUTES_SECONDS_INPUT.exec(trimmed);
+	if (!match) return { ok: false };
+	return withinCap(
+		Number(match[1]) * SECONDS_PER_MINUTE + Number(match[2]),
+		MAX_SECONDS,
+	);
+}
+
+const DISTANCE_INPUT = /^\d+(?:[.,]\d*)?$|^[.,]\d+$/;
+
+/** Reads a set's distance in metres, 0 to MAX_DISTANCE_M; a decimal comma is accepted. */
+export function readDistanceField(text: string): SetFieldInput {
+	const trimmed = text.trim();
+	if (trimmed === "") return { ok: true, value: undefined };
+	if (!DISTANCE_INPUT.test(trimmed)) return { ok: false };
+	return withinCap(Number(trimmed.replace(",", ".")), MAX_DISTANCE_M);
 }

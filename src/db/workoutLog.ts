@@ -1,3 +1,4 @@
+import { DEFAULT_SET_MEASURE, MEASURE_FIELDS } from "./constants";
 import {
 	db,
 	findActiveWorkout,
@@ -8,6 +9,7 @@ import {
 } from "./index";
 import type {
 	Exercise,
+	SetMeasure,
 	TemplateExercise,
 	Workout,
 	WorkoutExercise,
@@ -50,7 +52,12 @@ export async function startWorkout(
 ): Promise<StartWorkoutResult> {
 	return database.transaction(
 		"rw",
-		[database.workouts, database.workoutExercises, database.sets],
+		[
+			database.workouts,
+			database.workoutExercises,
+			database.sets,
+			database.exercises,
+		],
 		async () => {
 			const active = await findActiveWorkout(database);
 			if (active) return { ok: false, reason: "active", active };
@@ -62,11 +69,14 @@ export async function startWorkout(
 			await database.workouts.add(workout);
 			const planned = input.exercises ?? [];
 			for (const [order, exercise] of planned.entries()) {
+				const measure = resolveMeasure(
+					await database.exercises.get(exercise.exerciseId),
+				);
 				await insertWorkoutExercise(
 					workout.id,
 					exercise.exerciseId,
 					order,
-					exercise.sets,
+					exercise.sets.map((set) => planNextSet(set, measure)),
 					database,
 				);
 			}
@@ -211,8 +221,9 @@ export async function moveWorkoutExercise(
 }
 
 /**
- * Adds a set at the end of an exercise, starting with the weight and reps of
- * the set before it. Returns undefined when the exercise is not in a workout.
+ * Adds a set at the end of an exercise, starting with the measurements of the
+ * set before it (planNextSet). Returns undefined when the exercise is not in a
+ * workout.
  */
 export async function addSet(
 	workoutExerciseId: string,
@@ -220,17 +231,18 @@ export async function addSet(
 ): Promise<WorkoutSet | undefined> {
 	return database.transaction(
 		"rw",
-		[database.workoutExercises, database.sets],
+		[database.workoutExercises, database.sets, database.exercises],
 		async () => {
-			if (!(await database.workoutExercises.get(workoutExerciseId))) {
-				return undefined;
-			}
+			const workoutExercise =
+				await database.workoutExercises.get(workoutExerciseId);
+			if (!workoutExercise) return undefined;
+			const exercise = await database.exercises.get(workoutExercise.exerciseId);
 			const sets = await listSets(workoutExerciseId, database);
 			const set: WorkoutSet = {
 				id: crypto.randomUUID(),
 				workoutExerciseId,
 				order: sets.length,
-				...planNextSet(sets.at(-1)),
+				...planNextSet(sets.at(-1), resolveMeasure(exercise)),
 			};
 			await database.sets.add(set);
 			return set;
@@ -367,7 +379,7 @@ async function insertWorkoutExercise(
 		id: crypto.randomUUID(),
 		workoutExerciseId: workoutExercise.id,
 		order: setOrder,
-		...planNextSet(planned),
+		...planned,
 	}));
 	await database.sets.bulkAdd(records);
 	return { workoutExercise, sets: records };
@@ -403,19 +415,37 @@ function renumber<T extends { order: number }>(records: readonly T[]): T[] {
 	);
 }
 
-/** The measurements a new set starts with. */
-export type PlannedSet = Pick<WorkoutSet, "weightKg" | "reps">;
+/** The measurements a new set starts with; the exercise's measure picks which show. */
+export type PlannedSet = Pick<
+	WorkoutSet,
+	"weightKg" | "reps" | "seconds" | "distanceM"
+>;
 
 /**
- * A new set added after `last` starts with its weight and reps (and nothing
- * else), so a straight set is one tap to confirm. The first set starts empty.
- * Also copies a planned set (from a template) into a new set record.
+ * A new set added after `last` starts with the measurements the exercise's
+ * measure shows (ADR-0012): weight and reps, reps, seconds or distance, and
+ * nothing else (no RPE or notes), so a straight set is one tap to confirm.
+ * Values kept hidden after a measure change are not carried into new sets.
+ * The first set starts empty. Also copies a planned set (from a template)
+ * into a new set record, and a complete set into a template.
  */
-export function planNextSet(last: PlannedSet | undefined): PlannedSet {
+export function planNextSet(
+	last: PlannedSet | undefined,
+	measure: SetMeasure,
+): PlannedSet {
 	const planned: PlannedSet = {};
-	if (last?.weightKg !== undefined) planned.weightKg = last.weightKg;
-	if (last?.reps !== undefined) planned.reps = last.reps;
+	for (const field of MEASURE_FIELDS[measure]) {
+		const value = last?.[field];
+		if (value !== undefined) planned[field] = value;
+	}
 	return planned;
+}
+
+/** An exercise's measure; a missing exercise or measure logs weight and reps. */
+export function resolveMeasure(
+	exercise: Pick<Exercise, "measure"> | undefined,
+): SetMeasure {
+	return exercise?.measure ?? DEFAULT_SET_MEASURE;
 }
 
 /**

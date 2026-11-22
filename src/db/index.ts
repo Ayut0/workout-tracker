@@ -1,7 +1,9 @@
 import Dexie, { type EntityTable } from "dexie";
+import { DEFAULT_SET_MEASURE } from "./constants";
 import {
 	type Exercise,
 	type RestTimer,
+	type SetMeasure,
 	type Settings,
 	type Template,
 	TIMER_STATUS,
@@ -124,10 +126,12 @@ export function tidyExerciseName(name: string): string {
 /**
  * Adds an exercise to the library. Rejects a blank name, and a name that
  * matches another exercise's (archived ones included) ignoring case and spacing.
+ * A measure other than the default (weight and reps) is stored with it.
  */
 export async function createExercise(
 	name: string,
 	database: WorkoutDB = db,
+	measure: SetMeasure = DEFAULT_SET_MEASURE,
 ): Promise<ExerciseNameResult> {
 	const tidy = tidyExerciseName(name);
 	if (tidy === "") return { ok: false, reason: "empty" };
@@ -136,6 +140,7 @@ export async function createExercise(
 		const existing = await database.exercises.get({ nameKey });
 		if (existing) return { ok: false, reason: "duplicate", existing };
 		const exercise: Exercise = { id: crypto.randomUUID(), name: tidy, nameKey };
+		if (measure !== DEFAULT_SET_MEASURE) exercise.measure = measure;
 		await database.exercises.add(exercise);
 		return { ok: true, exercise };
 	});
@@ -246,6 +251,24 @@ export async function setExerciseRestSeconds(
 	const updated = await database.exercises.update(id, (exercise) => {
 		if (restSeconds === undefined) delete exercise.restSeconds;
 		else exercise.restSeconds = restSeconds;
+	});
+	return updated > 0;
+}
+
+/**
+ * Sets what an exercise's sets record (ADR-0012). Weight and reps, the
+ * default, is stored as no measure. Sets already logged keep every value;
+ * the new measure only changes which ones are shown. Returns false when no
+ * such exercise exists.
+ */
+export async function setExerciseMeasure(
+	id: string,
+	measure: SetMeasure,
+	database: WorkoutDB = db,
+): Promise<boolean> {
+	const updated = await database.exercises.update(id, (exercise) => {
+		if (measure === DEFAULT_SET_MEASURE) delete exercise.measure;
+		else exercise.measure = measure;
 	});
 	return updated > 0;
 }

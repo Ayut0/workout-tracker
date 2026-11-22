@@ -39,6 +39,7 @@ async function seedEveryStore(target: WorkoutDB) {
 			nameKey: "squat",
 			restSeconds: 180,
 			archivedAt: T0,
+			measure: "distance",
 		},
 	]);
 	await target.workouts.bulkAdd([
@@ -77,7 +78,10 @@ async function seedEveryStore(target: WorkoutDB) {
 	await target.templates.add({
 		id: "t-1",
 		name: "Push day",
-		exercises: [{ exerciseId: "ex-bench", sets: [{ weightKg: 80, reps: 5 }] }],
+		exercises: [
+			{ exerciseId: "ex-bench", sets: [{ weightKg: 80, reps: 5 }] },
+			{ exerciseId: "ex-squat", sets: [{ seconds: 60, distanceM: 40 }] },
+		],
 	});
 	await saveSettings(
 		{ weightUnit: "lb", restSeconds: 120, lastBackupAt: T0 },
@@ -268,6 +272,34 @@ describe("restoring an older schema version", () => {
 		for (const store of BACKUP_STORES) expect(after.data[store]).toEqual([]);
 	});
 
+	it("restores exercises and planned sets from before measures (ADR-0012)", () => {
+		// Written before #63: no measure, template sets with weight and reps only.
+		const parsed = parseBackup(
+			makeFile({
+				data: {
+					exercises: [{ id: "e", name: "Row", nameKey: "row" }],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [
+						{
+							id: "t",
+							name: "Pull",
+							exercises: [{ exerciseId: "e", sets: [{ weightKg: 60 }] }],
+						},
+					],
+					settings: [],
+				},
+			}),
+		);
+
+		expect(parsed.ok).toBe(true);
+		if (!parsed.ok) return;
+		expect(parsed.backup.data.exercises).toEqual([
+			{ id: "e", name: "Row", nameKey: "row" },
+		]);
+	});
+
 	it("rejects a version with no migration clearly", () => {
 		expect(parseBackup(makeFile({ schemaVersion: 0 }))).toEqual({
 			ok: false,
@@ -352,6 +384,42 @@ describe("parseBackup rejects", () => {
 				},
 			}),
 			/Template record 1: exercises item 1: sets item 1: reps must be a number/,
+		],
+		[
+			"an unknown exercise measure",
+			makeFile({
+				data: {
+					exercises: [
+						{ id: "e", name: "Row", nameKey: "row", measure: "calories" },
+					],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+				},
+			}),
+			/Exercise record 1: measure must be "weight-reps" or "reps" or "seconds" or "distance"/,
+		],
+		[
+			"a template set's seconds that are not a number",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [
+						{
+							id: "t",
+							name: "A",
+							exercises: [{ exerciseId: "e", sets: [{ seconds: "60" }] }],
+						},
+					],
+					settings: [],
+				},
+			}),
+			/Template record 1: exercises item 1: sets item 1: seconds must be a number/,
 		],
 		[
 			"an unknown weight unit",

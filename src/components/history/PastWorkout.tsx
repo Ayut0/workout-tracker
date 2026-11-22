@@ -1,7 +1,7 @@
 import { useId } from "react";
 import type { WorkoutDetail } from "../../db";
 import type { Exercise, WeightUnit, WorkoutSet } from "../../db/types";
-import type { SetChanges } from "../../db/workoutLog";
+import { resolveMeasure, type SetChanges } from "../../db/workoutLog";
 import { useDraftField } from "../../hooks/useDraftField";
 import {
 	formatDuration,
@@ -131,6 +131,9 @@ export function PastWorkout({
 				const exerciseName =
 					exercises.get(entry.workoutExercise.exerciseId)?.name ??
 					"Unknown exercise";
+				const measure = resolveMeasure(
+					exercises.get(entry.workoutExercise.exerciseId),
+				);
 				const workoutExerciseId = entry.workoutExercise.id;
 				return (
 					<ExerciseCard
@@ -139,6 +142,7 @@ export function PastWorkout({
 						name={exerciseName}
 						index={index}
 						count={detail.exercises.length}
+						measure={measure}
 						weightUnit={weightUnit}
 						onMove={(toIndex) => onMoveExercise(workoutExerciseId, toIndex)}
 						onRemove={() => onRemoveExercise(workoutExerciseId, exerciseName)}
