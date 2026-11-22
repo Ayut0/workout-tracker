@@ -40,18 +40,18 @@ export function formatPreviousSet(
 				return `${formatWeight(weightKg, unit)} × ${reps}`;
 			}
 			if (weightKg !== undefined) return formatWeight(weightKg, unit);
-			return whenPresent(reps, formatReps);
+			return formatIfPresent(reps, formatReps);
 		case "reps":
-			return whenPresent(reps, formatReps);
+			return formatIfPresent(reps, formatReps);
 		case "seconds":
-			return whenPresent(seconds, formatSetSeconds);
+			return formatIfPresent(seconds, formatSetSeconds);
 		case "distance":
-			return whenPresent(distanceM, formatDistance);
+			return formatIfPresent(distanceM, formatDistance);
 	}
 }
 
 /** Formats a measurement, or gives undefined when it was not recorded. */
-function whenPresent<T>(
+function formatIfPresent<T>(
 	value: T | undefined,
 	format: (value: T) => string,
 ): string | undefined {
