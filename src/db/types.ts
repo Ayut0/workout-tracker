@@ -129,6 +129,37 @@ export interface Exercise extends ExerciseAttributes {
 	measure?: SetMeasure;
 }
 
+/**
+ * Where a template sits in a training program (ADR-0018): which program, which
+ * block of it and which week of the block. Set on templates a program import
+ * creates (#76) and copied onto workouts started from them. Not indexed.
+ */
+export interface ProgramLink {
+	/** The program's own id, from the program file; stable across blocks. */
+	programId: string;
+	/** The program's name when the template was made. */
+	programName: string;
+	/** The block (mesocycle), from 1. */
+	block: number;
+	/** The week within the block, from 1. */
+	week: number;
+	/** The day within the week, such as "A"; absent when there is one day. */
+	day?: string;
+	/** Planned as a deload week (ADR-0013). Only `true` is stored. */
+	deload?: boolean;
+}
+
+/**
+ * The template a workout was started from (ADR-0018), as it was then: a
+ * snapshot, so editing or deleting the template never changes the workout's
+ * history. Not indexed.
+ */
+export interface WorkoutSource {
+	templateId: string;
+	templateName: string;
+	program?: ProgramLink;
+}
+
 /** One training session. It is active (in progress) until endedAt is set. */
 export interface Workout {
 	id: string;
@@ -136,6 +167,8 @@ export interface Workout {
 	startedAt: number;
 	endedAt?: number;
 	notes?: string;
+	/** Set when started from a template (ADR-0018); absent otherwise. */
+	source?: WorkoutSource;
 }
 
 /** An exercise as performed in one workout, in the workout's order. */
@@ -225,6 +258,11 @@ export interface Template {
 	id: string;
 	name: string;
 	exercises: TemplateExercise[];
+	/**
+	 * The program, block and week this template plans (ADR-0018), set by a
+	 * program import (#76). Kept when the template is edited. Not indexed.
+	 */
+	program?: ProgramLink;
 }
 
 /**

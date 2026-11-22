@@ -8,6 +8,7 @@ import {
 	parseDateTimeLocal,
 	toDateTimeLocal,
 } from "../../lib/history";
+import { describeProgramLink } from "../../lib/programLink";
 import { HISTORY_PATH } from "../../lib/routes";
 import { Link } from "../Link";
 import { ExerciseCard } from "../workout/ExerciseCard";
@@ -87,6 +88,9 @@ export function PastWorkout({
 					<p className="lead">
 						Duration {formatDuration(workout.endedAt - workout.startedAt)}
 					</p>
+				)}
+				{workout.source?.program && (
+					<p className="lead">{describeProgramLink(workout.source.program)}</p>
 				)}
 			</header>
 
