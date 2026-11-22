@@ -2,13 +2,14 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import sample from "../../fixtures/program-sample.json?raw";
 import { WorkoutDB } from "./index";
-import { type ProgramFile, parseProgram } from "./programFormat";
+import { parseProgram } from "./programFormat";
 import {
 	importProgram,
 	nameProgramTemplate,
 	previewProgramImport,
 } from "./programImport";
 import { listTemplates, startWorkoutFromTemplate } from "./templates";
+import type { ProgramFile } from "./types";
 import { startWorkout } from "./workoutLog";
 
 let database: WorkoutDB;

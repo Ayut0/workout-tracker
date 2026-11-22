@@ -8,17 +8,22 @@ import {
 import {
 	capProblems,
 	describeUnusedField,
-	type ProgramDay,
-	type ProgramFile,
-	type ProgramSet,
-	type ProgramWeek,
 	unusedSetFields,
 } from "./programFormat";
 import { tidyTemplateName } from "./templates";
 import {
 	type Exercise,
+	type MeasureMismatch,
+	type NewProgramExercise,
 	PLANNED_TARGET_FIELDS,
+	type PlannedProgramTemplate,
+	type ProgramDay,
+	type ProgramFile,
+	type ProgramImportPlan,
+	type ProgramImportResult,
 	type ProgramLink,
+	type ProgramSet,
+	type ProgramWeek,
 	type SetMeasure,
 	type Template,
 	type TemplateExercise,
@@ -33,55 +38,6 @@ import { resolveMeasure, tidyNotes } from "./workoutLog";
  * alone. Two steps, like the Strong import: a pure plan the preview shows,
  * then a write that plans again inside its transaction.
  */
-
-/** An exercise the import creates, with the measure the file gives it. */
-export interface NewProgramExercise {
-	name: string;
-	measure: SetMeasure;
-}
-
-/** An exercise the library has with another measure than the file says. */
-export interface MeasureMismatch {
-	name: string;
-	fileMeasure: SetMeasure;
-	libraryMeasure: SetMeasure;
-}
-
-/** A template the import would add, before ids are given. */
-export interface PlannedProgramTemplate {
-	name: string;
-	program: ProgramLink;
-	exercises: { nameKey: string; notes?: string; sets: TemplateSet[] }[];
-}
-
-export interface ProgramImportPlan {
-	programId: string;
-	programName: string;
-	/** The blocks in the file, in file order. */
-	blocks: number[];
-	templates: PlannedProgramTemplate[];
-	newExercises: NewProgramExercise[];
-	/** How many of the file's exercises the library already has. */
-	matchedExerciseCount: number;
-	/** Library exercises whose measure differs; the library's is kept. */
-	measureMismatches: MeasureMismatch[];
-	/**
-	 * Planned set fields the exercise's measure (the library's, or the file's
-	 * or default for a new exercise) does not use, each with its JSON path.
-	 * The import refuses while any is listed: they would vanish silently.
-	 */
-	setErrors: string[];
-	/**
-	 * Blocks of this program already imported (templates carry them). The
-	 * import refuses while any is listed.
-	 */
-	alreadyImportedBlocks: number[];
-}
-
-export type ProgramImportResult =
-	| { ok: true; templatesCreated: number; exercisesCreated: number }
-	| { ok: false; reason: "already-imported"; blocks: number[] }
-	| { ok: false; reason: "invalid-sets"; errors: string[] };
 
 /**
  * A template's name: "<Program> · W1 · A — Lower"; blocks after the first

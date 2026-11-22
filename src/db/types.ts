@@ -9,6 +9,8 @@
  * - order within a parent is an integer `order` field, read back sorted.
  */
 
+import type { PROGRAM_FORMAT } from "./constants";
+
 export type TimerStatus = "pending" | "received" | "cancelled" | "failed";
 
 /** Names for the statuses; the type above is the source of truth. */
@@ -297,3 +299,115 @@ export interface Settings {
 	 */
 	lastBackupAt?: number;
 }
+
+/**
+ * Program file (ADR-0019): a multi-week plan written outside the app and
+ * imported as templates.
+ */
+
+/** A planned set: the same fields as a template's planned set. */
+export type ProgramSet = TemplateSet;
+
+export interface ProgramExercise {
+	/** Matched to the library ignoring case and spacing, or created. */
+	name: string;
+	/** For an exercise the library does not have yet; default weight-reps. */
+	measure?: SetMeasure;
+	/** Cues shown while logging, copied to the template exercise. */
+	notes?: string;
+	sets: ProgramSet[];
+}
+
+export interface ProgramDay {
+	/** A short id unique within the week, such as "A". */
+	day: string;
+	/** What the day trains, such as "Lower"; used in the template name. */
+	name?: string;
+	exercises: ProgramExercise[];
+}
+
+export interface ProgramWeek {
+	/** The week within the block, from 1. */
+	week: number;
+	/** A planned deload week (ADR-0013). */
+	deload?: boolean;
+	days: ProgramDay[];
+}
+
+export interface ProgramBlock {
+	/** The block (mesocycle), from 1. */
+	block: number;
+	weeks: ProgramWeek[];
+}
+
+/** A program file as read: checked, values as written. */
+export interface ProgramFile {
+	format: typeof PROGRAM_FORMAT;
+	formatVersion: number;
+	/** Stable across the blocks of one program, such as "upper-lower-2026". */
+	programId: string;
+	name: string;
+	blocks: ProgramBlock[];
+}
+
+export type ProgramParseResult =
+	| { ok: true; program: ProgramFile }
+	| { ok: false; errors: string[] };
+
+/** An untrusted JSON object, before it is checked. */
+export type JsonObject = Record<string, unknown>;
+
+/** The measure each exercise name is given in the file, with where it was. */
+export type ProgramMeasures = Map<
+	string,
+	{ measure: SetMeasure; path: string }
+>;
+
+/** An exercise the import creates, with the measure the file gives it. */
+export interface NewProgramExercise {
+	name: string;
+	measure: SetMeasure;
+}
+
+/** An exercise the library has with another measure than the file says. */
+export interface MeasureMismatch {
+	name: string;
+	fileMeasure: SetMeasure;
+	libraryMeasure: SetMeasure;
+}
+
+/** A template the import would add, before ids are given. */
+export interface PlannedProgramTemplate {
+	name: string;
+	program: ProgramLink;
+	exercises: { nameKey: string; notes?: string; sets: TemplateSet[] }[];
+}
+
+export interface ProgramImportPlan {
+	programId: string;
+	programName: string;
+	/** The blocks in the file, in file order. */
+	blocks: number[];
+	templates: PlannedProgramTemplate[];
+	newExercises: NewProgramExercise[];
+	/** How many of the file's exercises the library already has. */
+	matchedExerciseCount: number;
+	/** Library exercises whose measure differs; the library's is kept. */
+	measureMismatches: MeasureMismatch[];
+	/**
+	 * Planned set fields the exercise's measure (the library's, or the file's
+	 * or default for a new exercise) does not use, each with its JSON path.
+	 * The import refuses while any is listed: they would vanish silently.
+	 */
+	setErrors: string[];
+	/**
+	 * Blocks of this program already imported (templates carry them). The
+	 * import refuses while any is listed.
+	 */
+	alreadyImportedBlocks: number[];
+}
+
+export type ProgramImportResult =
+	| { ok: true; templatesCreated: number; exercisesCreated: number }
+	| { ok: false; reason: "already-imported"; blocks: number[] }
+	| { ok: false; reason: "invalid-sets"; errors: string[] };

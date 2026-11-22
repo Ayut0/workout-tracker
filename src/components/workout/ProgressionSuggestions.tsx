@@ -1,9 +1,7 @@
 import type { WeightUnit } from "../../db/types";
 import type { SetUpdate } from "../../db/workoutLog";
-import {
-	describeSuggestion,
-	type ExerciseSuggestion,
-} from "../../lib/suggestions";
+import { describeSuggestion } from "../../lib/suggestions";
+import type { ExerciseSuggestion } from "../../lib/types";
 
 type ProgressionSuggestionsProps = {
 	suggestions: readonly ExerciseSuggestion[];

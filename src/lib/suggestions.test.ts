@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { WorkoutSet } from "../db/types";
 import {
 	describeSuggestion,
-	type ExerciseSuggestion,
 	firstOccurrenceIds,
-	type SuggestionInput,
 	suggestForExercise,
 } from "./suggestions";
+import type { ExerciseSuggestion, SuggestionInput } from "./types";
 import { KG_PER_LB } from "./units";
 
 const DONE = 1_700_000_000_000;

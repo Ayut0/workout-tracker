@@ -1,6 +1,29 @@
-import { MEASURE_FIELDS, SET_MEASURES } from "./constants";
+import {
+	BLOCK_KEYS,
+	DAY_KEYS,
+	EXERCISE_KEYS,
+	INVISIBLE,
+	MAX_PROGRAM_ERRORS,
+	MEASURE_FIELDS,
+	PROGRAM_FORMAT,
+	PROGRAM_FORMAT_VERSION,
+	PROGRAM_KEYS,
+	PROGRAM_LIMITS,
+	SET_KEYS,
+	SET_MEASURES,
+	SET_VALUE_FIELDS,
+	TARGET_KEYS,
+	WEEK_KEYS,
+} from "./constants";
 import { normalizeExerciseName } from "./index";
-import type { PlannedTargets, SetMeasure, TemplateSet } from "./types";
+import type {
+	JsonObject,
+	ProgramFile,
+	ProgramMeasures,
+	ProgramParseResult,
+	ProgramSet,
+	SetMeasure,
+} from "./types";
 import { plansTargets } from "./workoutLog";
 
 /**
@@ -10,45 +33,6 @@ import { plansTargets } from "./workoutLog";
  * a generated file can be fixed in one go.
  */
 
-export const PROGRAM_FORMAT = "workout-tracker-program";
-
-/** The version of the program file format this app reads and documents. */
-export const PROGRAM_FORMAT_VERSION = 1;
-
-/** At most this many problems are listed; the rest are counted. */
-export const MAX_PROGRAM_ERRORS = 20;
-
-/**
- * What a program file may hold (ADR-0019). The file is untrusted, often
- * generated, and imported in bulk, so size, counts, lengths and numbers are
- * capped well above a real plan. Every cap reports its own error message.
- */
-export const PROGRAM_LIMITS = {
-	/** Checked before the file is read into memory. */
-	maxFileBytes: 2 * 1024 * 1024,
-	maxBlocks: 12,
-	maxWeeksPerBlock: 12,
-	maxDaysPerWeek: 7,
-	/** Blocks × weeks × days: one template is created for each. */
-	maxTemplates: 300,
-	maxExercisesPerDay: 30,
-	maxSetsPerExercise: 30,
-	/** Program, day and exercise names. */
-	maxNameLength: 100,
-	/** programId and day ids. */
-	maxIdLength: 40,
-	maxNotesLength: 500,
-	maxBlockNumber: 99,
-	maxWeekNumber: 99,
-	maxWeightKg: 1000,
-	/** Reps, repMin and repMax. */
-	maxReps: 999,
-	/** 24 hours. */
-	maxSeconds: 86_400,
-	maxDistanceM: 100_000,
-	maxTargetRir: 20,
-} as const;
-
 /** The problem with a file of `bytes` size, if it is over the limit. */
 export function programFileSizeProblem(bytes: number): string | undefined {
 	if (bytes <= PROGRAM_LIMITS.maxFileBytes) return undefined;
@@ -56,104 +40,9 @@ export function programFileSizeProblem(bytes: number): string | undefined {
 	return `The file is larger than ${megabytes} MB, the most a program file may be.`;
 }
 
-/** A planned set: the same fields as a template's planned set. */
-export type ProgramSet = TemplateSet;
-
-export interface ProgramExercise {
-	/** Matched to the library ignoring case and spacing, or created. */
-	name: string;
-	/** For an exercise the library does not have yet; default weight-reps. */
-	measure?: SetMeasure;
-	/** Cues shown while logging, copied to the template exercise. */
-	notes?: string;
-	sets: ProgramSet[];
-}
-
-export interface ProgramDay {
-	/** A short id unique within the week, such as "A". */
-	day: string;
-	/** What the day trains, such as "Lower"; used in the template name. */
-	name?: string;
-	exercises: ProgramExercise[];
-}
-
-export interface ProgramWeek {
-	/** The week within the block, from 1. */
-	week: number;
-	/** A planned deload week (ADR-0013). */
-	deload?: boolean;
-	days: ProgramDay[];
-}
-
-export interface ProgramBlock {
-	/** The block (mesocycle), from 1. */
-	block: number;
-	weeks: ProgramWeek[];
-}
-
-/** A program file as read: checked, values as written. */
-export interface ProgramFile {
-	format: typeof PROGRAM_FORMAT;
-	formatVersion: number;
-	/** Stable across the blocks of one program, such as "upper-lower-2026". */
-	programId: string;
-	name: string;
-	blocks: ProgramBlock[];
-}
-
-export type ProgramParseResult =
-	| { ok: true; program: ProgramFile }
-	| { ok: false; errors: string[] };
-
-type Json = Record<string, unknown>;
-
-const PROGRAM_KEYS = [
-	"format",
-	"formatVersion",
-	"programId",
-	"name",
-	"blocks",
-] as const satisfies readonly (keyof ProgramFile)[];
-const BLOCK_KEYS = [
-	"block",
-	"weeks",
-] as const satisfies readonly (keyof ProgramBlock)[];
-const WEEK_KEYS = [
-	"week",
-	"deload",
-	"days",
-] as const satisfies readonly (keyof ProgramWeek)[];
-const DAY_KEYS = [
-	"day",
-	"name",
-	"exercises",
-] as const satisfies readonly (keyof ProgramDay)[];
-const EXERCISE_KEYS = [
-	"name",
-	"measure",
-	"notes",
-	"sets",
-] as const satisfies readonly (keyof ProgramExercise)[];
-const TARGET_KEYS = [
-	"repMin",
-	"repMax",
-	"targetRir",
-] as const satisfies readonly (keyof PlannedTargets)[];
-const SET_KEYS = [
-	"weightKg",
-	"reps",
-	"seconds",
-	"distanceM",
-	"warmup",
-	...TARGET_KEYS,
-] as const satisfies readonly (keyof ProgramSet)[];
-
-function isObject(value: unknown): value is Json {
+function isObject(value: unknown): value is JsonObject {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
-/** Zero-width and soft-hyphen characters, which show as nothing. */
-const INVISIBLE = /[\u00AD\u200B-\u200D\u2060\uFEFF]/g;
 
 function isText(value: unknown): value is string {
 	return (
@@ -187,7 +76,7 @@ class Problems {
 	}
 
 	/** Reports fields the format does not know, naming the ones it does. */
-	unknownKeys(path: string, value: Json, known: readonly string[]) {
+	unknownKeys(path: string, value: JsonObject, known: readonly string[]) {
 		for (const key of Object.keys(value)) {
 			if (!known.includes(key)) {
 				this.add(
@@ -264,7 +153,7 @@ class Problems {
 	}
 
 	/** An object at `path`, or undefined after reporting it is not one. */
-	object(path: string, value: unknown): Json | undefined {
+	object(path: string, value: unknown): JsonObject | undefined {
 		if (isObject(value)) return value;
 		this.add(path, "must be an object.");
 		return undefined;
@@ -280,17 +169,6 @@ function index(path: string, i: number): string {
 }
 
 /** The measure each exercise name is given, by normalized name. */
-type Measures = Map<string, { measure: SetMeasure; path: string }>;
-
-/** The set fields in the order problems are listed. */
-const SET_VALUE_FIELDS = [
-	"weightKg",
-	"reps",
-	"seconds",
-	"distanceM",
-	...TARGET_KEYS,
-] as const;
-
 /** Whether sets of `measure` use `field` (a warm-up mark is always used). */
 function usesSetField(measure: SetMeasure, field: string): boolean {
 	return TARGET_KEYS.some((key) => key === field)
@@ -392,8 +270,8 @@ function checkSet(
  */
 function checkExercise(
 	path: string,
-	exercise: Json,
-	measures: Measures,
+	exercise: JsonObject,
+	measures: ProgramMeasures,
 	problems: Problems,
 ): SetMeasure | null | undefined {
 	problems.unknownKeys(path, exercise, EXERCISE_KEYS);
@@ -446,8 +324,8 @@ function checkExercise(
  * given, so sets listed before the measure is named are still checked
  * against it.
  */
-function collectMeasures(blocks: unknown): Measures {
-	const measures: Measures = new Map();
+function collectMeasures(blocks: unknown): ProgramMeasures {
+	const measures: ProgramMeasures = new Map();
 	// Problems are reported by the second pass, in file order.
 	const scratch = new Problems();
 	if (!Array.isArray(blocks)) return measures;
@@ -471,7 +349,7 @@ function collectMeasures(blocks: unknown): Measures {
 function checkDay(
 	path: string,
 	value: unknown,
-	measures: Measures,
+	measures: ProgramMeasures,
 	problems: Problems,
 ): string | undefined {
 	const day = problems.object(path, value);
@@ -517,7 +395,7 @@ function checkDay(
 function checkWeek(
 	path: string,
 	value: unknown,
-	measures: Measures,
+	measures: ProgramMeasures,
 	problems: Problems,
 ): number | undefined {
 	const week = problems.object(path, value);
@@ -558,7 +436,7 @@ function checkWeek(
 function checkBlock(
 	path: string,
 	value: unknown,
-	measures: Measures,
+	measures: ProgramMeasures,
 	problems: Problems,
 ): number | undefined {
 	const block = problems.object(path, value);
@@ -593,7 +471,7 @@ function checkBlock(
 	return isCount(block.block, 1) ? block.block : undefined;
 }
 
-function checkEnvelope(file: Json, problems: Problems): boolean {
+function checkEnvelope(file: JsonObject, problems: Problems): boolean {
 	if (file.format !== PROGRAM_FORMAT) {
 		problems.add("format", `must be "${PROGRAM_FORMAT}".`);
 		return false;
@@ -625,7 +503,7 @@ function countTemplates(blocks: unknown[]): number {
 }
 
 /** The problems with a program file; empty when it can be imported. */
-function findProblems(file: Json): string[] {
+function findProblems(file: JsonObject): string[] {
 	const problems = new Problems();
 	if (!checkEnvelope(file, problems)) return problems.messages;
 	problems.unknownKeys("", file, PROGRAM_KEYS);
@@ -686,9 +564,9 @@ export function capProblems(problems: string[]): string[] {
 
 /** Whether a checked object is a program file: it has no problems. */
 function isProgramFile(
-	file: Json,
+	file: JsonObject,
 	problems: readonly string[],
-): file is Json & ProgramFile {
+): file is JsonObject & ProgramFile {
 	return isObject(file) && problems.length === 0;
 }
 

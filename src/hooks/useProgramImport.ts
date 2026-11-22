@@ -1,14 +1,7 @@
 import { useState } from "react";
-import {
-	type ProgramFile,
-	parseProgram,
-	programFileSizeProblem,
-} from "../db/programFormat";
-import {
-	importProgram,
-	type ProgramImportPlan,
-	previewProgramImport,
-} from "../db/programImport";
+import { parseProgram, programFileSizeProblem } from "../db/programFormat";
+import { importProgram, previewProgramImport } from "../db/programImport";
+import type { ProgramFile, ProgramImportPlan } from "../db/types";
 import { requestPersistentStorage } from "../lib/persistentStorage";
 
 /** Where the program import is: pick a file → preview → done. */

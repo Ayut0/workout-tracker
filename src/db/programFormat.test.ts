@@ -5,8 +5,8 @@ import {
 	PROGRAM_FORMAT,
 	PROGRAM_FORMAT_VERSION,
 	PROGRAM_LIMITS,
-	parseProgram,
-} from "./programFormat";
+} from "./constants";
+import { parseProgram } from "./programFormat";
 
 /** A valid one-day program; `changes` replace top-level fields. */
 function makeProgram(changes: Record<string, unknown> = {}) {

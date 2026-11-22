@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import type { ProgramImportPlan } from "../db/programImport";
+import type { ProgramImportPlan } from "../db/types";
 import { useProgramImport } from "../hooks/useProgramImport";
 import { describeMeasure } from "../lib/setMeasure";
 

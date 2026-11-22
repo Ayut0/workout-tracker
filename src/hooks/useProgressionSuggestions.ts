@@ -1,11 +1,8 @@
 import { useMemo } from "react";
 import type { WeightUnit, WorkoutSet } from "../db/types";
 import { resolveMeasure } from "../db/workoutLog";
-import {
-	type ExerciseSuggestion,
-	firstOccurrenceIds,
-	suggestForExercise,
-} from "../lib/suggestions";
+import { firstOccurrenceIds, suggestForExercise } from "../lib/suggestions";
+import type { ExerciseSuggestion } from "../lib/types";
 import type { ActiveWorkoutView } from "./useActiveWorkout";
 
 /**

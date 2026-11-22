@@ -1,14 +1,14 @@
-import type { SetMeasure, WeightUnit, WorkoutSet } from "../db/types";
+import type { WeightUnit } from "../db/types";
 import type { SetUpdate } from "../db/workoutLog";
+import { ACTION_LABELS } from "./constants";
 import { formatRepRange } from "./plannedTargets";
 import {
 	deriveIncrementKg,
-	type IncrementExercise,
-	type ProgressionAction,
 	type ProgressionSet,
 	type SuggestedSet,
 	suggestProgression,
 } from "./progression";
+import type { ExerciseSuggestion, SuggestionInput, TodaySet } from "./types";
 import { convertFromKg, formatWeight, roundForDisplay } from "./units";
 
 /**
@@ -17,41 +17,6 @@ import { convertFromKg, formatWeight, roundForDisplay } from "./units";
  * today's working sets so one tap can fill them. Pure: the caller loads the
  * last workout's sets (`listPreviousSets`).
  */
-
-/** The parts of today's sets the suggestion reads. */
-export type TodaySet = Pick<
-	WorkoutSet,
-	"id" | "weightKg" | "reps" | "warmup" | "repMin" | "repMax" | "completedAt"
->;
-
-export interface SuggestionInput {
-	/** Today's sets of the exercise, in order, warm-ups included. */
-	sets: readonly TodaySet[];
-	/**
-	 * The last finished workout's complete sets of the exercise, in order,
-	 * warm-ups included (`listPreviousSets`).
-	 */
-	previous: readonly ProgressionSet[];
-	measure: SetMeasure;
-	exercise: IncrementExercise;
-	unit: WeightUnit;
-}
-
-/** One group's suggestion (e.g. the heavy sets, or the back-off sets). */
-export interface ExerciseSuggestion {
-	action: ProgressionAction;
-	repMin: number;
-	repMax: number;
-	/** The suggested sets, one per working set the group did last time. */
-	sets: SuggestedSet[];
-	/**
-	 * What "Use" writes: the suggested weight and reps for today's working
-	 * sets of the same rep range that are not done yet and do not already
-	 * show it (planned or typed values are overwritten). Never a
-	 * warm-up. Empty once used, which hides the button.
-	 */
-	fills: SetUpdate[];
-}
 
 /**
  * The suggestions for one exercise, one per rep range; empty without history,
@@ -167,13 +132,6 @@ export function firstOccurrenceIds(
 	}
 	return first;
 }
-
-const ACTION_LABELS: Record<ProgressionAction, string> = {
-	increase: "Next",
-	addRep: "Same weight, aim for +1 rep",
-	keep: "Same weight and reps",
-	deload: "Deload",
-};
 
 /**
  * A suggestion as shown under the exercise, in the user's unit, e.g.
