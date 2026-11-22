@@ -1,0 +1,567 @@
+{
+	"format": "workout-tracker-program",
+	"formatVersion": 1,
+	"programId": "example-upper-lower",
+	"name": "Example Upper Lower",
+	"blocks": [
+		{
+			"block": 1,
+			"weeks": [
+				{
+					"week": 1,
+					"days": [
+						{
+							"day": "A",
+							"name": "Lower",
+							"exercises": [
+								{
+									"name": "Squat (Barbell)",
+									"measure": "weight-reps",
+									"notes": "Example loads only; plan your own.",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 50.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 3
+										},
+										{
+											"weightKg": 50.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 3
+										},
+										{
+											"weightKg": 50.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 3
+										}
+									]
+								},
+								{
+									"name": "Romanian Deadlift (Barbell)",
+									"sets": [
+										{
+											"weightKg": 40.0,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 40.0,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 40.0,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Plank",
+									"measure": "seconds",
+									"sets": [
+										{
+											"seconds": 30
+										},
+										{
+											"seconds": 30
+										}
+									]
+								}
+							]
+						},
+						{
+							"day": "B",
+							"name": "Upper",
+							"exercises": [
+								{
+									"name": "Bench Press (Barbell)",
+									"measure": "weight-reps",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 40.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 40.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 40.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Pull Up",
+									"measure": "reps",
+									"sets": [
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Farmer's Carry",
+									"measure": "distance",
+									"sets": [
+										{
+											"distanceM": 40
+										},
+										{
+											"distanceM": 40
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"week": 2,
+					"days": [
+						{
+							"day": "A",
+							"name": "Lower",
+							"exercises": [
+								{
+									"name": "Squat (Barbell)",
+									"measure": "weight-reps",
+									"notes": "Example loads only; plan your own.",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 52.5,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 52.5,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 52.5,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Romanian Deadlift (Barbell)",
+									"sets": [
+										{
+											"weightKg": 42.5,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 42.5,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 42.5,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Plank",
+									"measure": "seconds",
+									"sets": [
+										{
+											"seconds": 30
+										},
+										{
+											"seconds": 30
+										}
+									]
+								}
+							]
+						},
+						{
+							"day": "B",
+							"name": "Upper",
+							"exercises": [
+								{
+									"name": "Bench Press (Barbell)",
+									"measure": "weight-reps",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 42.5,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 42.5,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 42.5,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Pull Up",
+									"measure": "reps",
+									"sets": [
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Farmer's Carry",
+									"measure": "distance",
+									"sets": [
+										{
+											"distanceM": 40
+										},
+										{
+											"distanceM": 40
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"week": 3,
+					"days": [
+						{
+							"day": "A",
+							"name": "Lower",
+							"exercises": [
+								{
+									"name": "Squat (Barbell)",
+									"measure": "weight-reps",
+									"notes": "Example loads only; plan your own.",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 55.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 1
+										},
+										{
+											"weightKg": 55.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 1
+										},
+										{
+											"weightKg": 55.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 1
+										}
+									]
+								},
+								{
+									"name": "Romanian Deadlift (Barbell)",
+									"sets": [
+										{
+											"weightKg": 45.0,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 45.0,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 45.0,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Plank",
+									"measure": "seconds",
+									"sets": [
+										{
+											"seconds": 30
+										},
+										{
+											"seconds": 30
+										}
+									]
+								}
+							]
+						},
+						{
+							"day": "B",
+							"name": "Upper",
+							"exercises": [
+								{
+									"name": "Bench Press (Barbell)",
+									"measure": "weight-reps",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 45.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 45.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 45.0,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Pull Up",
+									"measure": "reps",
+									"sets": [
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Farmer's Carry",
+									"measure": "distance",
+									"sets": [
+										{
+											"distanceM": 40
+										},
+										{
+											"distanceM": 40
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"week": 4,
+					"deload": true,
+					"days": [
+						{
+							"day": "A",
+							"name": "Lower",
+							"exercises": [
+								{
+									"name": "Squat (Barbell)",
+									"measure": "weight-reps",
+									"notes": "Example loads only; plan your own.",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 50,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 3
+										},
+										{
+											"weightKg": 50,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 3
+										}
+									]
+								},
+								{
+									"name": "Romanian Deadlift (Barbell)",
+									"sets": [
+										{
+											"weightKg": 40,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 40,
+											"repMin": 8,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Plank",
+									"measure": "seconds",
+									"sets": [
+										{
+											"seconds": 30
+										},
+										{
+											"seconds": 30
+										}
+									]
+								}
+							]
+						},
+						{
+							"day": "B",
+							"name": "Upper",
+							"exercises": [
+								{
+									"name": "Bench Press (Barbell)",
+									"measure": "weight-reps",
+									"sets": [
+										{
+											"warmup": true,
+											"weightKg": 20,
+											"reps": 10
+										},
+										{
+											"weightKg": 40,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										},
+										{
+											"weightKg": 40,
+											"repMin": 5,
+											"repMax": 8,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Pull Up",
+									"measure": "reps",
+									"sets": [
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										},
+										{
+											"repMin": 5,
+											"repMax": 10,
+											"targetRir": 2
+										}
+									]
+								},
+								{
+									"name": "Farmer's Carry",
+									"measure": "distance",
+									"sets": [
+										{
+											"distanceM": 40
+										},
+										{
+											"distanceM": 40
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

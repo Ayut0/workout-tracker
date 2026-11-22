@@ -1,14 +1,14 @@
-import type { SetMeasure, WeightUnit, WorkoutSet } from "../db/types";
+import type { WeightUnit } from "../db/types";
 import type { SetUpdate } from "../db/workoutLog";
+import { ACTION_LABELS } from "./constants";
 import { formatRepRange } from "./plannedTargets";
 import {
 	deriveIncrementKg,
-	type IncrementExercise,
-	type ProgressionAction,
 	type ProgressionSet,
 	type SuggestedSet,
 	suggestProgression,
 } from "./progression";
+import type { ExerciseSuggestion, SuggestionInput, TodaySet } from "./types";
 import { convertFromKg, formatWeight, roundForDisplay } from "./units";
 
 /**
@@ -17,41 +17,6 @@ import { convertFromKg, formatWeight, roundForDisplay } from "./units";
  * today's working sets so one tap can fill them. Pure: the caller loads the
  * last workout's sets (`listPreviousSets`).
  */
-
-/** The parts of today's sets the suggestion reads. */
-export type TodaySet = Pick<
-	WorkoutSet,
-	"id" | "weightKg" | "reps" | "warmup" | "repMin" | "repMax" | "completedAt"
->;
-
-export interface SuggestionInput {
-	/** Today's sets of the exercise, in order, warm-ups included. */
-	sets: readonly TodaySet[];
-	/**
-	 * The last finished workout's complete sets of the exercise, in order,
-	 * warm-ups included (`listPreviousSets`).
-	 */
-	previous: readonly ProgressionSet[];
-	measure: SetMeasure;
-	exercise: IncrementExercise;
-	unit: WeightUnit;
-}
-
-/** One group's suggestion (e.g. the heavy sets, or the back-off sets). */
-export interface ExerciseSuggestion {
-	action: ProgressionAction;
-	repMin: number;
-	repMax: number;
-	/** The suggested sets, one per working set the group did last time. */
-	sets: SuggestedSet[];
-	/**
-	 * What "Use" writes: the suggested weight and reps for today's working
-	 * sets of the same rep range that are not done yet and do not already
-	 * show it (planned or typed values are overwritten). Never a
-	 * warm-up. Empty once used, which hides the button.
-	 */
-	fills: SetUpdate[];
-}
 
 /**
  * The suggestions for one exercise, one per rep range; empty without history,
@@ -86,7 +51,7 @@ export function suggestForExercise(
 				? { ...set, repMin: planned.repMin, repMax: planned.repMax }
 				: set;
 		if (!hasRange(judged)) continue;
-		const key = rangeKey(judged);
+		const key = buildRangeKey(judged);
 		byRange.set(key, [...(byRange.get(key) ?? []), judged]);
 	}
 
@@ -103,7 +68,7 @@ export function suggestForExercise(
 		const { repMin, repMax, suggestion } = group;
 		if (repMin === undefined || repMax === undefined) continue;
 		const todaySameRange = todayWorking.filter(
-			(set) => hasRange(set) && rangeKey(set) === key,
+			(set) => hasRange(set) && buildRangeKey(set) === key,
 		);
 		suggestions.push({
 			action: suggestion.action,
@@ -122,7 +87,7 @@ function hasRange<T extends { repMin?: number; repMax?: number }>(
 	return set.repMin !== undefined && set.repMax !== undefined;
 }
 
-function rangeKey(set: { repMin: number; repMax: number }): string {
+function buildRangeKey(set: { repMin: number; repMax: number }): string {
 	return `${set.repMin}-${set.repMax}`;
 }
 
@@ -155,7 +120,7 @@ function planFills(
  * exercise. Last time's sets are joined across an exercise's appearances, so
  * a second card of the same exercise would be lined up from the first set.
  */
-export function firstOccurrenceIds(
+export function findFirstOccurrenceIds(
 	entries: readonly { id: string; exerciseId: string }[],
 ): Set<string> {
 	const seen = new Set<string>();
@@ -167,13 +132,6 @@ export function firstOccurrenceIds(
 	}
 	return first;
 }
-
-const ACTION_LABELS: Record<ProgressionAction, string> = {
-	increase: "Next",
-	addRep: "Same weight, aim for +1 rep",
-	keep: "Same weight and reps",
-	deload: "Deload",
-};
 
 /**
  * A suggestion as shown under the exercise, in the user's unit, e.g.

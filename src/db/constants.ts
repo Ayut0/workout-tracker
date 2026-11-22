@@ -4,6 +4,13 @@ import type {
 	MeasureField,
 	MovementPattern,
 	MuscleGroup,
+	PlannedTargets,
+	ProgramBlock,
+	ProgramDay,
+	ProgramExercise,
+	ProgramFile,
+	ProgramSet,
+	ProgramWeek,
 	SetMeasure,
 } from "./types";
 
@@ -82,3 +89,96 @@ export const EQUIPMENT = [
 	"bodyweight",
 	"other",
 ] as const satisfies readonly Equipment[];
+
+/** The format name a program file declares (ADR-0019). */
+export const PROGRAM_FORMAT = "workout-tracker-program";
+
+/** The version of the program file format this app reads and documents. */
+export const PROGRAM_FORMAT_VERSION = 1;
+
+/** At most this many problems are listed; the rest are counted. */
+export const MAX_PROGRAM_ERRORS = 20;
+
+/**
+ * What a program file may hold (ADR-0019). The file is untrusted, often
+ * generated, and imported in bulk, so size, counts, lengths and numbers are
+ * capped well above a real plan. Every cap reports its own error message.
+ */
+export const PROGRAM_LIMITS = {
+	/** Checked before the file is read into memory. */
+	maxFileBytes: 2 * 1024 * 1024,
+	maxBlocks: 12,
+	maxWeeksPerBlock: 12,
+	maxDaysPerWeek: 7,
+	/** Blocks × weeks × days: one template is created for each. */
+	maxTemplates: 300,
+	maxExercisesPerDay: 30,
+	maxSetsPerExercise: 30,
+	/** Program, day and exercise names. */
+	maxNameLength: 100,
+	/** programId and day ids. */
+	maxIdLength: 40,
+	maxNotesLength: 500,
+	maxBlockNumber: 99,
+	maxWeekNumber: 99,
+	maxWeightKg: 1000,
+	/** Reps, repMin and repMax. */
+	maxReps: 999,
+	/** 24 hours. */
+	maxSeconds: 86_400,
+	maxDistanceM: 100_000,
+	maxTargetRir: 20,
+} as const;
+
+export const PROGRAM_KEYS = [
+	"format",
+	"formatVersion",
+	"programId",
+	"name",
+	"blocks",
+] as const satisfies readonly (keyof ProgramFile)[];
+export const BLOCK_KEYS = [
+	"block",
+	"weeks",
+] as const satisfies readonly (keyof ProgramBlock)[];
+export const WEEK_KEYS = [
+	"week",
+	"deload",
+	"days",
+] as const satisfies readonly (keyof ProgramWeek)[];
+export const DAY_KEYS = [
+	"day",
+	"name",
+	"exercises",
+] as const satisfies readonly (keyof ProgramDay)[];
+export const EXERCISE_KEYS = [
+	"name",
+	"measure",
+	"notes",
+	"sets",
+] as const satisfies readonly (keyof ProgramExercise)[];
+export const TARGET_KEYS = [
+	"repMin",
+	"repMax",
+	"targetRir",
+] as const satisfies readonly (keyof PlannedTargets)[];
+export const SET_KEYS = [
+	"weightKg",
+	"reps",
+	"seconds",
+	"distanceM",
+	"warmup",
+	...TARGET_KEYS,
+] as const satisfies readonly (keyof ProgramSet)[];
+
+/** Zero-width and soft-hyphen characters, which show as nothing. */
+export const INVISIBLE = /[\u00AD\u200B-\u200D\u2060\uFEFF]/g;
+
+/** The set fields in the order problems are listed. */
+export const SET_VALUE_FIELDS = [
+	"weightKg",
+	"reps",
+	"seconds",
+	"distanceM",
+	...TARGET_KEYS,
+] as const;

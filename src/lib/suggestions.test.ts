@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { WorkoutSet } from "../db/types";
 import {
 	describeSuggestion,
-	type ExerciseSuggestion,
-	firstOccurrenceIds,
-	type SuggestionInput,
+	findFirstOccurrenceIds,
 	suggestForExercise,
 } from "./suggestions";
+import type { ExerciseSuggestion, SuggestionInput } from "./types";
 import { KG_PER_LB } from "./units";
 
 const DONE = 1_700_000_000_000;
@@ -390,10 +389,10 @@ describe("suggestForExercise lining groups up by rep range", () => {
 	});
 });
 
-describe("firstOccurrenceIds", () => {
+describe("findFirstOccurrenceIds", () => {
 	it("keeps only the first card of an exercise that appears twice", () => {
 		expect(
-			firstOccurrenceIds([
+			findFirstOccurrenceIds([
 				{ id: "we1", exerciseId: "bench" },
 				{ id: "we2", exerciseId: "row" },
 				{ id: "we3", exerciseId: "bench" },
