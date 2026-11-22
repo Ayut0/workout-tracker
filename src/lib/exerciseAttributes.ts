@@ -1,19 +1,21 @@
 import {
 	EQUIPMENT,
-	type Equipment,
 	EXERCISE_CATEGORIES,
-	type ExerciseAttributes,
-	type ExerciseCategory,
 	MOVEMENT_PATTERNS,
-	type MovementPattern,
 	MUSCLE_GROUPS,
-	type MuscleGroup,
+} from "../db/constants";
+import type {
+	Equipment,
+	ExerciseAttributes,
+	ExerciseCategory,
+	MovementPattern,
+	MuscleGroup,
 } from "../db/types";
 
 /**
  * How the library names an exercise's attributes (ADR-0016): muscle groups,
  * movement pattern, category and equipment. The vocabularies live in
- * src/db/types.ts, since backups check stored values against them.
+ * src/db/constants.ts, since backups check stored values against them.
  */
 
 export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {

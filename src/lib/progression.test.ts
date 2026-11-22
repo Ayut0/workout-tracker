@@ -463,13 +463,13 @@ describe("deriveIncrementKg", () => {
 		expect(deriveIncrementKg({ name: "Row", equipment: "cable" })).toBe(2.5);
 	});
 
-	it("lets the equipment win over the name's suffix", () => {
+	it("lets the equipment win over the name's mark", () => {
 		expect(
 			deriveIncrementKg({ name: "Press (Dumbbell)", equipment: "machine" }),
 		).toBe(2.5);
 	});
 
-	it("falls back to the name's suffix for an exercise with no equipment", () => {
+	it("falls back to the name's mark for an exercise with no equipment", () => {
 		expect(deriveIncrementKg({ name: "Curl (Dumbbell)" })).toBe(2);
 		expect(deriveIncrementKg({ name: "Squat" })).toBe(2.5);
 	});

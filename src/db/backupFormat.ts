@@ -7,21 +7,23 @@ import {
 	type BackupStore,
 } from "./backup";
 import { isLocalDay, MAX_BODY_WEIGHT_KG, MAX_WAIST_CM } from "./bodyLog";
-import { SET_MEASURES } from "./constants";
-import { SETTINGS_ID, type SettingsRecord } from "./index";
 import {
-	type BodyEntry,
 	EQUIPMENT,
 	EXERCISE_CATEGORIES,
-	type Exercise,
 	MOVEMENT_PATTERNS,
 	MUSCLE_GROUPS,
-	type Template,
-	type TemplateExercise,
-	type TemplateSet,
-	type Workout,
-	type WorkoutExercise,
-	type WorkoutSet,
+	SET_MEASURES,
+} from "./constants";
+import { SETTINGS_ID, type SettingsRecord } from "./index";
+import type {
+	BodyEntry,
+	Exercise,
+	Template,
+	TemplateExercise,
+	TemplateSet,
+	Workout,
+	WorkoutExercise,
+	WorkoutSet,
 } from "./types";
 
 /**

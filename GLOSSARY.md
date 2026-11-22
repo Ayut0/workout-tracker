@@ -15,7 +15,7 @@ lats or quads; a muscle is one or the other, never both), a **movement
 pattern** (squat, hinge, horizontal push, vertical pull…), a **category**
 (strength, power, agility, mobility, core) and **equipment** (barbell,
 dumbbell, machine, cable, bodyweight, other). Equipment is meant to
-decide the progression increment when set, otherwise the name's suffix does;
+decide the progression increment when set, otherwise the name's "(Dumbbell)" mark does;
 that takes effect once the progression suggestions use `deriveIncrementKg`
 (a later change), not yet.
 

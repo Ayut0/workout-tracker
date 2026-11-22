@@ -9,12 +9,12 @@
 trains, its movement pattern and its category. #75 will count weekly sets per
 muscle group from them (a primary muscle counts one set, a secondary muscle
 half), so the muscle vocabulary has to be fit for counting. ADR-0013 derived
-the progression increment from the name's equipment suffix, "(Dumbbell)",
+the progression increment from the name's equipment mark, "(Dumbbell)",
 which a lifter cannot set on an exercise named without one.
 
 ## Decision
 
-- **Fixed vocabularies**, as `const` arrays in `src/db/types.ts` (next to
+- **Fixed vocabularies**, as `const` arrays in `src/db/constants.ts` (next to
   `SET_MEASURES`, since `parseBackup` checks stored values against them);
   their display labels live in `src/lib/exerciseAttributes.ts`. Values are
   stable kebab-case ids, never shown.
@@ -56,7 +56,7 @@ which a lifter cannot set on an exercise named without one.
   `deriveIncrementKg` now takes an exercise (`{ name, equipment? }`) or, as
   before, a name. Dumbbell equipment gives 2 kg per dumbbell; any other
   equipment gives one plate step (2.5 kg), even if the name says
-  "(Dumbbell)". With no equipment it falls back to the name's suffix
+  "(Dumbbell)". With no equipment it falls back to the name's mark
   (ADR-0013). In pounds every step is still 5 lb. This refines ADR-0013's
   increment, not its rule. Nothing calls it with an exercise yet: the
   equipment takes effect once the progression suggestions UI uses

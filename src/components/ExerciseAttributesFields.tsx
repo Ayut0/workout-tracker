@@ -1,10 +1,10 @@
 import {
 	EQUIPMENT,
 	EXERCISE_CATEGORIES,
-	type ExerciseAttributes,
 	MOVEMENT_PATTERNS,
 	MUSCLE_GROUPS,
-} from "../db/types";
+} from "../db/constants";
+import type { ExerciseAttributes } from "../db/types";
 import {
 	EQUIPMENT_LABELS,
 	EXERCISE_CATEGORY_LABELS,

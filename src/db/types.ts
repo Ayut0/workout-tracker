@@ -41,71 +41,57 @@ export type SetMeasure = "weight-reps" | "reps" | "seconds" | "distance";
 
 /** The set fields a measure can show. */
 export type MeasureField = "weightKg" | "reps" | "seconds" | "distanceM";
-
 /**
- * Muscle groups an exercise trains (ADR-0016). The groups do not overlap, so
- * a set can be counted once per group: weekly sets per muscle group (#75)
- * count a primary muscle as one set and a secondary muscle as half.
+ * Muscle groups an exercise trains (ADR-0016); the list is MUSCLE_GROUPS. The
+ * groups do not overlap, so a set can be counted once per group.
  */
-export const MUSCLE_GROUPS = [
-	"chest",
-	"lats",
-	"upper-back",
-	"lower-back",
-	"front-delts",
-	"side-delts",
-	"rear-delts",
-	"biceps",
-	"triceps",
-	"forearms",
-	"abs",
-	"glutes",
-	"quads",
-	"hamstrings",
-	"adductors",
-	"calves",
-] as const;
-
-export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
+export type MuscleGroup =
+	| "chest"
+	| "lats"
+	| "upper-back"
+	| "lower-back"
+	| "front-delts"
+	| "side-delts"
+	| "rear-delts"
+	| "biceps"
+	| "triceps"
+	| "forearms"
+	| "abs"
+	| "glutes"
+	| "quads"
+	| "hamstrings"
+	| "adductors"
+	| "calves";
 
 /** The movement pattern of an exercise (ADR-0016). */
-export const MOVEMENT_PATTERNS = [
-	"squat",
-	"hinge",
-	"lunge",
-	"horizontal-push",
-	"vertical-push",
-	"horizontal-pull",
-	"vertical-pull",
-	"carry",
-	"rotation",
-	"isolation",
-] as const;
-
-export type MovementPattern = (typeof MOVEMENT_PATTERNS)[number];
+export type MovementPattern =
+	| "squat"
+	| "hinge"
+	| "lunge"
+	| "horizontal-push"
+	| "vertical-push"
+	| "horizontal-pull"
+	| "vertical-pull"
+	| "carry"
+	| "rotation"
+	| "isolation";
 
 /** What kind of training an exercise is (ADR-0016). */
-export const EXERCISE_CATEGORIES = [
-	"strength",
-	"power",
-	"agility",
-	"mobility",
-	"core",
-] as const;
-
-export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
+export type ExerciseCategory =
+	| "strength"
+	| "power"
+	| "agility"
+	| "mobility"
+	| "core";
 
 /** What an exercise is done with; decides the progression increment. */
-export const EQUIPMENT = [
-	"barbell",
-	"dumbbell",
-	"machine",
-	"cable",
-	"bodyweight",
-	"other",
-] as const;
-
-export type Equipment = (typeof EQUIPMENT)[number];
+export type Equipment =
+	| "barbell"
+	| "dumbbell"
+	| "machine"
+	| "cable"
+	| "bodyweight"
+	| "other";
 
 /**
  * The optional, descriptive attributes of an exercise (ADR-0016). None is

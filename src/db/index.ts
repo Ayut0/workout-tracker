@@ -1,10 +1,9 @@
 import Dexie, { type EntityTable } from "dexie";
-import { DEFAULT_SET_MEASURE } from "./constants";
+import { DEFAULT_SET_MEASURE, MUSCLE_GROUPS } from "./constants";
 import {
 	type BodyEntry,
 	type Exercise,
 	type ExerciseAttributes,
-	MUSCLE_GROUPS,
 	type MuscleGroup,
 	type RestTimer,
 	type SetMeasure,
