@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MEASURE_FIELDS } from "../db/types";
+import { MEASURE_FIELDS } from "../db/constants";
 import { resolveMeasure } from "../db/workoutLog";
 import {
 	describeFieldColumn,

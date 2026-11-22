@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
+import { DEFAULT_SET_MEASURE } from "./constants";
 import {
-	DEFAULT_SET_MEASURE,
 	type Exercise,
 	type RestTimer,
 	type SetMeasure,

@@ -1,9 +1,5 @@
-import {
-	type MeasureField,
-	SET_MEASURES,
-	type SetMeasure,
-	type WeightUnit,
-} from "../db/types";
+import { SET_MEASURES } from "../db/constants";
+import type { MeasureField, SetMeasure, WeightUnit } from "../db/types";
 import { formatWeightValue, roundForDisplay } from "./units";
 import {
 	readDistanceField,

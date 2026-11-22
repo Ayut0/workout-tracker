@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
-import { SET_MEASURES, type SetMeasure } from "../db/types";
+import { SET_MEASURES } from "../db/constants";
+import type { SetMeasure } from "../db/types";
 import { describeMeasure, isSetMeasure } from "../lib/setMeasure";
 
 type ExerciseMeasureFieldProps = {

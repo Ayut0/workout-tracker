@@ -1,9 +1,9 @@
-import {
-	MEASURE_FIELDS,
-	type SetMeasure,
-	type TemplateExercise,
-	type TemplateSet,
-	type WeightUnit,
+import { MEASURE_FIELDS } from "../../db/constants";
+import type {
+	SetMeasure,
+	TemplateExercise,
+	TemplateSet,
+	WeightUnit,
 } from "../../db/types";
 import { describeFieldColumn } from "../../lib/setMeasure";
 import type { PlannedSetChanges } from "../../lib/templates";

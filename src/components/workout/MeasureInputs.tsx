@@ -1,9 +1,5 @@
-import {
-	MEASURE_FIELDS,
-	type MeasureField,
-	type SetMeasure,
-	type WeightUnit,
-} from "../../db/types";
+import { MEASURE_FIELDS } from "../../db/constants";
+import type { MeasureField, SetMeasure, WeightUnit } from "../../db/types";
 import { useDraftField } from "../../hooks/useDraftField";
 import {
 	describeFieldInput,

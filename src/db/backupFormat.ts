@@ -6,16 +6,16 @@ import {
 	type BackupData,
 	type BackupStore,
 } from "./backup";
+import { SET_MEASURES } from "./constants";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
-import {
-	type Exercise,
-	SET_MEASURES,
-	type Template,
-	type TemplateExercise,
-	type TemplateSet,
-	type Workout,
-	type WorkoutExercise,
-	type WorkoutSet,
+import type {
+	Exercise,
+	Template,
+	TemplateExercise,
+	TemplateSet,
+	Workout,
+	WorkoutExercise,
+	WorkoutSet,
 } from "./types";
 
 /**

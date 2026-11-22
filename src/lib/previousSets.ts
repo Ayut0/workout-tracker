@@ -1,10 +1,5 @@
-import {
-	DEFAULT_SET_MEASURE,
-	MEASURE_FIELDS,
-	type SetMeasure,
-	type WeightUnit,
-	type WorkoutSet,
-} from "../db/types";
+import { DEFAULT_SET_MEASURE, MEASURE_FIELDS } from "../db/constants";
+import type { SetMeasure, WeightUnit, WorkoutSet } from "../db/types";
 import type { SetChanges } from "../db/workoutLog";
 import { formatDistance, formatSetSeconds } from "./setMeasure";
 import { formatWeight } from "./units";

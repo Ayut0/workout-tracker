@@ -4,11 +4,8 @@ import { ExerciseMeasureField } from "../components/ExerciseMeasureField";
 import { ExerciseNameForm } from "../components/ExerciseNameForm";
 import { ExerciseRestField } from "../components/ExerciseRestField";
 import type { ExerciseNameResult } from "../db";
-import {
-	DEFAULT_SET_MEASURE,
-	type Exercise,
-	type SetMeasure,
-} from "../db/types";
+import { DEFAULT_SET_MEASURE } from "../db/constants";
+import type { Exercise, SetMeasure } from "../db/types";
 import { resolveMeasure } from "../db/workoutLog";
 import {
 	exerciseLibraryActions,

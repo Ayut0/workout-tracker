@@ -1,3 +1,4 @@
+import { DEFAULT_SET_MEASURE, MEASURE_FIELDS } from "./constants";
 import {
 	db,
 	findActiveWorkout,
@@ -6,15 +7,13 @@ import {
 	type WorkoutDetail,
 	type WorkoutExerciseDetail,
 } from "./index";
-import {
-	DEFAULT_SET_MEASURE,
-	type Exercise,
-	MEASURE_FIELDS,
-	type SetMeasure,
-	type TemplateExercise,
-	type Workout,
-	type WorkoutExercise,
-	type WorkoutSet,
+import type {
+	Exercise,
+	SetMeasure,
+	TemplateExercise,
+	Workout,
+	WorkoutExercise,
+	WorkoutSet,
 } from "./types";
 
 /**

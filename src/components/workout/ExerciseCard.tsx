@@ -1,11 +1,7 @@
 import type { ReactNode } from "react";
 import type { WorkoutExerciseDetail } from "../../db";
-import {
-	MEASURE_FIELDS,
-	type SetMeasure,
-	type WeightUnit,
-	type WorkoutSet,
-} from "../../db/types";
+import { MEASURE_FIELDS } from "../../db/constants";
+import type { SetMeasure, WeightUnit, WorkoutSet } from "../../db/types";
 import type { SetChanges } from "../../db/workoutLog";
 import { describeFieldColumn } from "../../lib/setMeasure";
 import { SetRow } from "./SetRow";
