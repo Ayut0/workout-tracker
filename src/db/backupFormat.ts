@@ -16,10 +16,10 @@ import {
 } from "./constants";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
 import {
-	MAX_REPS,
-	MAX_RIR,
 	type BodyEntry,
 	type Exercise,
+	MAX_PLANNED_REPS,
+	MAX_PLANNED_RIR,
 	type Template,
 	type TemplateExercise,
 	type TemplateSet,
@@ -220,7 +220,7 @@ const WORKOUT_EXERCISE: Spec<WorkoutExercise> = {
 
 /**
  * A planned rep range (ADR-0014) has both ends or neither, and its bottom is
- * not above its top. Each end is already known to be 1 to MAX_REPS.
+ * not above its top. Each end is already known to be 1 to MAX_PLANNED_REPS.
  */
 const repRange: Rule = ({ repMin, repMax }) => {
 	if ((repMin === undefined) !== (repMax === undefined)) {
@@ -232,8 +232,8 @@ const repRange: Rule = ({ repMin, repMax }) => {
 	return undefined;
 };
 
-const repsBound = boundedCount(1, MAX_REPS);
-const rirBound = boundedCount(0, MAX_RIR);
+const repsBound = boundedCount(1, MAX_PLANNED_REPS);
+const rirBound = boundedCount(0, MAX_PLANNED_RIR);
 
 const SET: Spec<WorkoutSet> = {
 	id,

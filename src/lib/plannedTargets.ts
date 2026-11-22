@@ -1,4 +1,4 @@
-import { MAX_REPS, type PlannedTargets } from "../db/types";
+import { MAX_PLANNED_REPS, type PlannedTargets } from "../db/types";
 
 /**
  * A planned set's targets (ADR-0014): the rep range it aims for and the reps
@@ -12,7 +12,7 @@ export type RepRangeInput =
 	| { ok: false };
 
 /*
- * Values beyond MAX_REPS (and MAX_RIR, which the 2-digit RIR pattern keeps)
+ * Values beyond MAX_PLANNED_REPS (and MAX_PLANNED_RIR, which the 2-digit RIR pattern keeps)
  * are typos, and a huge one would not survive a JSON backup (Infinity is
  * written as null). backupFormat.ts enforces the same caps.
  */
@@ -49,14 +49,15 @@ export function readRepRangeInput(text: string): RepRangeInput {
 	if (trimmed === "") return { ok: true, repMin: undefined, repMax: undefined };
 	if (REPS.test(trimmed)) {
 		const reps = Number(trimmed);
-		if (reps < 1 || reps > MAX_REPS) return { ok: false };
+		if (reps < 1 || reps > MAX_PLANNED_REPS) return { ok: false };
 		return { ok: true, repMin: reps, repMax: reps };
 	}
 	const match = RANGE.exec(trimmed);
 	if (!match) return { ok: false };
 	const repMin = Number(match[1]);
 	const repMax = Number(match[2]);
-	if (repMin < 1 || repMax > MAX_REPS || repMin > repMax) return { ok: false };
+	if (repMin < 1 || repMax > MAX_PLANNED_REPS || repMin > repMax)
+		return { ok: false };
 	return { ok: true, repMin, repMax };
 }
 

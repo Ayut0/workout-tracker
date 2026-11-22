@@ -59,7 +59,7 @@ decisions; each section belongs to one issue:
 - **Fields.** `repMin?`, `repMax?` and `targetRir?` on both `TemplateSet` and
   `WorkoutSet` (the shared `PlannedTargets` type). Optional and not indexed:
   no Dexie version (ADR-0002). Whole numbers: `repMin` and `repMax` 1 to 999,
-  `targetRir` 0 to 99 (`MAX_REPS`, `MAX_RIR`); a range has both ends or
+  `targetRir` 0 to 99 (`MAX_PLANNED_REPS`, `MAX_PLANNED_RIR`); a range has both ends or
   neither, and `repMin` is not above `repMax`. The caps keep a typo from
   becoming a value JSON cannot hold (a huge number is written as null).
 - **Stored on the workout's sets, copied like weight and reps** (ADR-0010).

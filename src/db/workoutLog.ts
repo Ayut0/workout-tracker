@@ -8,8 +8,8 @@ import {
 	type WorkoutExerciseDetail,
 } from "./index";
 import {
-	PLANNED_TARGET_FIELDS,
 	type Exercise,
+	PLANNED_TARGET_FIELDS,
 	type SetMeasure,
 	type TemplateExercise,
 	type Workout,
