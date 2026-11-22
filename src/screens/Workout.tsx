@@ -3,6 +3,7 @@ import { TemplateList } from "../components/templates/TemplateList";
 import { ActiveWorkout } from "../components/workout/ActiveWorkout";
 import { ExercisePicker } from "../components/workout/ExercisePicker";
 import { PreviousSet } from "../components/workout/PreviousSet";
+import { ProgressionSuggestions } from "../components/workout/ProgressionSuggestions";
 import type { Exercise, WeightUnit, WorkoutSet } from "../db/types";
 import { type CompletedSet, resolveMeasure } from "../db/workoutLog";
 import {
@@ -15,6 +16,7 @@ import {
 	useLibraryExercises,
 } from "../hooks/useLibraryExercises";
 import { usePreviousSets } from "../hooks/usePreviousSets";
+import { useProgressionSuggestions } from "../hooks/useProgressionSuggestions";
 import { useSettings } from "../hooks/useSettings";
 import { templateActions, useTemplates } from "../hooks/useTemplates";
 import { describeExerciseNameError } from "../lib/exerciseLibrary";
@@ -166,6 +168,7 @@ function LogWorkout({
 	const previous = usePreviousSets(
 		view.detail.exercises.map((e) => e.workoutExercise.exerciseId),
 	);
+	const suggestions = useProgressionSuggestions(view, previous, weightUnit);
 	const { workout } = view.detail;
 
 	function closePicker() {
@@ -233,6 +236,14 @@ function LogWorkout({
 						/>
 					);
 				}}
+				renderSuggestions={(workoutExerciseId, name) => (
+					<ProgressionSuggestions
+						suggestions={suggestions.get(workoutExerciseId) ?? []}
+						weightUnit={weightUnit}
+						exerciseName={name}
+						onUse={(fills) => run(() => workoutLogActions.updateSets(fills))}
+					/>
+				)}
 				onRename={(name) =>
 					run(() => workoutLogActions.update(workout.id, { name }))
 				}

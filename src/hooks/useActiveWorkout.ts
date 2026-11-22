@@ -14,10 +14,12 @@ import {
 	removeSet,
 	removeWorkoutExercise,
 	type SetChanges,
+	type SetUpdate,
 	type StartWorkoutResult,
 	startWorkout,
 	uncompleteSet,
 	updateSet,
+	updateSets,
 	updateWorkout,
 } from "../db/workoutLog";
 import { nameWorkoutFor } from "../lib/workoutLog";
@@ -71,6 +73,8 @@ export const workoutLogActions = {
 	addSet: (workoutExerciseId: string) => addSet(workoutExerciseId),
 	removeSet: (setId: string) => removeSet(setId),
 	updateSet: (setId: string, changes: SetChanges) => updateSet(setId, changes),
+	/** Fills several sets at once, e.g. with a Progression suggestion (#71). */
+	updateSets: (updates: readonly SetUpdate[]) => updateSets(updates),
 	completeSet: (setId: string): Promise<CompletedSet | undefined> =>
 		completeSet(setId, Date.now()),
 	uncompleteSet: (setId: string) => uncompleteSet(setId),

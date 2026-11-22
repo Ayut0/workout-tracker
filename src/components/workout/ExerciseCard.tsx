@@ -24,6 +24,8 @@ type ExerciseCardProps = {
 	renderPrevious?:
 		| ((setIndex: number, set: WorkoutSet) => ReactNode)
 		| undefined;
+	/** What Progression suggests (#71), shown under the notes; optional. */
+	suggestions?: ReactNode;
 	onMove: (toIndex: number) => void;
 	onRemove: () => void;
 	onAddSet: () => void;
@@ -41,6 +43,7 @@ export function ExerciseCard({
 	measure,
 	weightUnit,
 	renderPrevious,
+	suggestions,
 	onMove,
 	onRemove,
 	onAddSet,
@@ -92,6 +95,7 @@ export function ExerciseCard({
 				</div>
 			</div>
 			<ExerciseNotes notes={entry.workoutExercise.notes} />
+			{suggestions}
 			<div className={gridClass}>
 				<div className="set-head" aria-hidden="true">
 					<span>Set</span>
