@@ -42,10 +42,11 @@ export function summarizeProgress(
 /** A metric charted on the Progress tab. */
 export type ProgressMetric = "e1rm" | "volume";
 
-/** One point of a chart: a workout's value, in the user's weight unit. */
+/** One point of a chart: a value at a time, in the unit it is shown in. */
 export interface ChartDatum {
-	workoutId: string;
-	/** The workout's start time (epoch ms). */
+	/** Identifies the point: the workout's id, or the body log entry's. */
+	id: string;
+	/** When it was measured (epoch ms): the workout's start, or the body log day. */
 	date: number;
 	value: number;
 }
@@ -65,7 +66,7 @@ export function buildMetricSeries(
 		const kg = metric === "e1rm" ? point.bestE1rmKg : point.volumeKg;
 		if (kg === undefined || kg <= 0) continue;
 		series.push({
-			workoutId: point.workoutId,
+			id: point.workoutId,
 			date: point.date,
 			value: convertFromKg(kg, unit),
 		});

@@ -16,7 +16,7 @@ import type { ChartDatum } from "./progress";
 const DAY = 86_400_000;
 
 function makeDatum(date: number, value: number): ChartDatum {
-	return { workoutId: `w${date}`, date, value };
+	return { id: `w${date}`, date, value };
 }
 
 describe("findRangeStart", () => {
@@ -71,6 +71,45 @@ describe("downsampleSeries", () => {
 		expect(sampled.some((d) => d.value === 999)).toBe(true);
 		const dates = sampled.map((d) => d.date);
 		expect(dates).toEqual([...dates].sort((a, b) => a - b));
+	});
+
+	it("can keep the last value of each run, which does not lean upward", () => {
+		// A steady 70 kg with one-day blips up to 72 at the start of every run.
+		const data = Array.from({ length: 1_000 }, (_, i) =>
+			makeDatum(i * DAY, i % 8 === 0 ? 72 : 70),
+		);
+
+		const sampled = downsampleSeries(data, 120, "last");
+
+		expect(sampled.length).toBeLessThanOrEqual(120);
+		expect(sampled[0]).toBe(data[0]);
+		expect(sampled.at(-1)).toBe(data.at(-1));
+		const middle = sampled.slice(1, -1);
+		const mean = middle.reduce((sum, d) => sum + d.value, 0) / middle.length;
+		expect(mean).toBeLessThan(70.6);
+		// The default still favours peaks.
+		const peaks = downsampleSeries(data, 120).slice(1, -1);
+		expect(peaks.every((d) => d.value === 72)).toBe(true);
+		const dates = sampled.map((d) => d.date);
+		expect(dates).toEqual([...dates].sort((a, b) => a - b));
+	});
+});
+
+describe("selectChartData downsampling rule", () => {
+	it("passes the downsampling rule through", () => {
+		const now = 2_000 * DAY;
+		const series = Array.from({ length: 1_000 }, (_, i) =>
+			makeDatum(now - (1_000 - i) * DAY, i % 8 === 0 ? 72 : 70),
+		);
+
+		const peaks = selectChartData(series, "all", now);
+		const last = selectChartData(series, "all", now, "last");
+
+		expect(peaks.sampled).toBe(true);
+		expect(last.sampled).toBe(true);
+		expect(Math.max(...peaks.data.slice(1, -1).map((d) => d.value))).toBe(72);
+		expect(Math.min(...peaks.data.slice(1, -1).map((d) => d.value))).toBe(72);
+		expect(Math.min(...last.data.slice(1, -1).map((d) => d.value))).toBe(70);
 	});
 });
 

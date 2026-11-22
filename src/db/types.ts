@@ -123,6 +123,24 @@ export interface Template {
 	exercises: TemplateExercise[];
 }
 
+/**
+ * One day of the body log (ADR-0015): body weight and waist measured that
+ * day. At most one entry per day; each measurement is optional, but an entry
+ * holds at least one.
+ */
+export interface BodyEntry {
+	id: string;
+	/**
+	 * The local calendar day measured, "YYYY-MM-DD" (unique). A day, not a
+	 * time: it stays the same day when the phone changes time zone.
+	 */
+	date: string;
+	/** Body weight in kilograms, unrounded, like every stored weight. */
+	bodyWeightKg?: number;
+	/** Waist circumference in centimetres. */
+	waistCm?: number;
+}
+
 export type WeightUnit = "kg" | "lb";
 
 /** User preferences, stored as a single record. */

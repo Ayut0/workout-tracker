@@ -3,13 +3,16 @@ export const NOTIFICATION_CHECK_PATH = `${SETTINGS_PATH}/notifications`;
 export const HISTORY_PATH = "/history";
 export const TEMPLATES_PATH = "/templates";
 export const NEW_TEMPLATE_PATH = `${TEMPLATES_PATH}/new`;
+export const PROGRESS_PATH = "/progress";
+/** Body weight and waist by day (ADR-0015), reached from Progress. */
+export const BODY_LOG_PATH = `${PROGRESS_PATH}/body`;
 
 /** The bottom tab bar, in display order. Workout lives at the root so the app opens on it. */
 export const TABS = [
 	{ id: "workout", label: "Workout", path: "/" },
 	{ id: "history", label: "History", path: HISTORY_PATH },
 	{ id: "exercises", label: "Exercises", path: "/exercises" },
-	{ id: "progress", label: "Progress", path: "/progress" },
+	{ id: "progress", label: "Progress", path: PROGRESS_PATH },
 	{ id: "settings", label: "Settings", path: SETTINGS_PATH },
 ] as const;
 
@@ -19,6 +22,7 @@ export type TabId = (typeof TABS)[number]["id"];
 export type Route =
 	| { name: TabId; tab: TabId }
 	| { name: "notification-check"; tab: "settings" }
+	| { name: "body-log"; tab: "progress" }
 	| { name: "history-detail"; tab: "history"; workoutId: string }
 	| { name: "template-new"; tab: "workout" }
 	| { name: "template-edit"; tab: "workout"; templateId: string };
@@ -57,6 +61,9 @@ export function parseRoute(pathname: string): Route | null {
 			: pathname;
 	if (path === NOTIFICATION_CHECK_PATH) {
 		return { name: "notification-check", tab: "settings" };
+	}
+	if (path === BODY_LOG_PATH) {
+		return { name: "body-log", tab: "progress" };
 	}
 	const workoutId = readIdBelow(HISTORY_PATH, path);
 	if (workoutId !== undefined) {

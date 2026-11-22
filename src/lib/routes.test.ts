@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	BODY_LOG_PATH,
 	historyDetailPath,
 	isPlainClick,
 	parseRoute,
@@ -19,6 +20,14 @@ describe("parseRoute", () => {
 		["/settings", "settings"],
 	] as const)("maps %s to its tab", (path, tab) => {
 		expect(parseRoute(path)).toEqual({ name: tab, tab });
+	});
+
+	it("puts the body log under the Progress tab", () => {
+		expect(parseRoute(BODY_LOG_PATH)).toEqual({
+			name: "body-log",
+			tab: "progress",
+		});
+		expect(parseRoute("/progress/body/")?.name).toBe("body-log");
 	});
 
 	it("puts the notification check under the Settings tab", () => {

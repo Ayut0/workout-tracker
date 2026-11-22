@@ -87,6 +87,12 @@ async function seedEveryStore(target: WorkoutDB) {
 		{ weightUnit: "lb", restSeconds: 120, lastBackupAt: T0 },
 		target,
 	);
+	// Obviously made-up measurements.
+	await target.bodyEntries.bulkAdd([
+		{ id: "b-1", date: "2026-10-01", bodyWeightKg: 70.25, waistCm: 80 },
+		{ id: "b-2", date: "2026-10-02", bodyWeightKg: 70 },
+		{ id: "b-3", date: "2026-10-03", waistCm: 79.5 },
+	]);
 }
 
 async function wipe(target: WorkoutDB) {
@@ -112,6 +118,7 @@ function makeFile(changes: Record<string, unknown>): string {
 			sets: [],
 			templates: [],
 			settings: [],
+			bodyEntries: [],
 		},
 		...changes,
 	});
@@ -130,7 +137,7 @@ describe("backup format", () => {
 		expect(backup).toMatchObject({
 			format: "workout-tracker-backup",
 			formatVersion: 1,
-			schemaVersion: 2,
+			schemaVersion: 3,
 			exportedAt: T0 + 5,
 		});
 		expect(Object.keys(backup.data).sort()).toEqual([...BACKUP_STORES].sort());
@@ -138,6 +145,7 @@ describe("backup format", () => {
 		expect(backup.data.settings).toEqual([
 			{ id: SETTINGS_ID, weightUnit: "lb", restSeconds: 120, lastBackupAt: T0 },
 		]);
+		expect(backup.data.bodyEntries).toHaveLength(3);
 	});
 });
 
@@ -222,6 +230,7 @@ describe("restore", () => {
 					sets: [],
 					templates: [],
 					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-05", waistCm: 81 }],
 				},
 			}),
 		);
@@ -235,6 +244,7 @@ describe("restore", () => {
 			sets: 0,
 			templates: 0,
 			settings: 0,
+			bodyEntries: 1,
 		});
 		expect(preview.current).toEqual({
 			exercises: 2,
@@ -243,6 +253,7 @@ describe("restore", () => {
 			sets: 2,
 			templates: 1,
 			settings: 1,
+			bodyEntries: 3,
 		});
 		expect(preview.currentActive?.id).toBe("w-active");
 		expect(preview.incomingActive?.id).toBe("w");
@@ -273,9 +284,11 @@ describe("restoring an older schema version", () => {
 	});
 
 	it("restores exercises and planned sets from before measures (ADR-0012)", () => {
-		// Written before #63: no measure, template sets with weight and reps only.
+		// Written before #63 (schema version 2): no measure, template sets with
+		// weight and reps only.
 		const parsed = parseBackup(
 			makeFile({
+				schemaVersion: 2,
 				data: {
 					exercises: [{ id: "e", name: "Row", nameKey: "row" }],
 					workouts: [],
@@ -300,6 +313,33 @@ describe("restoring an older schema version", () => {
 		]);
 	});
 
+	it("migrates a version-2 backup, keeping every record and adding an empty body log", async () => {
+		await seedEveryStore(database);
+		const current = await exportBackup(T0, database);
+		// A file as version 2 wrote it: no bodyEntries store.
+		const { bodyEntries: _bodyEntries, ...v2Data } = current.data;
+		const parsed = parseBackup(
+			makeFile({ schemaVersion: 2, exportedAt: T0, data: v2Data }),
+		);
+
+		expect(parsed).toMatchObject({ ok: true, migratedFrom: 2 });
+		if (!parsed.ok) return;
+		expect(parsed.backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION);
+
+		// Restore replaces everything: the body log stored here is cleared too.
+		await restoreBackup(parsed.backup, database);
+		const after = await exportBackup(T0, database);
+		expect(after.data).toStrictEqual({ ...v2Data, bodyEntries: [] });
+	});
+
+	it("migrates a version-1 backup through every step", () => {
+		const parsed = parseBackup(makeFile({ schemaVersion: 1, data: {} }));
+
+		expect(parsed).toMatchObject({ ok: true, migratedFrom: 1 });
+		if (!parsed.ok) return;
+		expect(parsed.backup.data.bodyEntries).toEqual([]);
+	});
+
 	it("rejects a version with no migration clearly", () => {
 		expect(parseBackup(makeFile({ schemaVersion: 0 }))).toEqual({
 			ok: false,
@@ -319,7 +359,7 @@ describe("parseBackup rejects", () => {
 		[
 			"a newer schema version",
 			makeFile({ schemaVersion: BACKUP_SCHEMA_VERSION + 1 }),
-			/newer version of the app \(data version 3; this app reads up to 2\)/,
+			/newer version of the app \(data version 4; this app reads up to 3\)/,
 		],
 		[
 			"a newer file format",
@@ -453,6 +493,145 @@ describe("parseBackup rejects", () => {
 			/Workout record 2: id "w" appears twice/,
 		],
 		[
+			"a body log entry with a time instead of a day",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: T0, bodyWeightKg: 70 }],
+				},
+			}),
+			/Body log entry record 1: date must be a day \(YYYY-MM-DD\)/,
+		],
+		[
+			"a body log measurement that is not a number",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", waistCm: "80" }],
+				},
+			}),
+			/Body log entry record 1: waistCm must be a number/,
+		],
+		[
+			"a body log entry with no measurement",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01" }],
+				},
+			}),
+			/Body log entry record 1: .*at least one measurement/,
+		],
+		[
+			"a negative body weight",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", bodyWeightKg: -5 }],
+				},
+			}),
+			/Body log entry record 1: bodyWeightKg must be/,
+		],
+		[
+			"a zero waist",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [
+						{ id: "b", date: "2026-10-01", waistCm: 0, bodyWeightKg: 70 },
+					],
+				},
+			}),
+			/Body log entry record 1: waistCm must be/,
+		],
+		[
+			"an absurd body weight",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", bodyWeightKg: 1001 }],
+				},
+			}),
+			/Body log entry record 1: bodyWeightKg must be/,
+		],
+		[
+			"an absurd waist",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [{ id: "b", date: "2026-10-01", waistCm: 5000 }],
+				},
+			}),
+			/Body log entry record 1: waistCm must be/,
+		],
+		[
+			"two body log entries for the same day",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+					bodyEntries: [
+						{ id: "a", date: "2026-10-01", bodyWeightKg: 70 },
+						{ id: "b", date: "2026-10-01", waistCm: 80 },
+					],
+				},
+			}),
+			/Two body log entries are for the same day \(2026-10-01\)/,
+		],
+		[
+			"a current-version backup without the body log",
+			makeFile({
+				data: {
+					exercises: [],
+					workouts: [],
+					workoutExercises: [],
+					sets: [],
+					templates: [],
+					settings: [],
+				},
+			}),
+			/no list of "bodyEntries"/,
+		],
+		[
 			"two exercises with the same name",
 			makeFile({
 				data: {
@@ -465,6 +644,7 @@ describe("parseBackup rejects", () => {
 					sets: [],
 					templates: [],
 					settings: [],
+					bodyEntries: [],
 				},
 			}),
 			/same name/,
