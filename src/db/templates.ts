@@ -5,6 +5,7 @@ import {
 	resolveMeasure,
 	type StartWorkoutResult,
 	startWorkout,
+	tidyNotes,
 } from "./workoutLog";
 
 /**
@@ -121,7 +122,7 @@ export type TemplateFromWorkoutResult =
 /**
  * Saves a workout as a new template named after it. Only complete sets are
  * planned (the measurements their exercise's measure shows, ADR-0012): an
- * incomplete set is one that was skipped.
+ * incomplete set is one that was skipped. Exercise notes carry back (ADR-0014).
  * An exercise with no complete set is left out; a workout with none at all
  * gives no template.
  */
@@ -139,9 +140,14 @@ export async function templateFromWorkout(
 		const sets = entry.sets
 			.filter((set) => set.completedAt !== undefined)
 			.map((set) => copyPlannedSet(set, measure));
-		return sets.length === 0
-			? []
-			: [{ exerciseId: entry.workoutExercise.exerciseId, sets }];
+		if (sets.length === 0) return [];
+		const planned: TemplateExercise = {
+			exerciseId: entry.workoutExercise.exerciseId,
+			sets,
+		};
+		const notes = tidyNotes(entry.workoutExercise.notes);
+		if (notes !== undefined) planned.notes = notes;
+		return [planned];
 	});
 	if (exercises.length === 0) return { ok: false, reason: "no-complete-sets" };
 	const template: Template = {
@@ -161,14 +167,22 @@ function tidyTemplateName(name: string): string {
 	return name.trim().replace(/\s+/g, " ");
 }
 
-/** Copies planned exercises, keeping only the fields a template stores. */
+/**
+ * Copies planned exercises, keeping only the fields a template stores; notes
+ * are trimmed and dropped when blank (ADR-0014).
+ */
 function copyTemplateExercises(
 	exercises: readonly TemplateExercise[],
 ): TemplateExercise[] {
-	return exercises.map((exercise) => ({
-		exerciseId: exercise.exerciseId,
-		sets: exercise.sets.map(copyTemplateSet),
-	}));
+	return exercises.map((exercise) => {
+		const copy: TemplateExercise = {
+			exerciseId: exercise.exerciseId,
+			sets: exercise.sets.map(copyTemplateSet),
+		};
+		const notes = tidyNotes(exercise.notes);
+		if (notes !== undefined) copy.notes = notes;
+		return copy;
+	});
 }
 
 /** A planned set with only the fields a template stores. */

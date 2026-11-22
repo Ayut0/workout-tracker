@@ -145,6 +145,11 @@ export interface WorkoutExercise {
 	exerciseId: string;
 	/** Position within the workout, starting at 0. */
 	order: number;
+	/**
+	 * Notes copied from the template exercise it was started from (ADR-0014),
+	 * e.g. "seat 4, pause at the bottom". Not indexed.
+	 */
+	notes?: string;
 }
 
 /** One set of a workout exercise. Every measurement is optional. */
@@ -183,6 +188,8 @@ export interface TemplateSet {
 export interface TemplateExercise {
 	exerciseId: string;
 	sets: TemplateSet[];
+	/** Cues shown while logging it, e.g. "seat 4"; never blank (ADR-0014). */
+	notes?: string;
 }
 
 /**
