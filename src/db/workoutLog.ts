@@ -76,7 +76,7 @@ export async function startWorkout(
 					workout.id,
 					exercise.exerciseId,
 					order,
-					exercise.sets.map((set) => planNextSet(set, measure)),
+					exercise.sets.map((set) => copyPlannedSet(set, measure)),
 					database,
 				);
 			}
@@ -266,7 +266,14 @@ export async function removeSet(
 }
 
 /** The set fields a user edits; `undefined` clears a field. */
-type SetField = "weightKg" | "reps" | "distanceM" | "seconds" | "rpe" | "notes";
+type SetField =
+	| "weightKg"
+	| "reps"
+	| "distanceM"
+	| "seconds"
+	| "rpe"
+	| "notes"
+	| "warmup";
 
 export type SetChanges = {
 	[K in SetField]?: WorkoutSet[K] | undefined;
@@ -295,8 +302,10 @@ export async function updateSet(
 		}
 		for (const [key, value] of Object.entries(changes)) {
 			if (!isSetChangeKey(key)) continue;
-			if (value === undefined) delete set[key];
-			else Object.assign(set, { [key]: value });
+			// Only `true` is stored for a warm-up (ADR-0012): `false` clears it.
+			if (value === undefined || (key === "warmup" && value === false)) {
+				delete set[key];
+			} else Object.assign(set, { [key]: value });
 		}
 	});
 	return updated > 0;
@@ -309,6 +318,7 @@ const SET_CHANGE_KEYS = [
 	"seconds",
 	"rpe",
 	"notes",
+	"warmup",
 ] as const satisfies readonly SetField[];
 
 function isSetChangeKey(key: string): key is SetField {
@@ -432,7 +442,7 @@ function renumber<T extends { order: number }>(records: readonly T[]): T[] {
 /** The measurements a new set starts with; the exercise's measure picks which show. */
 export type PlannedSet = Pick<
 	WorkoutSet,
-	"weightKg" | "reps" | "seconds" | "distanceM"
+	"weightKg" | "reps" | "seconds" | "distanceM" | "warmup"
 >;
 
 /**
@@ -440,8 +450,8 @@ export type PlannedSet = Pick<
  * measure shows (ADR-0012): weight and reps, reps, seconds or distance, and
  * nothing else (no RPE or notes), so a straight set is one tap to confirm.
  * Values kept hidden after a measure change are not carried into new sets.
- * The first set starts empty. Also copies a planned set (from a template)
- * into a new set record, and a complete set into a template.
+ * The first set starts empty. A warm-up mark is not carried either: the set
+ * after a warm-up is usually a working set (#65).
  */
 export function planNextSet(
 	last: PlannedSet | undefined,
@@ -452,6 +462,20 @@ export function planNextSet(
 		const value = last?.[field];
 		if (value !== undefined) planned[field] = value;
 	}
+	return planned;
+}
+
+/**
+ * Copies a planned set (from a template) into a new set record, or a complete
+ * set into a template: what the measure shows (planNextSet) and the warm-up
+ * mark (#65), so warm-ups stay warm-ups from template to workout and back.
+ */
+export function copyPlannedSet(
+	set: PlannedSet,
+	measure: SetMeasure,
+): PlannedSet {
+	const planned = planNextSet(set, measure);
+	if (set.warmup) planned.warmup = true;
 	return planned;
 }
 

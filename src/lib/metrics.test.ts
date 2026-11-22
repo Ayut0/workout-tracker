@@ -237,3 +237,37 @@ describe("findPersonalRecords", () => {
 		});
 	});
 });
+
+describe("warm-up sets (#65)", () => {
+	const warmup = makeSet({ weightKg: 100, reps: 10, warmup: true });
+	const working = makeSet({ weightKg: 80, reps: 5 });
+
+	it("have no Estimated 1RM", () => {
+		expect(estimateOneRepMax(warmup)).toBeUndefined();
+		expect(findBestEstimatedOneRepMax([warmup, working])).toBeCloseTo(
+			80 * (1 + 5 / 30),
+			6,
+		);
+	});
+
+	it("add no Volume", () => {
+		expect(sumVolume([warmup, working])).toBe(400);
+	});
+
+	it("never set a personal record", () => {
+		const records = findPersonalRecords([
+			{ workout: { id: "w1", startedAt: 1 }, sets: [warmup, working] },
+		]);
+		expect(records.bestE1rm?.kg).toBeCloseTo(80 * (1 + 5 / 30), 6);
+		expect(records.heaviestWeight?.kg).toBe(80);
+		expect(records.bestVolume?.kg).toBe(400);
+	});
+
+	it("leave a workout with only warm-ups off the chart", () => {
+		expect(
+			listProgressPoints([
+				{ workout: { id: "w1", startedAt: 1 }, sets: [warmup] },
+			]),
+		).toEqual([]);
+	});
+});

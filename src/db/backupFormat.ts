@@ -94,6 +94,9 @@ const finite: Check = (value) =>
 		? undefined
 		: "must be a number";
 
+const flag: Check = (value) =>
+	typeof value === "boolean" ? undefined : "must be true or false";
+
 const integer: Check = (value) =>
 	Number.isInteger(value) ? undefined : "must be a whole number";
 
@@ -206,6 +209,8 @@ const SET: Spec<WorkoutSet> = {
 	seconds: optional(finite),
 	rpe: optional(finite),
 	notes: optional(text),
+	// Missing in backups made before warm-ups (#65): a working set.
+	warmup: optional(flag),
 	completedAt: optional(finite),
 };
 
@@ -214,6 +219,7 @@ const TEMPLATE_SET: Spec<TemplateSet> = {
 	reps: optional(finite),
 	seconds: optional(finite),
 	distanceM: optional(finite),
+	warmup: optional(flag),
 };
 
 const TEMPLATE_EXERCISE: Spec<TemplateExercise> = {
@@ -296,6 +302,17 @@ function readData(data: RawData): BackupData | string {
 	const bodyEntries = readRows(data, "bodyEntries", BODY_ENTRY);
 	if (typeof bodyEntries === "string") return bodyEntries;
 
+	// Only `true` is stored (ADR-0012): `warmup: false` from a hand-edited or
+	// foreign backup restores as a working set.
+	const normalisedSets = sets.map(dropFalseWarmup);
+	const normalisedTemplates = templates.map((template) => ({
+		...template,
+		exercises: template.exercises.map((exercise) => ({
+			...exercise,
+			sets: exercise.sets.map(dropFalseWarmup),
+		})),
+	}));
+
 	// Exercise names are unique (the &nameKey index); a clash would fail the write.
 	const nameKeys = new Set<string>();
 	for (const [i, exercise] of exercises.entries()) {
@@ -327,11 +344,19 @@ function readData(data: RawData): BackupData | string {
 		exercises,
 		workouts,
 		workoutExercises,
-		sets,
-		templates,
+		sets: normalisedSets,
+		templates: normalisedTemplates,
 		settings,
 		bodyEntries,
 	};
+}
+
+/** The record without a `warmup: false`; anything else is returned as it is. */
+function dropFalseWarmup<T extends { warmup?: boolean }>(record: T): T {
+	if (record.warmup !== false) return record;
+	const copy = { ...record };
+	delete copy.warmup;
+	return copy;
 }
 
 /** Brings data written at `from` up to BACKUP_SCHEMA_VERSION, or says why not. */

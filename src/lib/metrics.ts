@@ -3,9 +3,9 @@
  * functions over stored sets. Weights are kg and never rounded here; rounding
  * happens at display (ADR-0002).
  *
- * Only complete sets with a positive weight and positive reps count. A
- * bodyweight set (0 kg or no weight) or a set with 0 reps contributes no
- * Estimated 1RM and 0 Volume.
+ * Only complete working sets with a positive weight and positive reps count.
+ * A warm-up (#65), a bodyweight set (0 kg or no weight) or a set with 0 reps
+ * contributes no Estimated 1RM and 0 Volume, and never sets a record.
  */
 import type { Workout, WorkoutSet } from "../db/types";
 
@@ -25,9 +25,14 @@ interface LoadedSet {
 	reps: number;
 }
 
+/** A complete set that is not a warm-up: the only kind progress counts. */
+function countsAsWorkingSet(set: WorkoutSet): boolean {
+	return set.completedAt !== undefined && !set.warmup;
+}
+
 function readLoadedSet(set: WorkoutSet): LoadedSet | undefined {
-	const { completedAt, weightKg, reps } = set;
-	if (completedAt === undefined) return undefined;
+	const { weightKg, reps } = set;
+	if (!countsAsWorkingSet(set)) return undefined;
 	if (weightKg === undefined || weightKg <= 0) return undefined;
 	if (reps === undefined || reps <= 0) return undefined;
 	return { weightKg, reps };
@@ -36,7 +41,7 @@ function readLoadedSet(set: WorkoutSet): LoadedSet | undefined {
 /**
  * Estimated 1RM of one set, by Epley: weight × (1 + reps / 30), with reps
  * capped at E1RM_MAX_REPS. A single rep is the weight itself. Undefined for an
- * incomplete set, 0 or missing reps, and 0 kg or missing weight.
+ * incomplete set, a warm-up, 0 or missing reps, and 0 kg or missing weight.
  */
 export function estimateOneRepMax(set: WorkoutSet): number | undefined {
 	const loaded = readLoadedSet(set);
@@ -53,7 +58,7 @@ export function findBestEstimatedOneRepMax(
 	return findMax(sets.map(estimateOneRepMax));
 }
 
-/** Volume: Σ weight × reps over complete sets (full reps, no cap). */
+/** Volume: Σ weight × reps over complete working sets (full reps, no cap). */
 export function sumVolume(sets: readonly WorkoutSet[]): number {
 	let total = 0;
 	for (const set of sets) {
@@ -63,7 +68,7 @@ export function sumVolume(sets: readonly WorkoutSet[]): number {
 	return total;
 }
 
-/** The heaviest weight lifted in a complete set; undefined if none. */
+/** The heaviest weight lifted in a complete working set; undefined if none. */
 function findHeaviestWeight(sets: readonly WorkoutSet[]): number | undefined {
 	return findMax(sets.map((set) => readLoadedSet(set)?.weightKg));
 }
@@ -99,18 +104,18 @@ export interface ProgressPoint {
 /**
  * One point per workout for an exercise, oldest first. Entries of the same
  * workout (the exercise added twice) are merged. Workouts with no complete
- * set are skipped; ones whose complete sets carry no load (bodyweight) are
- * kept with 0 Volume and no Estimated 1RM.
+ * working set (none done, or only warm-ups) are skipped; ones whose working
+ * sets carry no load (bodyweight) are kept with 0 Volume and no Estimated 1RM.
  */
 export function listProgressPoints(
 	history: readonly ExerciseHistoryInput[],
 ): ProgressPoint[] {
 	const byWorkout = new Map<string, { date: number; sets: WorkoutSet[] }>();
 	for (const { workout, sets } of history) {
-		const complete = sets.filter((set) => set.completedAt !== undefined);
+		const working = sets.filter(countsAsWorkingSet);
 		const existing = byWorkout.get(workout.id);
-		if (existing) existing.sets.push(...complete);
-		else byWorkout.set(workout.id, { date: workout.startedAt, sets: complete });
+		if (existing) existing.sets.push(...working);
+		else byWorkout.set(workout.id, { date: workout.startedAt, sets: working });
 	}
 	const points: ProgressPoint[] = [];
 	for (const [workoutId, { date, sets }] of byWorkout) {

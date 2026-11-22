@@ -13,7 +13,7 @@ import { formatWeight } from "./units";
 /** The measurements of a previous set that the column shows and fills. */
 export type PreviousSet = Pick<
 	WorkoutSet,
-	"weightKg" | "reps" | "seconds" | "distanceM"
+	"weightKg" | "reps" | "seconds" | "distanceM" | "warmup"
 >;
 
 /**
@@ -21,12 +21,23 @@ export type PreviousSet = Pick<
  * records. For weight and reps: "100 kg × 5", or "100 kg" or "5 reps" when
  * only one was recorded; for the others "12 reps", "45 s" or "400 m".
  * Undefined when the set has none of the measure's fields, which the column
- * shows as "–".
+ * shows as "–". A past warm-up is prefixed "W " (e.g. "W 40 kg × 10"): the
+ * column keeps warm-ups so set N lines up (ADR-0012), but tapping it fills a
+ * working set, so the hint must not pass as one.
  */
 export function formatPreviousSet(
 	set: PreviousSet,
 	unit: WeightUnit,
 	measure: SetMeasure = DEFAULT_SET_MEASURE,
+): string | undefined {
+	const text = formatMeasure(set, unit, measure);
+	return text !== undefined && set.warmup ? `W ${text}` : text;
+}
+
+function formatMeasure(
+	set: PreviousSet,
+	unit: WeightUnit,
+	measure: SetMeasure,
 ): string | undefined {
 	const { weightKg, reps, seconds, distanceM } = set;
 	switch (measure) {

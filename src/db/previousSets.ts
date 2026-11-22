@@ -13,7 +13,8 @@ import type { Workout, WorkoutSet } from "./types";
  * workout was never lifted. If the exercise appears more than once in that
  * workout, its appearances are joined in workout order (the first
  * appearance's sets, then the next's), so set N of today lines up with the
- * N-th set done last time.
+ * N-th set done last time. Warm-ups are kept (ADR-0012, #65): a workout
+ * started from the same template has them in the same places.
  *
  * Reads only the exercise's own appearances (indexed by exerciseId) and the
  * sets of the one workout chosen, never the whole history.
