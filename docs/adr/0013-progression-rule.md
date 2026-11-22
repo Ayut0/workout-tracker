@@ -39,7 +39,7 @@ left open.
   plus one, capped at `repMax`.
 - **No suggestion** for a group with no rep range (a deload excepted), or with
   a set lacking a weight or reps, or at 0 kg: a 0 kg set is bodyweight
-  (CONTEXT.md § Estimated 1RM), treated like a missing weight, since
+  (GLOSSARY.md § Estimated 1RM), treated like a missing weight, since
   bodyweight progression is left for later. The group is still returned, so a
   caller can line groups up with the sets.
 - **Increment is an explicit input** (`incrementKg`). `deriveIncrementKg`

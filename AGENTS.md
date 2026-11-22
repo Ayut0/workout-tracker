@@ -75,7 +75,7 @@ convention specific to this repo.
 - **Triage labels:** the five canonical roles (`needs-triage`, `needs-info`,
   `ready-for-agent`, `ready-for-human`, `wontfix`) — see
   [docs/agents/triage-labels.md](docs/agents/triage-labels.md).
-- **Domain docs:** single-context (`CONTEXT.md` + `docs/adr/`) — see [docs/agents/domain.md](docs/agents/domain.md).
+- **Domain docs:** single-context (`GLOSSARY.md` + `docs/adr/`) — see [docs/agents/domain.md](docs/agents/domain.md).
 - **Review lenses:** see [docs/agents/review-lenses.md](docs/agents/review-lenses.md).
 
 ## Project map
