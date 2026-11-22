@@ -1,6 +1,6 @@
 import { MUSCLE_GROUPS } from "../db/constants";
 import type { MuscleGroup, Workout, WorkoutSet } from "../db/types";
-import { countsAsWorkingSet } from "./metrics";
+import { isWorkingSet } from "./metrics";
 
 /**
  * Weekly sets per muscle group (#75): how many hard sets each muscle group
@@ -116,7 +116,7 @@ export function countWeeklySets(
 		const { startedAt } = workout.workout;
 		if (startedAt < weekStart || startedAt >= weekEnd) continue;
 		for (const { exercise, sets } of workout.exercises) {
-			const hardSets = sets.filter(countsAsWorkingSet).length;
+			const hardSets = sets.filter(isWorkingSet).length;
 			if (hardSets === 0 || exercise === undefined) continue;
 			const primary = new Set(exercise.primaryMuscles);
 			for (const muscle of primary) {

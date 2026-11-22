@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	BODY_LOG_PATH,
-	historyDetailPath,
+	buildHistoryDetailPath,
+	buildTemplatePath,
 	isPlainClick,
 	parseRoute,
 	TABS,
-	templatePath,
 	WEEKLY_SETS_PATH,
 } from "./routes";
 
@@ -66,7 +66,7 @@ describe("parseRoute", () => {
 
 	it("round-trips a workout id through its History path", () => {
 		const id = "6f1c a/b?";
-		const path = historyDetailPath(id);
+		const path = buildHistoryDetailPath(id);
 		expect(path).toBe("/history/6f1c%20a%2Fb%3F");
 		expect(parseRoute(path)).toEqual({
 			name: "history-detail",
@@ -90,7 +90,7 @@ describe("parseRoute", () => {
 
 	it("round-trips a template id through its path", () => {
 		const id = "a b/c%";
-		expect(parseRoute(templatePath(id))).toEqual({
+		expect(parseRoute(buildTemplatePath(id))).toEqual({
 			name: "template-edit",
 			tab: "workout",
 			templateId: id,

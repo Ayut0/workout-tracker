@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { KG_PER_LB } from "./units";
 import {
+	buildWorkoutName,
 	formatElapsed,
 	MAX_DISTANCE_M,
 	MAX_REPS,
 	MAX_SECONDS,
-	nameWorkoutFor,
 	readDistanceField,
 	readRepsField,
 	readSecondsField,
@@ -13,17 +13,23 @@ import {
 } from "./workoutLog";
 
 /** Epoch ms for a local time today-ish; the hour is what matters. */
-function atLocalHour(hour: number): number {
+function buildLocalHourTimestamp(hour: number): number {
 	return new Date(2026, 10, 6, hour, 30).getTime();
 }
 
-describe("nameWorkoutFor", () => {
+describe("buildWorkoutName", () => {
 	it("names a workout after the part of the day it starts in", () => {
-		expect(nameWorkoutFor(atLocalHour(7))).toBe("Morning workout");
-		expect(nameWorkoutFor(atLocalHour(12))).toBe("Afternoon workout");
-		expect(nameWorkoutFor(atLocalHour(18))).toBe("Evening workout");
-		expect(nameWorkoutFor(atLocalHour(23))).toBe("Night workout");
-		expect(nameWorkoutFor(atLocalHour(2))).toBe("Night workout");
+		expect(buildWorkoutName(buildLocalHourTimestamp(7))).toBe(
+			"Morning workout",
+		);
+		expect(buildWorkoutName(buildLocalHourTimestamp(12))).toBe(
+			"Afternoon workout",
+		);
+		expect(buildWorkoutName(buildLocalHourTimestamp(18))).toBe(
+			"Evening workout",
+		);
+		expect(buildWorkoutName(buildLocalHourTimestamp(23))).toBe("Night workout");
+		expect(buildWorkoutName(buildLocalHourTimestamp(2))).toBe("Night workout");
 	});
 });
 

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
 	BACKUP_DUE_DAYS,
+	buildBackupFileName,
 	countDaysSince,
 	isBackupDue,
-	nameBackupFile,
 	SAVE_OUTCOME,
 	saveBackupFile,
 } from "./backupFile";
@@ -17,15 +17,15 @@ function makeFile() {
 	});
 }
 
-function namedError(name: string): Error {
+function createNamedError(name: string): Error {
 	const error = new Error(name);
 	error.name = name;
 	return error;
 }
 
-describe("nameBackupFile", () => {
+describe("buildBackupFileName", () => {
 	it("dates the file in local time", () => {
-		expect(nameBackupFile(new Date(2026, 0, 5, 23, 59).getTime())).toBe(
+		expect(buildBackupFileName(new Date(2026, 0, 5, 23, 59).getTime())).toBe(
 			"workout-tracker-backup-2026-01-05.json",
 		);
 	});
@@ -94,7 +94,7 @@ describe("saveBackupFile", () => {
 	])("reports %s from the share sheet", async (name, expected) => {
 		const outcome = await saveBackupFile(makeFile(), {
 			canShare: () => true,
-			share: () => Promise.reject(namedError(name)),
+			share: () => Promise.reject(createNamedError(name)),
 			download: vi.fn(),
 		});
 		expect(outcome).toBe(expected);
@@ -104,7 +104,7 @@ describe("saveBackupFile", () => {
 		await expect(
 			saveBackupFile(makeFile(), {
 				canShare: () => true,
-				share: () => Promise.reject(namedError("DataError")),
+				share: () => Promise.reject(createNamedError("DataError")),
 				download: vi.fn(),
 			}),
 		).rejects.toThrow("DataError");

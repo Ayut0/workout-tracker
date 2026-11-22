@@ -46,7 +46,7 @@ async function startEmpty(startedAt = 1_000): Promise<Workout> {
 	return result.workout;
 }
 
-function firstSet(entry: WorkoutExerciseDetail): WorkoutSet {
+function getFirstSet(entry: WorkoutExerciseDetail): WorkoutSet {
 	const set = entry.sets[0];
 	if (!set) throw new Error("expected a set");
 	return set;
@@ -164,7 +164,7 @@ describe("exercises in a workout", () => {
 			["bench", 0, [0]],
 			["row", 1, [0]],
 		]);
-		expect(await database.sets.get(firstSet(squat).id)).toBeUndefined();
+		expect(await database.sets.get(getFirstSet(squat).id)).toBeUndefined();
 	});
 
 	it("moves an exercise up and down, keeping order dense", async () => {
@@ -195,7 +195,7 @@ describe("sets", () => {
 		const workout = await startEmpty();
 		const bench = await addWorkoutExercise(workout.id, "bench", database);
 		if (!bench) throw new Error("expected bench");
-		return { workout, bench, firstSetId: firstSet(bench).id };
+		return { workout, bench, firstSetId: getFirstSet(bench).id };
 	}
 
 	it("adds a set that starts with the previous set's weight and reps", async () => {
@@ -336,12 +336,12 @@ describe("sets", () => {
 		const squat = await addWorkoutExercise(workout.id, "squat", database);
 		if (!squat) throw new Error("expected squat");
 
-		const completed = await completeSet(firstSet(squat).id, 7_000, database);
+		const completed = await completeSet(getFirstSet(squat).id, 7_000, database);
 
 		expect(completed?.set.completedAt).toBe(7_000);
 		expect(completed?.workoutExercise.id).toBe(squat.workoutExercise.id);
 		expect(completed?.exercise?.restSeconds).toBe(180);
-		expect((await database.sets.get(firstSet(squat).id))?.completedAt).toBe(
+		expect((await database.sets.get(getFirstSet(squat).id))?.completedAt).toBe(
 			7_000,
 		);
 	});
@@ -437,8 +437,8 @@ describe("resuming", () => {
 		const workout = await startEmpty();
 		const bench = await addWorkoutExercise(workout.id, "bench", database);
 		if (!bench) throw new Error("expected bench");
-		await updateSet(firstSet(bench).id, { weightKg: 60, reps: 8 }, database);
-		await completeSet(firstSet(bench).id, 2_000, database);
+		await updateSet(getFirstSet(bench).id, { weightKg: 60, reps: 8 }, database);
+		await completeSet(getFirstSet(bench).id, 2_000, database);
 		await addSet(bench.workoutExercise.id, database);
 		database.close();
 
@@ -468,7 +468,7 @@ describe("RPE on a set (#64)", () => {
 		const workout = await startEmpty();
 		const bench = await addWorkoutExercise(workout.id, "bench", database);
 		if (!bench) throw new Error("expected bench");
-		return firstSet(bench).id;
+		return getFirstSet(bench).id;
 	}
 
 	it("clears the RPE by deleting the field, and the backup still parses", async () => {

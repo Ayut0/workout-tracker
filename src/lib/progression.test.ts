@@ -11,7 +11,7 @@ import { KG_PER_LB } from "./units";
 const DONE = 1_700_000_000_000;
 
 /** A complete working set of `reps` at `weightKg`. */
-function done(weightKg: number, reps: number): ProgressionSet {
+function buildDoneSet(weightKg: number, reps: number): ProgressionSet {
 	return { weightKg, reps, completedAt: DONE };
 }
 
@@ -30,7 +30,7 @@ describe("suggestProgression", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6), done(100, 6), done(100, 6)],
+			sets: [buildDoneSet(100, 6), buildDoneSet(100, 6), buildDoneSet(100, 6)],
 		});
 		expect(group.suggestion).toEqual({
 			action: "increase",
@@ -46,7 +46,7 @@ describe("suggestProgression", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6), done(100, 5), done(100, 3)],
+			sets: [buildDoneSet(100, 6), buildDoneSet(100, 5), buildDoneSet(100, 3)],
 		});
 		expect(group.suggestion).toEqual({
 			action: "keep",
@@ -62,7 +62,7 @@ describe("suggestProgression", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6), done(100, 5), done(100, 4)],
+			sets: [buildDoneSet(100, 6), buildDoneSet(100, 5), buildDoneSet(100, 4)],
 		});
 		expect(group.suggestion).toEqual({
 			action: "addRep",
@@ -78,7 +78,7 @@ describe("suggestProgression", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 8), done(100, 5), done(100, 5)],
+			sets: [buildDoneSet(100, 8), buildDoneSet(100, 5), buildDoneSet(100, 5)],
 		});
 		expect(group.suggestion?.action).toBe("addRep");
 	});
@@ -90,8 +90,8 @@ describe("suggestProgression", () => {
 			sets: [
 				{ weightKg: 40, reps: 2, warmup: true, completedAt: DONE },
 				{ weightKg: 60, reps: 1, warmup: true, completedAt: DONE },
-				done(100, 6),
-				done(100, 6),
+				buildDoneSet(100, 6),
+				buildDoneSet(100, 6),
 			],
 		});
 		expect(group.suggestion).toEqual({
@@ -107,7 +107,11 @@ describe("suggestProgression", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6), { weightKg: 100, reps: 2 }, done(100, 6)],
+			sets: [
+				buildDoneSet(100, 6),
+				{ weightKg: 100, reps: 2 },
+				buildDoneSet(100, 6),
+			],
 		});
 		expect(group.suggestion?.action).toBe("increase");
 		expect(group.suggestion?.sets).toHaveLength(2);
@@ -119,11 +123,11 @@ describe("suggestProgression", () => {
 		const groups = suggestProgression({
 			...barbell,
 			sets: [
-				{ ...done(100, 6), ...heavy },
-				{ ...done(100, 6), ...heavy },
-				{ ...done(100, 6), ...heavy },
-				{ ...done(80, 9), ...backOff },
-				{ ...done(80, 8), ...backOff },
+				{ ...buildDoneSet(100, 6), ...heavy },
+				{ ...buildDoneSet(100, 6), ...heavy },
+				{ ...buildDoneSet(100, 6), ...heavy },
+				{ ...buildDoneSet(80, 9), ...backOff },
+				{ ...buildDoneSet(80, 8), ...backOff },
 			],
 		});
 		expect(groups).toHaveLength(2);
@@ -145,9 +149,9 @@ describe("suggestProgression", () => {
 			repMax: 12,
 			...barbell,
 			sets: [
-				{ ...done(100, 5), repMin: 3, repMax: 5 },
-				done(60, 12),
-				done(60, 12),
+				{ ...buildDoneSet(100, 5), repMin: 3, repMax: 5 },
+				buildDoneSet(60, 12),
+				buildDoneSet(60, 12),
 			],
 		});
 		expect(groups.map((g) => g.suggestion?.action)).toEqual([
@@ -160,7 +164,7 @@ describe("suggestProgression", () => {
 	it("gives no suggestion when there is no rep range", () => {
 		const group = suggestOnlyGroup({
 			...barbell,
-			sets: [done(100, 6), done(100, 6)],
+			sets: [buildDoneSet(100, 6), buildDoneSet(100, 6)],
 		});
 		expect(group.repMin).toBeUndefined();
 		expect(group.suggestion).toBeUndefined();
@@ -170,7 +174,7 @@ describe("suggestProgression", () => {
 		const noWeight = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6), { reps: 6, completedAt: DONE }],
+			sets: [buildDoneSet(100, 6), { reps: 6, completedAt: DONE }],
 		});
 		expect(noWeight.suggestion).toBeUndefined();
 		const noReps = suggestOnlyGroup({
@@ -199,12 +203,12 @@ describe("suggestProgression", () => {
 			...barbell,
 			deload: true,
 			sets: [
-				{ ...done(100, 6), ...heavy },
-				{ ...done(100, 6), ...heavy },
-				{ ...done(100, 6), ...heavy },
-				{ ...done(80, 10), ...backOff },
-				{ ...done(80, 9), ...backOff },
-				{ ...done(80, 8), ...backOff },
+				{ ...buildDoneSet(100, 6), ...heavy },
+				{ ...buildDoneSet(100, 6), ...heavy },
+				{ ...buildDoneSet(100, 6), ...heavy },
+				{ ...buildDoneSet(80, 10), ...backOff },
+				{ ...buildDoneSet(80, 9), ...backOff },
+				{ ...buildDoneSet(80, 8), ...backOff },
 			],
 		});
 		// 6 working sets: the first 4 stay.
@@ -227,9 +231,9 @@ describe("suggestProgression", () => {
 			...barbell,
 			deload: true,
 			sets: [
-				{ ...done(60, 12), repMin: 10, repMax: 12 },
-				{ ...done(80, 8), repMin: 6, repMax: 8 },
-				{ ...done(100, 5), repMin: 4, repMax: 6 },
+				{ ...buildDoneSet(60, 12), repMin: 10, repMax: 12 },
+				{ ...buildDoneSet(80, 8), repMin: 6, repMax: 8 },
+				{ ...buildDoneSet(100, 5), repMin: 4, repMax: 6 },
 			],
 		});
 		// 3 sets: two stay; the last group keeps none.
@@ -241,7 +245,7 @@ describe("suggestProgression", () => {
 		const group = suggestOnlyGroup({
 			...barbell,
 			deload: true,
-			sets: [done(100, 6), done(100, 6), done(100, 6)],
+			sets: [buildDoneSet(100, 6), buildDoneSet(100, 6), buildDoneSet(100, 6)],
 		});
 		expect(group.suggestion).toEqual({
 			action: "deload",
@@ -257,7 +261,7 @@ describe("suggestProgression", () => {
 			...range,
 			...barbell,
 			deload: true,
-			sets: [done(100, 5)],
+			sets: [buildDoneSet(100, 5)],
 		});
 		expect(group.suggestion?.sets).toEqual([{ weightKg: 100, reps: 5 }]);
 	});
@@ -267,8 +271,8 @@ describe("suggestProgression", () => {
 			...range,
 			...barbell,
 			sets: [
-				{ ...done(100, 6), rpe: 10 },
-				{ ...done(100, 6), rpe: 10 },
+				{ ...buildDoneSet(100, 6), rpe: 10 },
+				{ ...buildDoneSet(100, 6), rpe: 10 },
 			],
 		});
 		expect(group.suggestion?.action).toBe("increase");
@@ -278,7 +282,7 @@ describe("suggestProgression", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(101, 6)],
+			sets: [buildDoneSet(101, 6)],
 		});
 		expect(group.suggestion?.sets[0]?.weightKg).toBe(102.5);
 	});
@@ -288,7 +292,7 @@ describe("suggestProgression", () => {
 			repMin: 8,
 			repMax: 12,
 			incrementKg: deriveIncrementKg("Shoulder Press (Dumbbell)"),
-			sets: [done(20, 12), done(20, 12)],
+			sets: [buildDoneSet(20, 12), buildDoneSet(20, 12)],
 		});
 		expect(group.suggestion?.sets[0]?.weightKg).toBe(22);
 	});
@@ -299,7 +303,7 @@ describe("suggestProgression", () => {
 			...range,
 			incrementKg,
 			unit: "lb",
-			sets: [done(100, 6)],
+			sets: [buildDoneSet(100, 6)],
 		});
 		// 100 kg is 220.46 lb; + 5 lb is 225.46 lb, loaded as 225 lb.
 		expect(group.suggestion?.sets[0]?.weightKg).toBeCloseTo(225 * KG_PER_LB, 9);
@@ -310,7 +314,7 @@ describe("suggestProgression", () => {
 			...range,
 			...barbell,
 			unit: "lb",
-			sets: [done(99.790321, 5)],
+			sets: [buildDoneSet(99.790321, 5)],
 		});
 		expect(group.suggestion?.sets[0]?.weightKg).toBe(99.790321);
 	});
@@ -329,7 +333,7 @@ describe("suggestProgression edge cases", () => {
 		] as const) {
 			const group = suggestOnlyGroup({
 				...dumbbell,
-				sets: [done(from, 12), done(from, 12)],
+				sets: [buildDoneSet(from, 12), buildDoneSet(from, 12)],
 			});
 			expect(group.suggestion?.sets[0]?.weightKg).toBe(to);
 		}
@@ -339,14 +343,14 @@ describe("suggestProgression edge cases", () => {
 		const barbellGroup = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6)],
+			sets: [buildDoneSet(100, 6)],
 		});
 		expect(barbellGroup.suggestion?.sets[0]?.weightKg).toBe(102.5);
 		const lbGroup = suggestOnlyGroup({
 			...range,
 			incrementKg: 2.5,
 			unit: "lb",
-			sets: [done(100, 6)],
+			sets: [buildDoneSet(100, 6)],
 		});
 		// The grid follows the unit, not incrementKg: 225 lb, loadable.
 		expect(lbGroup.suggestion?.sets[0]?.weightKg).toBeCloseTo(
@@ -359,7 +363,7 @@ describe("suggestProgression edge cases", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6), done(95, 6), done(90, 6)],
+			sets: [buildDoneSet(100, 6), buildDoneSet(95, 6), buildDoneSet(90, 6)],
 		});
 		expect(group.suggestion).toEqual({
 			action: "increase",
@@ -377,9 +381,9 @@ describe("suggestProgression edge cases", () => {
 		const groups = suggestProgression({
 			...barbell,
 			sets: [
-				{ ...done(100, 6), ...heavy },
-				{ ...done(80, 9), ...backOff },
-				{ ...done(100, 4), ...heavy },
+				{ ...buildDoneSet(100, 6), ...heavy },
+				{ ...buildDoneSet(80, 9), ...backOff },
+				{ ...buildDoneSet(100, 4), ...heavy },
 			],
 		});
 		expect(groups).toHaveLength(2);
@@ -395,7 +399,7 @@ describe("suggestProgression edge cases", () => {
 			const group = suggestOnlyGroup({
 				...range,
 				incrementKg,
-				sets: [done(100, 6), done(100, 6)],
+				sets: [buildDoneSet(100, 6), buildDoneSet(100, 6)],
 			});
 			expect(group.suggestion).toEqual({
 				action: "keep",
@@ -411,7 +415,7 @@ describe("suggestProgression edge cases", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [{ ...done(100, 6), repMin: 8 }],
+			sets: [{ ...buildDoneSet(100, 6), repMin: 8 }],
 		});
 		expect(group).toMatchObject({ repMin: 4, repMax: 6 });
 		expect(group.suggestion?.action).toBe("increase");
@@ -421,7 +425,7 @@ describe("suggestProgression edge cases", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(0, 6), done(0, 6)],
+			sets: [buildDoneSet(0, 6), buildDoneSet(0, 6)],
 		});
 		expect(group.suggestion).toBeUndefined();
 	});
@@ -430,7 +434,11 @@ describe("suggestProgression edge cases", () => {
 		const group = suggestOnlyGroup({
 			...range,
 			...barbell,
-			sets: [done(100, 6), { weightKg: 100, reps: 0 }, { weightKg: 100 }],
+			sets: [
+				buildDoneSet(100, 6),
+				{ weightKg: 100, reps: 0 },
+				{ weightKg: 100 },
+			],
 		});
 		expect(group.suggestion?.action).toBe("increase");
 	});

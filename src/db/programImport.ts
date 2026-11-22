@@ -43,7 +43,7 @@ import { resolveMeasure, tidyNotes } from "./workoutLog";
  * A template's name: "<Program> · W1 · A — Lower"; blocks after the first
  * add "B2 · " before the week, so templates of two blocks never share a name.
  */
-export function nameProgramTemplate(
+export function buildProgramTemplateName(
 	programName: string,
 	block: number,
 	week: ProgramWeek,
@@ -143,7 +143,7 @@ export function planProgramImport(
 				};
 				if (week.deload) link.deload = true;
 				templates.push({
-					name: nameProgramTemplate(programName, block.block, week, day),
+					name: buildProgramTemplateName(programName, block.block, week, day),
 					program: link,
 					exercises: day.exercises.map((exercise) => {
 						const nameKey = normalizeExerciseName(exercise.name);

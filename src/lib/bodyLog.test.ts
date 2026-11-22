@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { parseLocalDay } from "../db/bodyLog";
 import type { BodyEntry } from "../db/types";
 import {
+	buildBodyEntryForm,
 	buildBodySeries,
-	chartEndForDay,
 	formatBodyValue,
 	formatLocalDay,
+	getChartEndForDay,
 	parseBodyEntryForm,
-	toBodyEntryForm,
 } from "./bodyLog";
 import { KG_PER_LB } from "./units";
 
@@ -87,7 +87,7 @@ describe("parseBodyEntryForm", () => {
 		// texts would store 69.99 kg and 80.3 cm.
 		expect(
 			parseBodyEntryForm(
-				toBodyEntryForm(stored, "2026-01-02", "lb"),
+				buildBodyEntryForm(stored, "2026-01-02", "lb"),
 				"lb",
 				stored,
 			),
@@ -144,25 +144,25 @@ describe("parseBodyEntryForm", () => {
 	});
 });
 
-describe("chartEndForDay", () => {
+describe("getChartEndForDay", () => {
 	it("is local midnight of the day, so that day's own entry is in range", () => {
-		const end = chartEndForDay("2026-11-16");
+		const end = getChartEndForDay("2026-11-16");
 
 		expect(end).toBe(new Date(2026, 10, 16).getTime());
 		expect(end).toBeGreaterThanOrEqual(parseLocalDay("2026-11-16") ?? 0);
 	});
 });
 
-describe("toBodyEntryForm", () => {
+describe("buildBodyEntryForm", () => {
 	it("shows a stored entry in the user's unit, blank when absent", () => {
 		expect(
-			toBodyEntryForm(
+			buildBodyEntryForm(
 				{ id: "b", date: "2026-01-02", bodyWeightKg: 100 },
 				"2026-01-02",
 				"lb",
 			),
 		).toEqual({ date: "2026-01-02", bodyWeight: "220.5", waist: "" });
-		expect(toBodyEntryForm(undefined, "2026-01-03", "kg")).toEqual({
+		expect(buildBodyEntryForm(undefined, "2026-01-03", "kg")).toEqual({
 			date: "2026-01-03",
 			bodyWeight: "",
 			waist: "",

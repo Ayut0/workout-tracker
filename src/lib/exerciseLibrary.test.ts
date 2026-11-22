@@ -5,15 +5,27 @@ import {
 	filterExercisesByName,
 } from "./exerciseLibrary";
 
-const exercise = (id: string, name: string, nameKey: string): Exercise => ({
+const buildExercise = (
+	id: string,
+	name: string,
+	nameKey: string,
+): Exercise => ({
 	id,
 	name,
 	nameKey,
 });
 
-const bench = exercise("b", "Bench Press (Barbell)", "bench press (barbell)");
-const incline = exercise("i", "Incline Bench Press", "incline bench press");
-const squat = exercise("s", "Squat", "squat");
+const bench = buildExercise(
+	"b",
+	"Bench Press (Barbell)",
+	"bench press (barbell)",
+);
+const incline = buildExercise(
+	"i",
+	"Incline Bench Press",
+	"incline bench press",
+);
+const squat = buildExercise("s", "Squat", "squat");
 const library = [bench, incline, squat];
 
 describe("filterExercisesByName", () => {
@@ -55,7 +67,7 @@ describe("describeExerciseNameError", () => {
 			describeExerciseNameError({
 				ok: false,
 				reason: "duplicate",
-				existing: { ...exercise("r", "Row", "row"), archivedAt: 1 },
+				existing: { ...buildExercise("r", "Row", "row"), archivedAt: 1 },
 			}),
 		).toBe("“Row” is archived. Restore it instead.");
 	});

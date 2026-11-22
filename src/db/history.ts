@@ -70,7 +70,7 @@ export async function listWorkoutHistory(
 				.reverse()
 				.filter(
 					(workout) =>
-						workout.endedAt !== undefined && comesAfter(workout, after),
+						workout.endedAt !== undefined && isAfterCursor(workout, after),
 				)
 				.limit(limit + 1)
 				.toArray();
@@ -118,7 +118,7 @@ export async function listWorkoutsStartedBetween(
  * Newest first, ties broken by id descending: the order IndexedDB walks the
  * `startedAt` index in reverse.
  */
-function comesAfter(workout: Workout, after: HistoryCursor | undefined) {
+function isAfterCursor(workout: Workout, after: HistoryCursor | undefined) {
 	if (after === undefined) return true;
 	if (workout.startedAt !== after.startedAt) {
 		return workout.startedAt < after.startedAt;
@@ -147,11 +147,11 @@ async function attachExercises(
 	const exercisesByWorkout = groupBy(workoutExercises, (we) => we.workoutId);
 	return workouts.map((workout) => ({
 		workout,
-		exercises: byOrder(exercisesByWorkout.get(workout.id) ?? []).map(
+		exercises: sortByOrder(exercisesByWorkout.get(workout.id) ?? []).map(
 			(workoutExercise) => ({
 				workoutExercise,
 				exercise: library.get(workoutExercise.exerciseId),
-				sets: byOrder(setsByExercise.get(workoutExercise.id) ?? []),
+				sets: sortByOrder(setsByExercise.get(workoutExercise.id) ?? []),
 			}),
 		),
 	}));
@@ -168,7 +168,7 @@ function groupBy<T>(items: readonly T[], keyOf: (item: T) => string) {
 	return groups;
 }
 
-function byOrder<T extends { order: number }>(records: T[]): T[] {
+function sortByOrder<T extends { order: number }>(records: T[]): T[] {
 	return records.sort((a, b) => a.order - b.order);
 }
 

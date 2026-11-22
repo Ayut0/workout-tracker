@@ -31,12 +31,12 @@ export type Route =
 	| { name: "template-edit"; tab: "workout"; templateId: string };
 
 /** The path of one past workout in History. */
-export function historyDetailPath(workoutId: string): string {
+export function buildHistoryDetailPath(workoutId: string): string {
 	return `${HISTORY_PATH}/${encodeURIComponent(workoutId)}`;
 }
 
 /** The path of a template's editor. */
-export function templatePath(templateId: string): string {
+export function buildTemplatePath(templateId: string): string {
 	return `${TEMPLATES_PATH}/${encodeURIComponent(templateId)}`;
 }
 

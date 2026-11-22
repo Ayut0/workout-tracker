@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeRpeChips, RPE_CHOICES, rpeOtherLabel } from "./rpe";
+import { buildRpeOtherLabel, describeRpeChips, RPE_CHOICES } from "./rpe";
 
 describe("RPE_CHOICES", () => {
 	it("offers the whole numbers 6 to 10", () => {
@@ -42,6 +42,6 @@ describe("describeRpeChips", () => {
 	});
 
 	it("names the other chip for assistive tech", () => {
-		expect(rpeOtherLabel("8.5")).toBe("RPE 8.5");
+		expect(buildRpeOtherLabel("8.5")).toBe("RPE 8.5");
 	});
 });

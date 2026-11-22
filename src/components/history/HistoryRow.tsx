@@ -2,7 +2,7 @@ import type { HistoryEntry } from "../../db/history";
 import type { WeightUnit } from "../../db/types";
 import { formatDuration, summarizeWorkout } from "../../lib/history";
 import { formatVolume } from "../../lib/progress";
-import { historyDetailPath } from "../../lib/routes";
+import { buildHistoryDetailPath } from "../../lib/routes";
 import { Link } from "../Link";
 
 /** Exercises listed in a row before the rest are counted as "and N more". */
@@ -30,7 +30,7 @@ export function HistoryRow({ entry, weightUnit }: HistoryRowProps) {
 	const more = summary.exercises.length - shown.length;
 	return (
 		<li>
-			<Link to={historyDetailPath(workout.id)} className="history-row">
+			<Link to={buildHistoryDetailPath(workout.id)} className="history-row">
 				<span className="history-row-head">
 					<strong className="history-name">{workout.name}</strong>
 					<time

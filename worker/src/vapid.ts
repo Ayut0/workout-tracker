@@ -74,7 +74,7 @@ export async function createVapidJwt(
 	return `${signingInput}.${encodeBase64Url(signature)}`;
 }
 
-export async function vapidAuthorization(
+export async function buildVapidAuthorization(
 	endpoint: string,
 	keys: VapidKeys,
 ): Promise<string> {
@@ -95,7 +95,7 @@ export async function sendEmptyPush(
 	const response = await fetch(endpoint, {
 		method: "POST",
 		headers: {
-			Authorization: await vapidAuthorization(endpoint, keys),
+			Authorization: await buildVapidAuthorization(endpoint, keys),
 			// Drop the push if it cannot be delivered within a minute: a late
 			// "rest is over" is worse than none.
 			TTL: "60",

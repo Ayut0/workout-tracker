@@ -3,11 +3,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { findWorkoutDetail, WorkoutDB } from "./index";
 import {
 	createTemplate,
+	createTemplateFromWorkout,
 	deleteTemplate,
 	findTemplate,
 	listTemplates,
 	startWorkoutFromTemplate,
-	templateFromWorkout,
 	updateTemplate,
 } from "./templates";
 import type { Template, TemplateExercise } from "./types";
@@ -234,7 +234,7 @@ describe("startWorkoutFromTemplate", () => {
 	});
 });
 
-describe("templateFromWorkout", () => {
+describe("createTemplateFromWorkout", () => {
 	async function logWorkout() {
 		const started = await startWorkout(
 			{
@@ -268,7 +268,7 @@ describe("templateFromWorkout", () => {
 	it("saves the workout's name, exercises and complete sets as a new template", async () => {
 		const workout = await logWorkout();
 
-		const result = await templateFromWorkout(workout.id, database);
+		const result = await createTemplateFromWorkout(workout.id, database);
 
 		if (!result.ok) throw new Error("expected a template");
 		expect(result.template.name).toBe("Monday push");
@@ -297,7 +297,9 @@ describe("templateFromWorkout", () => {
 		);
 		if (!started.ok) throw new Error("expected a workout");
 
-		expect(await templateFromWorkout(started.workout.id, database)).toEqual({
+		expect(
+			await createTemplateFromWorkout(started.workout.id, database),
+		).toEqual({
 			ok: false,
 			reason: "no-complete-sets",
 		});
@@ -305,7 +307,7 @@ describe("templateFromWorkout", () => {
 	});
 
 	it("reports a workout that does not exist", async () => {
-		expect(await templateFromWorkout("nope", database)).toEqual({
+		expect(await createTemplateFromWorkout("nope", database)).toEqual({
 			ok: false,
 			reason: "not-found",
 		});
@@ -345,7 +347,7 @@ describe("planned sets measured by time or distance (ADR-0012)", () => {
 
 		for (const set of sets) await completeSet(set.id, 6_000, database);
 		await finishWorkout(started.workout.id, 7_000, database);
-		const saved = await templateFromWorkout(started.workout.id, database);
+		const saved = await createTemplateFromWorkout(started.workout.id, database);
 		if (!saved.ok) throw new Error("expected a template");
 		expect(saved.template.exercises).toEqual([
 			{ exerciseId: "plank", sets: [{ seconds: 60 }] },
@@ -450,7 +452,7 @@ describe("warm-up sets (#65)", () => {
 
 		for (const set of sets) await completeSet(set.id, 6_000, database);
 		await finishWorkout(started.workout.id, 7_000, database);
-		const saved = await templateFromWorkout(started.workout.id, database);
+		const saved = await createTemplateFromWorkout(started.workout.id, database);
 		if (!saved.ok) throw new Error("expected a template");
 		expect(saved.template.exercises[0]?.sets).toEqual([
 			{ weightKg: 40, reps: 10, warmup: true },
@@ -557,7 +559,10 @@ describe("template exercise notes (ADR-0014)", () => {
 		const set = detail?.exercises[0]?.sets[0];
 		if (set) await completeSet(set.id, 2_000, database);
 
-		const result = await templateFromWorkout(started.workout.id, database);
+		const result = await createTemplateFromWorkout(
+			started.workout.id,
+			database,
+		);
 
 		if (!result.ok) throw new Error("expected a template");
 		expect(result.template.exercises).toEqual([
@@ -639,7 +644,10 @@ describe("planned rep range and target RIR (ADR-0014)", () => {
 		expect(added && "repMax" in added).toBe(false);
 		expect(added && "targetRir" in added).toBe(false);
 		for (const set of entry.sets) await completeSet(set.id, 2_000, database);
-		const result = await templateFromWorkout(started.workout.id, database);
+		const result = await createTemplateFromWorkout(
+			started.workout.id,
+			database,
+		);
 		if (!result.ok) throw new Error("expected a template");
 		expect(result.template.exercises[0]?.sets).toEqual(TARGETED[0]?.sets);
 	});
@@ -802,7 +810,7 @@ describe("the program a workout came from (ADR-0018)", () => {
 		await completeSet(firstSet.id, 2, database);
 		await finishWorkout(result.workout.id, 3, database);
 
-		const saved = await templateFromWorkout(result.workout.id, database);
+		const saved = await createTemplateFromWorkout(result.workout.id, database);
 		if (!saved.ok) throw new Error("expected a template");
 		expect(saved.template.program).toBeUndefined();
 	});

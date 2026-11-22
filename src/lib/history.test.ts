@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { HistoryEntry } from "../db/history";
 import {
 	describeRescheduleError,
+	formatDateTimeLocal,
 	formatDuration,
 	parseDateTimeLocal,
 	summarizeWorkout,
-	toDateTimeLocal,
 } from "./history";
 
 const MINUTE = 60_000;
@@ -117,7 +117,7 @@ describe("formatDuration", () => {
 describe("datetime-local values", () => {
 	it("formats a time in local time to the minute", () => {
 		const ms = new Date(2026, 10, 4, 7, 5, 42).getTime();
-		expect(toDateTimeLocal(ms)).toBe("2026-11-04T07:05");
+		expect(formatDateTimeLocal(ms)).toBe("2026-11-04T07:05");
 	});
 
 	it("reads a value back as local time", () => {
