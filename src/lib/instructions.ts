@@ -53,3 +53,30 @@ export function getLinkLabel(url: string): string {
 		return url;
 	}
 }
+
+/** What the workout card shows of an exercise's instructions. */
+export interface InstructionsToShow {
+	text: string | undefined;
+	url: string | undefined;
+}
+
+/**
+ * What to show of an exercise's instructions while logging (ADR-0020): the
+ * text trimmed, and the link only if it is safe to render; undefined when
+ * neither is left, so the card shows no row.
+ */
+export function getInstructionsToShow({
+	instructions,
+	instructionsUrl,
+}: {
+	instructions?: string | undefined;
+	instructionsUrl?: string | undefined;
+}): InstructionsToShow | undefined {
+	const text = tidyInstructions(instructions ?? "");
+	const url =
+		instructionsUrl !== undefined && isSafeInstructionsLink(instructionsUrl)
+			? instructionsUrl.trim()
+			: undefined;
+	if (text === undefined && url === undefined) return undefined;
+	return { text, url };
+}

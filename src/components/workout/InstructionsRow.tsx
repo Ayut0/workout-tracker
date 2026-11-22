@@ -1,6 +1,9 @@
 import { useId, useState } from "react";
-import { tidyInstructions } from "../../db/instructions";
-import { getLinkLabel, isSafeInstructionsLink } from "../../lib/instructions";
+import {
+	getInstructionsToShow,
+	getLinkLabel,
+	type InstructionsToShow,
+} from "../../lib/instructions";
 
 type InstructionsRowProps = {
 	instructions: string | undefined;
@@ -18,14 +21,14 @@ export function InstructionsRow({
 	instructions,
 	instructionsUrl,
 }: InstructionsRowProps) {
+	const shown = getInstructionsToShow({ instructions, instructionsUrl });
+	return shown === undefined ? null : <InstructionsToggle {...shown} />;
+}
+
+/** The collapsible row itself, starting closed. */
+function InstructionsToggle({ text, url }: InstructionsToShow) {
 	const [open, setOpen] = useState(false);
 	const panelId = useId();
-	const text = tidyInstructions(instructions ?? "");
-	const url =
-		instructionsUrl !== undefined && isSafeInstructionsLink(instructionsUrl)
-			? instructionsUrl.trim()
-			: undefined;
-	if (text === undefined && url === undefined) return null;
 	return (
 		<div className="instructions">
 			<button

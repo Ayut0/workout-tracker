@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	getInstructionsCounter,
+	getInstructionsToShow,
 	getLinkLabel,
 	isInstructionsDraftChanged,
 	isSafeInstructionsLink,
@@ -87,5 +88,47 @@ describe("isSafeInstructionsLink", () => {
 		"",
 	])("never renders %j as a link", (url) => {
 		expect(isSafeInstructionsLink(url)).toBe(false);
+	});
+});
+
+describe("getInstructionsToShow", () => {
+	const link = "https://example.test/how";
+
+	it("shows nothing when there is no text and no safe link", () => {
+		for (const instructions of [undefined, "", "  \n "]) {
+			for (const instructionsUrl of [undefined, "", "javascript:alert(1)"]) {
+				expect(
+					getInstructionsToShow({ instructions, instructionsUrl }),
+				).toBeUndefined();
+			}
+		}
+	});
+
+	it("shows the text alone, trimmed with its line breaks kept", () => {
+		expect(getInstructionsToShow({ instructions: " Lorem.\nIpsum. " })).toEqual(
+			{ text: "Lorem.\nIpsum.", url: undefined },
+		);
+	});
+
+	it("shows the link alone, trimmed", () => {
+		expect(getInstructionsToShow({ instructionsUrl: ` ${link} ` })).toEqual({
+			text: undefined,
+			url: link,
+		});
+	});
+
+	it("shows both", () => {
+		expect(
+			getInstructionsToShow({ instructions: "Lorem.", instructionsUrl: link }),
+		).toEqual({ text: "Lorem.", url: link });
+	});
+
+	it("drops an unsafe link but keeps the text", () => {
+		expect(
+			getInstructionsToShow({
+				instructions: "Lorem.",
+				instructionsUrl: "data:text/html,<p>x</p>",
+			}),
+		).toEqual({ text: "Lorem.", url: undefined });
 	});
 });
