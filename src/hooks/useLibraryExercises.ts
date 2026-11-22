@@ -11,10 +11,11 @@ import {
 	renameExercise,
 	restoreExercise,
 	setExerciseAttributes,
+	setExerciseInstructions,
 	setExerciseMeasure,
 	setExerciseRestSeconds,
 } from "../db";
-import type { Exercise, SetMeasure } from "../db/types";
+import type { Exercise, ExerciseInstructions, SetMeasure } from "../db/types";
 import { filterExercisesByName } from "../lib/exerciseLibrary";
 
 /**
@@ -59,4 +60,12 @@ export const exerciseLibraryActions = {
 		id: string,
 		edit: ExerciseAttributesEdit,
 	): Promise<boolean> => setExerciseAttributes(id, edit),
+	/**
+	 * Replaces the exercise's instructions (ADR-0020) with ones already
+	 * checked by prepareInstructions; a field left out is removed.
+	 */
+	setInstructions: (
+		id: string,
+		instructions: ExerciseInstructions,
+	): Promise<boolean> => setExerciseInstructions(id, instructions),
 };
