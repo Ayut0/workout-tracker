@@ -29,7 +29,7 @@ writes through restore).
   field left blank removes that measurement. An entry holds at least one
   measurement (checked by the form, `parseBodyEntryForm`).
 - **Units.** Body weight is stored in kg, unrounded, and shown and typed in
-  the weight unit setting, like every weight (CONTEXT.md § Units). Waist is
+  the weight unit setting, like every weight (GLOSSARY.md § Units). Waist is
   stored, typed and shown in **cm** whatever the weight unit; inches for
   pound users are a possible follow-up (display-only, no migration).
   Re-saving a day whose field still shows the stored value (rounded to one

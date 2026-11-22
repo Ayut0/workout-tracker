@@ -63,7 +63,7 @@ Each section below belongs to one issue; later issues add sections:
 - **Template planned sets** gain `seconds?` and `distanceM?`
   (`TemplateSet`); templates are stored whole, so no schema version.
 - **Volume and Estimated 1RM are unchanged:** they count weight × reps of
-  complete sets, as CONTEXT.md defines them. A reps, seconds or distance set
+  complete sets, as GLOSSARY.md defines them. A reps, seconds or distance set
   has no weight and adds nothing; hidden weight and reps kept after a measure
   change still count, as they did before the switch.
 - **Backup** (ADR-0011): `parseBackup` checks `measure` is one of the four
