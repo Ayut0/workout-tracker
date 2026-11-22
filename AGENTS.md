@@ -72,7 +72,10 @@ convention specific to this repo.
 
 - **Issue tracker:** GitHub issues on `Ayut0/workout-tracker` — see
   [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md).
-- **Domain docs:** see [docs/agents/domain.md](docs/agents/domain.md).
+- **Triage labels:** the five canonical roles (`needs-triage`, `needs-info`,
+  `ready-for-agent`, `ready-for-human`, `wontfix`) — see
+  [docs/agents/triage-labels.md](docs/agents/triage-labels.md).
+- **Domain docs:** single-context (`CONTEXT.md` + `docs/adr/`) — see [docs/agents/domain.md](docs/agents/domain.md).
 - **Review lenses:** see [docs/agents/review-lenses.md](docs/agents/review-lenses.md).
 
 ## Project map
