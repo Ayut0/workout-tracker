@@ -1,6 +1,6 @@
 import type { TemplateFromWorkoutResult } from "../db/templates";
 import type { SetMeasure, TemplateExercise, TemplateSet } from "../db/types";
-import { moveItem, planNextSet } from "../db/workoutLog";
+import { moveItem, planNextTemplateSet } from "../db/workoutLog";
 
 /**
  * Pure edits to a template's planned exercises while the editor holds them
@@ -45,7 +45,7 @@ export function appendPlannedSet(
 ): TemplateExercise[] {
 	return updateExerciseSets(exercises, exerciseIndex, (sets) => [
 		...sets,
-		planNextSet(sets.at(-1), measure),
+		planNextTemplateSet(sets.at(-1), measure),
 	]);
 }
 
@@ -71,11 +71,15 @@ const PLANNED_SET_FIELDS = [
 	"seconds",
 	"distanceM",
 	"warmup",
+	"repMin",
+	"repMax",
+	"targetRir",
 ] as const satisfies readonly (keyof TemplateSet)[];
 
 /**
- * Changes a planned set's weight, reps, seconds, distance or warm-up mark.
- * Keys present with `undefined` are cleared.
+ * Changes a planned set's weight, reps, seconds, distance or warm-up mark, or
+ * its targets (rep range and RIR, ADR-0014). Keys present with `undefined`
+ * are cleared.
  */
 export function updatePlannedSet(
 	exercises: readonly TemplateExercise[],
