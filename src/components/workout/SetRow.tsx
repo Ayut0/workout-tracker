@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { SetMeasure, WeightUnit, WorkoutSet } from "../../db/types";
 import type { SetChanges } from "../../db/workoutLog";
 import { MeasureInputs } from "./MeasureInputs";
+import { RpeChips } from "./RpeChips";
 
 type SetRowProps = {
 	set: WorkoutSet;
@@ -22,8 +23,8 @@ type SetRowProps = {
 };
 
 /**
- * One set: the inputs for the exercise's measure and a done toggle. Edits are
- * saved as typed.
+ * One set: the inputs for the exercise's measure and a done toggle, with the
+ * RPE chip row (#64) beneath. Edits are saved as typed.
  */
 export function SetRow({
 	set,
@@ -69,6 +70,13 @@ export function SetRow({
 			>
 				×
 			</button>
+			<div className="set-extras">
+				<RpeChips
+					rpe={set.rpe}
+					label={label}
+					onToggle={(tapped) => onChange({ toggleRpe: tapped })}
+				/>
+			</div>
 		</li>
 	);
 }

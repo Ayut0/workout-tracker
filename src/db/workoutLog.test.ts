@@ -1,5 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { exportBackup } from "./backup";
+import { parseBackup } from "./backupFormat";
 import type { WorkoutExerciseDetail } from "./index";
 import { findActiveWorkout, findWorkoutDetail, WorkoutDB } from "./index";
 import type { Workout, WorkoutSet } from "./types";
@@ -379,6 +381,54 @@ describe("resuming", () => {
 			[60, 8, 2_000],
 			[60, 8, undefined],
 		]);
+	});
+});
+
+describe("RPE on a set (#64)", () => {
+	async function startWithSet() {
+		const workout = await startEmpty();
+		const bench = await addWorkoutExercise(workout.id, "bench", database);
+		if (!bench) throw new Error("expected bench");
+		return firstSet(bench).id;
+	}
+
+	it("clears the RPE by deleting the field, and the backup still parses", async () => {
+		const setId = await startWithSet();
+		await updateSet(setId, { rpe: 8 }, database);
+		await updateSet(setId, { rpe: undefined }, database);
+
+		const stored = await database.sets.get(setId);
+		expect(stored && "rpe" in stored).toBe(false);
+		const backup = await exportBackup(1, database);
+		expect(parseBackup(JSON.stringify(backup)).ok).toBe(true);
+	});
+
+	it("toggles against the stored RPE: set, clear, replace", async () => {
+		const setId = await startWithSet();
+		await updateSet(setId, { toggleRpe: 8 }, database);
+		expect((await database.sets.get(setId))?.rpe).toBe(8);
+		await updateSet(setId, { toggleRpe: 9 }, database);
+		expect((await database.sets.get(setId))?.rpe).toBe(9);
+		await updateSet(setId, { toggleRpe: 9 }, database);
+		const stored = await database.sets.get(setId);
+		expect(stored && "rpe" in stored).toBe(false);
+	});
+
+	it("makes two quick taps on the same chip set then clear", async () => {
+		const setId = await startWithSet();
+		await Promise.all([
+			updateSet(setId, { toggleRpe: 8 }, database),
+			updateSet(setId, { toggleRpe: 8 }, database),
+		]);
+		const stored = await database.sets.get(setId);
+		expect(stored && "rpe" in stored).toBe(false);
+	});
+
+	it("replaces an imported decimal RPE when a chip is tapped", async () => {
+		const setId = await startWithSet();
+		await updateSet(setId, { rpe: 8.5 }, database);
+		await updateSet(setId, { toggleRpe: 8 }, database);
+		expect((await database.sets.get(setId))?.rpe).toBe(8);
 	});
 });
 
