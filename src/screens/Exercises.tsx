@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { ExerciseAttributesFields } from "../components/ExerciseAttributesFields";
+import { ExerciseInstructionsForm } from "../components/ExerciseInstructionsForm";
 import { ExerciseList } from "../components/ExerciseList";
 import { ExerciseMeasureField } from "../components/ExerciseMeasureField";
 import { ExerciseNameForm } from "../components/ExerciseNameForm";
@@ -150,6 +151,16 @@ export function Exercises() {
 									defaultSeconds={settings.restSeconds}
 									onSave={(seconds) =>
 										void exerciseLibraryActions.setRest(exercise.id, seconds)
+									}
+								/>
+								<ExerciseInstructionsForm
+									key={`${exercise.id}-instructions`}
+									instructions={exercise}
+									onSave={(instructions) =>
+										exerciseLibraryActions.setInstructions(
+											exercise.id,
+											instructions,
+										)
 									}
 								/>
 								<ExerciseAttributesFields

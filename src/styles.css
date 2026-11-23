@@ -490,6 +490,11 @@ fieldset {
 	color: var(--muted);
 }
 
+/* Save instructions (#99), with "Unsaved" beside it. */
+.instructions-actions {
+	align-items: center;
+}
+
 /* Muscle groups (#72): toggle chips that wrap at phone width. */
 .muscle-picker legend {
 	margin-bottom: 4px;
