@@ -4,6 +4,7 @@ import {
 	type BodyEntry,
 	type Exercise,
 	type ExerciseAttributes,
+	type ExerciseInstructions,
 	type MuscleGroup,
 	type RestTimer,
 	type SetMeasure,
@@ -279,6 +280,29 @@ export async function setExerciseMeasure(
 	const updated = await database.exercises.update(id, (exercise) => {
 		if (measure === DEFAULT_SET_MEASURE) delete exercise.measure;
 		else exercise.measure = measure;
+	});
+	return updated > 0;
+}
+
+/**
+ * Replaces an exercise's instructions (ADR-0020) with what the form saved,
+ * already tidied and checked by prepareInstructions; a field left out is
+ * removed. Only these two fields are written, inside one update, so an
+ * attribute changed at the same time is kept. Returns false when no such
+ * exercise exists.
+ */
+export async function setExerciseInstructions(
+	id: string,
+	instructions: ExerciseInstructions,
+	database: WorkoutDB = db,
+): Promise<boolean> {
+	const updated = await database.exercises.update(id, (exercise) => {
+		if (instructions.instructions !== undefined) {
+			exercise.instructions = instructions.instructions;
+		} else delete exercise.instructions;
+		if (instructions.instructionsUrl !== undefined) {
+			exercise.instructionsUrl = instructions.instructionsUrl;
+		} else delete exercise.instructionsUrl;
 	});
 	return updated > 0;
 }

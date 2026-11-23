@@ -16,6 +16,12 @@ import {
 } from "./constants";
 import { SETTINGS_ID, type SettingsRecord } from "./index";
 import {
+	checkInstructionsUrl,
+	formatCount,
+	MAX_INSTRUCTIONS_LENGTH,
+	tidyInstructions,
+} from "./instructions";
+import {
 	type BodyEntry,
 	type Exercise,
 	MAX_PLANNED_REPS,
@@ -211,6 +217,28 @@ const muscles = makeOptional((value) => {
 	return undefined;
 });
 
+/** Instructions text (ADR-0020): at most the form's cap once trimmed. */
+const checkInstructionsText: Check = (value) => {
+	if (typeof value !== "string") return "must be text";
+	return value.trim().length > MAX_INSTRUCTIONS_LENGTH
+		? `must be at most ${formatCount(MAX_INSTRUCTIONS_LENGTH)} characters`
+		: undefined;
+};
+
+/**
+ * An instructions link (ADR-0020): what the form accepts once trimmed. A
+ * blank one passes here and is dropped by tidyExerciseInstructions.
+ */
+const checkInstructionsLink: Check = (value) => {
+	if (typeof value !== "string") return "must be text";
+	const url = value.trim();
+	if (url === "") return undefined;
+	const problem = checkInstructionsUrl(url);
+	return problem === undefined
+		? undefined
+		: `is not a link the app can save: ${problem}`;
+};
+
 const EXERCISE: Spec<Exercise> = {
 	id: checkId,
 	name: checkText,
@@ -225,6 +253,9 @@ const EXERCISE: Spec<Exercise> = {
 	movementPattern: makeOptional(buildOneOfCheck(...MOVEMENT_PATTERNS)),
 	category: makeOptional(buildOneOfCheck(...EXERCISE_CATEGORIES)),
 	equipment: makeOptional(buildOneOfCheck(...EQUIPMENT)),
+	// Missing in backups made before instructions (ADR-0020): none written.
+	instructions: makeOptional(checkInstructionsText),
+	instructionsUrl: makeOptional(checkInstructionsLink),
 };
 
 /** Where a template sits in a program (ADR-0018); absent before #74. */
@@ -389,6 +420,27 @@ function tidyRecordNotes<T extends { notes?: string }>(record: T): T {
 	return copy;
 }
 
+/**
+ * Keeps an exercise's instructions as the form stores them (ADR-0020):
+ * trimmed, and no field at all when blank.
+ */
+function tidyExerciseInstructions(exercise: Exercise): Exercise {
+	if (
+		exercise.instructions === undefined &&
+		exercise.instructionsUrl === undefined
+	) {
+		return exercise;
+	}
+	const copy = { ...exercise };
+	delete copy.instructions;
+	delete copy.instructionsUrl;
+	const text = tidyInstructions(exercise.instructions ?? "");
+	const url = tidyInstructions(exercise.instructionsUrl ?? "");
+	if (text !== undefined) copy.instructions = text;
+	if (url !== undefined) copy.instructionsUrl = url;
+	return copy;
+}
+
 /** Checks the records of every store; the first problem found wins. */
 function readData(data: RawData): BackupData | string {
 	const exercises = readRows(data, "exercises", EXERCISE);
@@ -445,7 +497,7 @@ function readData(data: RawData): BackupData | string {
 		days.add(entry.date);
 	}
 	return {
-		exercises,
+		exercises: exercises.map(tidyExerciseInstructions),
 		workouts,
 		workoutExercises: workoutExercises.map(tidyRecordNotes),
 		sets: normalisedSets,

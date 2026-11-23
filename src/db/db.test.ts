@@ -19,6 +19,7 @@ import {
 	restoreExercise,
 	saveSettings,
 	setExerciseAttributes,
+	setExerciseInstructions,
 	setExerciseMeasure,
 	setExerciseRestSeconds,
 	WorkoutDB,
@@ -593,6 +594,74 @@ describe("exercise measure (ADR-0012)", () => {
 		expect(await setExerciseMeasure("missing", "reps", database)).toBe(false);
 		await database.exercises.add(plank);
 		expect(await setExerciseMeasure("plank", "reps", database)).toBe(true);
+	});
+});
+
+describe("exercise instructions (ADR-0020)", () => {
+	const row: Exercise = { id: "row", name: "Row", nameKey: "row" };
+
+	it("stores text and link, keeping the other fields", async () => {
+		await database.exercises.add({
+			...row,
+			restSeconds: 90,
+			equipment: "cable",
+		});
+
+		await setExerciseInstructions(
+			"row",
+			{
+				instructions: "Brace, then pull.",
+				instructionsUrl: "https://example.test/row",
+			},
+			database,
+		);
+
+		expect(await database.exercises.get("row")).toEqual({
+			...row,
+			restSeconds: 90,
+			equipment: "cable",
+			instructions: "Brace, then pull.",
+			instructionsUrl: "https://example.test/row",
+		});
+	});
+
+	it("removes a field left out, so clearing leaves nothing behind", async () => {
+		await database.exercises.add({
+			...row,
+			instructions: "Old.",
+			instructionsUrl: "https://example.test/old",
+		});
+
+		await setExerciseInstructions("row", { instructions: "New." }, database);
+		const textOnly = await database.exercises.get("row");
+		expect(textOnly).toEqual({ ...row, instructions: "New." });
+		expect(textOnly && "instructionsUrl" in textOnly).toBe(false);
+
+		await setExerciseInstructions("row", {}, database);
+		const cleared = await database.exercises.get("row");
+		expect(cleared).toEqual(row);
+		expect(cleared && "instructions" in cleared).toBe(false);
+	});
+
+	it("does not overwrite an attribute changed at the same time", async () => {
+		await database.exercises.add(row);
+
+		await Promise.all([
+			setExerciseInstructions("row", { instructions: "Pull." }, database),
+			setExerciseAttributes("row", { equipment: "cable" }, database),
+		]);
+
+		expect(await database.exercises.get("row")).toEqual({
+			...row,
+			instructions: "Pull.",
+			equipment: "cable",
+		});
+	});
+
+	it("reports whether the exercise exists", async () => {
+		expect(await setExerciseInstructions("missing", {}, database)).toBe(false);
+		await database.exercises.add(row);
+		expect(await setExerciseInstructions("row", {}, database)).toBe(true);
 	});
 });
 

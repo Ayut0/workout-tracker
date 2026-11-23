@@ -108,8 +108,18 @@ export interface ExerciseAttributes {
 	equipment?: Equipment;
 }
 
+/**
+ * How an exercise is performed, written by the lifter (ADR-0020): plain text
+ * and a web link, each optional. Stored trimmed and never blank; the link is
+ * an http or https URL. Not indexed, so adding them needs no schema version.
+ */
+export interface ExerciseInstructions {
+	instructions?: string;
+	instructionsUrl?: string;
+}
+
 /** A movement in the library, such as "Bench Press (Barbell)". */
-export interface Exercise extends ExerciseAttributes {
+export interface Exercise extends ExerciseAttributes, ExerciseInstructions {
 	id: string;
 	name: string;
 	/**
