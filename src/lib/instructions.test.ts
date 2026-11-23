@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	getInstructionsCounter,
+	getInstructionsToShow,
+	getLinkLabel,
 	isInstructionsDraftChanged,
+	isSafeInstructionsLink,
 } from "./instructions";
 
 describe("getInstructionsCounter", () => {
@@ -50,5 +53,82 @@ describe("isInstructionsDraftChanged", () => {
 		[{ text: "", url: "https://example.test/lorem" }],
 	])("is changed for %j", (draft) => {
 		expect(isInstructionsDraftChanged(draft, stored)).toBe(true);
+	});
+});
+
+describe("getLinkLabel", () => {
+	it.each([
+		["https://www.video.example.test/watch?v=abc", "video.example.test"],
+		["http://example.test", "example.test"],
+		["https://EXAMPLE.test:8443/a", "example.test"],
+	])("shows %j as its host %j", (url, label) => {
+		expect(getLinkLabel(url)).toBe(label);
+	});
+
+	it("falls back to the text itself when it cannot be read as a URL", () => {
+		expect(getLinkLabel("not a url")).toBe("not a url");
+	});
+});
+
+describe("isSafeInstructionsLink", () => {
+	it.each(["https://example.test/a", "http://example.test"])(
+		"renders %j as a link",
+		(url) => {
+			expect(isSafeInstructionsLink(url)).toBe(true);
+		},
+	);
+
+	it.each([
+		"javascript:alert(1)",
+		"JavaScript:alert(1)",
+		"data:text/html,<p>x</p>",
+		"ftp://example.test/a",
+		"example.test/a",
+		"not a url",
+		"",
+	])("never renders %j as a link", (url) => {
+		expect(isSafeInstructionsLink(url)).toBe(false);
+	});
+});
+
+describe("getInstructionsToShow", () => {
+	const link = "https://example.test/how";
+
+	it("shows nothing when there is no text and no safe link", () => {
+		for (const instructions of [undefined, "", "  \n "]) {
+			for (const instructionsUrl of [undefined, "", "javascript:alert(1)"]) {
+				expect(
+					getInstructionsToShow({ instructions, instructionsUrl }),
+				).toBeUndefined();
+			}
+		}
+	});
+
+	it("shows the text alone, trimmed with its line breaks kept", () => {
+		expect(getInstructionsToShow({ instructions: " Lorem.\nIpsum. " })).toEqual(
+			{ text: "Lorem.\nIpsum.", url: undefined },
+		);
+	});
+
+	it("shows the link alone, trimmed", () => {
+		expect(getInstructionsToShow({ instructionsUrl: ` ${link} ` })).toEqual({
+			text: undefined,
+			url: link,
+		});
+	});
+
+	it("shows both", () => {
+		expect(
+			getInstructionsToShow({ instructions: "Lorem.", instructionsUrl: link }),
+		).toEqual({ text: "Lorem.", url: link });
+	});
+
+	it("drops an unsafe link but keeps the text", () => {
+		expect(
+			getInstructionsToShow({
+				instructions: "Lorem.",
+				instructionsUrl: "data:text/html,<p>x</p>",
+			}),
+		).toEqual({ text: "Lorem.", url: undefined });
 	});
 });
